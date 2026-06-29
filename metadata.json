@@ -1,6 +1,0 @@
-{
-  "name": "SENA - Gestión Pre-Compra de Materiales",
-  "description": "Sistema para el control y la gestión de materiales de formación del SENA en la fase de pre-compra, con roles de Instructor, Coordinador, Almacenista y Proveedor.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
