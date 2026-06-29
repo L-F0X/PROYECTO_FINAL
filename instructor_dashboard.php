@@ -34,18 +34,19 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <header class="dashboard-header">
     <div class="header-brand">
         <img src="imagenes/sena-logo.png" alt="SENA">
-        <span>BICERGAM | SENA</span>
     </div>
     <div class="header-user">
         <div class="header-user-text">
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
-        <?php if ($photoPath): ?>
-            <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
-        <?php else: ?>
-            <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
-        <?php endif; ?>
+        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
     </div>
 </header>
 
@@ -53,13 +54,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="imagenes/sena-logo.png" alt="SENA">
-            <span>BICERGAM | SENA</span>
         </div>
 
         <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
             <a href="crear.php" class="sidebar-link">+ Crear Nuevo Lote</a>
+            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
         </div>
 
         <div class="sidebar-group">
