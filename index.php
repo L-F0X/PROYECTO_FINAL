@@ -52,7 +52,15 @@ $lotes = $stmt->fetchAll();
         <h2><?= htmlspecialchars($panelTitulo) ?></h2>
         <p><?= htmlspecialchars($panelDescripcion) ?></p>
     </div>
-    <a href="crear.php" class="btn btn-sena" style="margin-bottom: 20px;">+ Crear Nuevo Lote</a>
+    <?php if ($rolNombre === 'instructor'): ?>
+        <div style="display:flex; gap:12px; margin-bottom:18px;">
+            <a href="instructor_dashboard.php" class="btn btn-sena">Ir al Panel de Instructor</a>
+            <a href="instructor_profile.php" class="btn">Editar Perfil</a>
+            <a href="crear.php" class="btn btn-sena" style="margin-left:auto;">+ Crear Nuevo Lote</a>
+        </div>
+    <?php else: ?>
+        <a href="crear.php" class="btn btn-sena" style="margin-bottom: 20px;">+ Crear Nuevo Lote</a>
+    <?php endif; ?>
 
     <table>
         <thead>
