@@ -1,0 +1,317 @@
+/* estilos.css */
+:root {
+    --verde-sena: #39A900;
+    --gris-oscuro: #101820;
+    --gris-claro: #f4f6f9;
+    --blanco: #ffffff;
+    --texto: #333333;
+    --alerta-rojo: #de3a3a;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--gris-claro);
+    color: var(--texto);
+    margin: 0;
+    padding: 0;
+}
+
+/* Header Institucional */
+header {
+    background-color: var(--gris-oscuro);
+    color: var(--blanco);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 4px solid var(--verde-sena);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 1px;
+}
+
+header span {
+    color: var(--verde-sena);
+    font-weight: bold;
+}
+
+/* Contenedor Principal */
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    background: var(--blanco);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.role-banner {
+    padding: 22px 28px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: #ffffff;
+}
+
+.role-instructor {
+    background: linear-gradient(135deg, #1d6f8d, #30a0b8);
+}
+
+.role-coordinador {
+    background: linear-gradient(135deg, #265f28, #4fa34f);
+}
+
+.role-banner h2 {
+    margin: 0 0 8px;
+    font-size: 1.8rem;
+}
+
+.role-banner p {
+    margin: 0;
+    opacity: 0.92;
+}
+
+/* Botones */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-sena {
+    background-color: var(--verde-sena);
+    color: var(--blanco);
+}
+
+.btn-sena:hover {
+    background-color: #2d8500;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background-color: var(--alerta-rojo);
+    color: var(--blanco);
+}
+
+.btn-danger:hover {
+    background-color: #b82828;
+}
+
+/* Tablas Modernas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: var(--gris-oscuro);
+    color: var(--blanco);
+}
+
+tr:hover {
+    background-color: rgba(57, 169, 0, 0.05);
+}
+
+/* Formularios */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    border-color: var(--verde-sena);
+    outline: none;
+    box-shadow: 0 0 5px rgba(57, 169, 0, 0.5);
+}
+
+/* Animaciones */
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}/* Login page */
+.login-page {
+    min-height: 100vh;
+    background-image: linear-gradient(180deg, rgba(244, 250, 244, 0.35), rgba(216, 233, 221, 0.35)), url('imagenes/login-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.sena-logo {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.14);
+    z-index: 2;
+}
+
+.sena-logo img {
+    width: 44px;
+    height: auto;
+    display: block;
+}
+
+.sena-logo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    pointer-events: none;
+}
+
+.login-card {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    background: rgba(255, 255, 255, 0.78);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(8px);
+}
+
+.login-hero {
+    background: linear-gradient(180deg, rgba(0, 38, 69, 0.88) 0%, rgba(14, 111, 61, 0.88) 100%);
+    color: #f7fcf6;
+    padding: 60px 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.login-hero-content {
+    max-width: 500px;
+}
+
+.login-acronym {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.login-meaning {
+    font-size: 1.25rem;
+    line-height: 1.35;
+    font-weight: 700;
+    margin: 0;
+}
+
+.login-subtitle {
+    margin-top: 24px;
+    color: rgba(247, 252, 246, 0.9);
+    font-size: 0.98rem;
+    line-height: 1.75;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.login-label {
+    display: inline-block;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.82);
+    font-weight: 700;
+}
+
+.login-form-container {
+    padding: 50px 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login-form-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: var(--gris-oscuro);
+}
+
+.login-form-header p {
+    margin: 10px 0 25px;
+    color: #5f6d78;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.error-msg {
+    background-color: rgba(222, 58, 58, 0.1);
+    color: var(--alerta-rojo);
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid var(--alerta-rojo);
+    margin-bottom: 22px;
+    font-size: 14px;
+}
+
+@media (max-width: 900px) {
+    .login-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .login-card {
+        border-radius: 18px;
+    }
+
+    .login-hero,
+    .login-form-container {
+        padding: 30px 24px;
+    }
+
+    .login-hero h2,
+    .login-form-header h2 {
+        font-size: 1.75rem;
+    }
+}
