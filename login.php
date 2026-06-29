@@ -9,12 +9,29 @@ if (isset($_SESSION['usuario_id'])) {
 }
 
 $error = "";
+$selectedRoleId = 0;
+$roles = [];
+$roleIcons = [
+    'Instructor' => 'iconos/instructor-de-manejo.png',
+    'Coordinacion' => 'iconos/caracteristicas.png',
+    'Almacenista' => 'iconos/deposito.png',
+    'Proveedor' => 'iconos/caracteristicas.png',
+    'Aprendiz' => 'iconos/caracteristicas.png',
+];
+
+try {
+    $stmtRoles = $pdo->query("SELECT ID_ROL, NOMBRE_ROL FROM rol ORDER BY ID_ROL");
+    $roles = $stmtRoles->fetchAll();
+} catch (\PDOException $e) {
+    error_log('Login roles load error: ' . $e->getMessage());
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
+    $selectedRoleId = isset($_POST['role']) ? intval($_POST['role']) : 0;
 
-    if (!empty($email) && !empty($password)) {
+    if (!empty($email) && !empty($password) && $selectedRoleId > 0) {
         try {
             // Consultar el usuario y su rol
             $stmt = $pdo->prepare("SELECT u.*, r.NOMBRE_ROL 
@@ -47,14 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = "Su usuario se encuentra en estado: " . $usuario['ESTADO'] . ". Contacte al administrador.";
                 }
             } else {
-                $error = "Correo electrónico o contraseña incorrectos.";
+                $error = "Correo electrónico, contraseña o rol incorrectos.";
             }
         } catch (\PDOException $e) {
             error_log('Login DB error: ' . $e->getMessage());
             $error = "Error interno. Intente de nuevo más tarde.";
         }
     } else {
-        $error = "Por favor, complete todos los campos.";
+        $error = "Por favor, complete todos los campos y seleccione un rol.";
     }
 }
 ?>
@@ -92,8 +109,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form id="formLogin" action="login.php" method="POST">
             <div class="form-group">
+                <label class="login-role-label">Selecciona tu rol</label>
+                <div class="role-option-grid">
+                    <?php foreach ($roles as $role): ?>
+                        <?php $icon = $roleIcons[$role['NOMBRE_ROL']] ?? 'iconos/caracteristicas.png'; ?>
+                        <label class="role-option<?= $selectedRoleId === (int) $role['ID_ROL'] ? ' selected' : '' ?>">
+                            <input type="radio" name="role" value="<?= (int) $role['ID_ROL'] ?>" <?= $selectedRoleId === (int) $role['ID_ROL'] ? 'checked' : '' ?> required>
+                            <div class="role-option-inner">
+                                <img src="<?= htmlspecialchars($icon) ?>" alt="<?= htmlspecialchars($role['NOMBRE_ROL']) ?>" class="role-icon">
+                                <span class="role-name"><?= htmlspecialchars($role['NOMBRE_ROL']) ?></span>
+                            </div>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label for="email">Correo Electrónico Institucional</label>
-                <input type="email" id="email" name="email" class="form-control" autocomplete="username" required>
+                <input type="email" id="email" name="email" class="form-control" autocomplete="username" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
             </div>
 
             <div class="form-group">
