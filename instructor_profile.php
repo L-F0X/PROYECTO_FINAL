@@ -84,7 +84,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </head>
 <body>
 <header>
-    <h1>BICERGAM | <span>SENA</span></h1>
+    <div class="topbar">
+        <div class="brand">
+            <img src="imagenes/sena-logo.png" alt="SENA">
+            <h1>BICERGAM | <span>SENA</span></h1>
+        </div>
+        <div class="user-actions">
+            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            <a href="logout.php" class="logout-link">Cerrar Sesión</a>
+        </div>
+    </div>
 </header>
 
 <div class="container fade-in">

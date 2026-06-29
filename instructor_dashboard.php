@@ -32,10 +32,15 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </head>
 <body>
 <header>
-    <h1>BICERGAM | <span>SENA</span></h1>
-    <div style="text-align: right; color: white;">
-        Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> (<?= htmlspecialchars($_SESSION['rol_nombre']) ?>) |
-        <a href="logout.php" style="color: var(--alerta-rojo); text-decoration: none; font-weight: bold; margin-left: 10px;">Cerrar Sesión</a>
+    <div class="topbar">
+        <div class="brand">
+            <img src="imagenes/sena-logo.png" alt="SENA">
+            <h1>BICERGAM | <span>SENA</span></h1>
+        </div>
+        <div class="user-actions">
+            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> (<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)
+            <a href="logout.php" class="logout-link">Cerrar Sesión</a>
+        </div>
     </div>
 </header>
 
@@ -45,24 +50,24 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <p>Accede a tus herramientas: ficha técnica, historial de existencia y consulta de matrices.</p>
     </div>
 
-    <div style="display:flex; gap:18px; align-items:center; margin-bottom:18px;">
-        <div style="display:flex; align-items:center; gap:12px;">
+    <div class="panel-card">
+        <div class="profile-row">
             <?php if ($photoPath): ?>
-                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #fff; box-shadow:0 6px 14px rgba(0,0,0,0.12);">
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
             <?php else: ?>
-                <div style="width:64px; height:64px; border-radius:50%; background:#eff8f1; display:flex; align-items:center; justify-content:center; font-weight:700; color:#0f3b4a;"><?= strtoupper(substr($_SESSION['usuario_nombre'],0,1)) ?></div>
+                <div class="profile-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'],0,1)) ?></div>
             <?php endif; ?>
             <div>
-                <div style="font-weight:700;"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></div>
+                <div style="font-weight:700; font-size:1.05rem;"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></div>
                 <a href="instructor_profile.php" class="btn" style="margin-top:6px; padding:6px 10px; background:#ffffff; border:1px solid rgba(0,0,0,0.06);">Editar Perfil</a>
             </div>
         </div>
-    </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:18px; margin-bottom: 24px;">
-        <a href="crear.php" class="btn btn-sena">Ficha Técnica</a>
-        <a href="historial_existencia.php" class="btn" style="background:#f4f6f9; border:1px solid #e6eef0;">Historial de Existencia</a>
-        <a href="matriz.php" class="btn" style="background:#f4f6f9; border:1px solid #e6eef0;">Consulta de Matrices</a>
+        <div class="dash-actions">
+            <a href="crear.php" class="dash-btn dash-btn--primary">Ficha Técnica</a>
+            <a href="historial_existencia.php" class="dash-btn dash-btn--ghost">Historial de Existencia</a>
+            <a href="matriz.php" class="dash-btn dash-btn--ghost">Consulta de Matrices</a>
+        </div>
     </div>
 
     <section>
