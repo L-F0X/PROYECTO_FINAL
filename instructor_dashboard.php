@@ -31,11 +31,21 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-<header>
-    <h1>BICERGAM | <span>SENA</span></h1>
-    <div style="text-align: right; color: white;">
-        Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> (<?= htmlspecialchars($_SESSION['rol_nombre']) ?>) |
-        <a href="logout.php" style="color: var(--alerta-rojo); text-decoration: none; font-weight: bold; margin-left: 10px;">Cerrar Sesión</a>
+<header class="dashboard-header">
+    <div class="header-brand">
+        <img src="imagenes/sena-logo.png" alt="SENA">
+        <span>BICERGAM | SENA</span>
+    </div>
+    <div class="header-user">
+        <div class="header-user-text">
+            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+        </div>
+        <?php if ($photoPath): ?>
+            <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+        <?php else: ?>
+            <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
+        <?php endif; ?>
     </div>
 </header>
 
@@ -69,17 +79,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <div>
                 <h2>Panel de Instructor</h2>
                 <p class="dashboard-subtitle">Accede a tus herramientas: ficha técnica, historial de existencia y consulta de matrices.</p>
-            </div>
-            <div class="profile-top-right">
-                <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-top-avatar">
-                <?php else: ?>
-                    <div class="profile-top-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'],0,1)) ?></div>
-                <?php endif; ?>
-                <div class="profile-top-text">
-                    <div class="profile-name"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></div>
-                    <div class="profile-role"><?= htmlspecialchars($_SESSION['rol_nombre']) ?></div>
-                </div>
             </div>
         </div>
 

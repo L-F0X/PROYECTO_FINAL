@@ -20,22 +20,59 @@ body {
 header {
     background-color: var(--gris-oscuro);
     color: var(--blanco);
-    padding: 15px 30px;
+    padding: 16px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
     border-bottom: 4px solid var(--verde-sena);
 }
 
-header h1 {
-    margin: 0;
-    font-size: 24px;
-    letter-spacing: 1px;
+.header-brand, .header-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-header span {
-    color: var(--verde-sena);
-    font-weight: bold;
+.header-brand img {
+    width: 34px;
+    display: block;
+}
+
+.header-brand span {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.header-user {
+    justify-content: flex-end;
+}
+
+.header-user-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.header-user-role {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.72);
+}
+
+.header-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #eff8f1;
+    color: #0f3b4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    border: 2px solid rgba(255,255,255,0.25);
 }
 
 /* Contenedor Principal */
@@ -416,22 +453,22 @@ tr:hover {
 /* Dashboard layout and left sidebar for instructor */
 .dashboard-page {
     display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 24px;
-    padding: 24px;
-    max-width: 1300px;
+    grid-template-columns: 250px 1fr;
+    gap: 22px;
+    padding: 20px;
+    max-width: 1280px;
     margin: 0 auto 40px;
 }
 
 .dashboard-sidebar {
     background: #ffffff;
     border-radius: 18px;
-    padding: 24px 18px;
+    padding: 24px 20px;
     box-shadow: 0 16px 30px rgba(0,0,0,0.08);
     position: sticky;
     top: 24px;
     align-self: start;
-    min-height: calc(100vh - 96px);
+    min-height: calc(100vh - 110px);
 }
 
 .sidebar-logo {
@@ -439,6 +476,8 @@ tr:hover {
     align-items: center;
     gap: 12px;
     margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e8eff0;
 }
 
 .sidebar-logo img {
@@ -469,14 +508,14 @@ tr:hover {
     width: 100%;
     margin-bottom: 12px;
     padding: 14px 16px;
-    border-radius: 10px;
+    border-radius: 14px;
     text-decoration: none;
     color: #122a33;
     font-weight: 700;
     background: #f8fbf8;
     border: 1px solid #e5eff0;
     text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .sidebar-link:hover {
