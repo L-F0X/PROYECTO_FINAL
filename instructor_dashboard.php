@@ -39,81 +39,84 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
 </header>
 
-<div class="container fade-in">
-    <div class="role-banner role-instructor">
-        <h2>Panel de Instructor</h2>
-        <p>Accede a tus herramientas: ficha técnica, historial de existencia y consulta de matrices.</p>
-    </div>
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <img src="imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM | SENA</span>
+        </div>
 
-    <div class="dashboard-layout">
-        <main>
-            <div class="panel-card">
-                <h3 style="margin-top:0;">Resumen</h3>
-                <p style="margin-top:6px; color:#546a72;">Aquí puedes ver tus lotes recientes y acceder rápidamente a acciones relacionadas.</p>
+        <div class="sidebar-group">
+            <h4>Operaciones</h4>
+            <a href="crear.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crear.php" class="sidebar-link">+ Crear Nuevo Lote</a>
+        </div>
 
-                <section style="margin-top:18px;">
-                    <h3>Tus lotes recientes</h3>
-                    <?php
-                        $stmt = $pdo->prepare("SELECT * FROM lote_requerimiento WHERE ID_SOLICITANTE = ? ORDER BY FECHA_CREACION DESC LIMIT 8");
-                        $stmt->execute([$usuarioId]);
-                        $lotes = $stmt->fetchAll();
-                    ?>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($lotes)): ?>
-                                <tr><td colspan="5" style="text-align:center">No hay lotes recientes.</td></tr>
-                            <?php else: ?>
-                                <?php foreach ($lotes as $l): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($l['ID_LOTE']) ?></td>
-                                        <td><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></td>
-                                        <td><?= htmlspecialchars($l['ESTADO_TRAMITE']) ?></td>
-                                        <td><?= htmlspecialchars($l['FECHA_CREACION']) ?></td>
-                                        <td><a href="matriz.php?lote=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn">Ver</a></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </section>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
+            <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+        </div>
+
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="dashboard-topbar">
+            <div>
+                <h2>Panel de Instructor</h2>
+                <p class="dashboard-subtitle">Accede a tus herramientas: ficha técnica, historial de existencia y consulta de matrices.</p>
             </div>
-        </main>
-
-        <aside class="sidebar">
-            <div class="profile-box">
+            <div class="profile-top-right">
                 <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-avatar">
+                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-top-avatar">
                 <?php else: ?>
-                    <div class="profile-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'],0,1)) ?></div>
+                    <div class="profile-top-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'],0,1)) ?></div>
                 <?php endif; ?>
-                <div class="profile-info">
+                <div class="profile-top-text">
                     <div class="profile-name"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></div>
                     <div class="profile-role"><?= htmlspecialchars($_SESSION['rol_nombre']) ?></div>
-                    <a href="instructor_profile.php" class="btn" style="margin-top:8px; display:inline-block;">Editar Perfil</a>
                 </div>
             </div>
+        </div>
 
-            <div class="action-group">
-                <h4>Operaciones</h4>
-                <a href="crear.php" class="dash-btn dash-btn--primary">Ficha Técnica</a>
-                <a href="crear.php" class="dash-btn">+ Crear Nuevo Lote</a>
-            </div>
+        <div class="panel-card">
+            <h3>Resumen</h3>
+            <p class="panel-description">Aquí puedes ver tus lotes recientes y acceder rápidamente a acciones relacionadas.</p>
 
-            <div class="action-group">
-                <h4>Consultas</h4>
-                <a href="historial_existencia.php" class="dash-btn dash-btn--ghost">Historial de Existencia</a>
-                <a href="matriz.php" class="dash-btn dash-btn--ghost">Consulta de Matrices</a>
-            </div>
-
-            <div class="action-group action-group--end">
-                <h4>Sesión</h4>
-                <a href="logout.php" class="logout-link" style="display:block; text-align:center;">Cerrar Sesión</a>
-            </div>
-        </aside>
-    </div>
+            <section class="recent-lotes">
+                <h4>Tus lotes recientes</h4>
+                <?php
+                    $stmt = $pdo->prepare("SELECT * FROM lote_requerimiento WHERE ID_SOLICITANTE = ? ORDER BY FECHA_CREACION DESC LIMIT 8");
+                    $stmt->execute([$usuarioId]);
+                    $lotes = $stmt->fetchAll();
+                ?>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($lotes)): ?>
+                            <tr><td colspan="5" style="text-align:center">No hay lotes recientes.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($lotes as $l): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($l['ID_LOTE']) ?></td>
+                                    <td><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></td>
+                                    <td><?= htmlspecialchars($l['ESTADO_TRAMITE']) ?></td>
+                                    <td><?= htmlspecialchars($l['FECHA_CREACION']) ?></td>
+                                    <td><a href="matriz.php?lote=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn">Ver</a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
 </div>
 
 <script src="javascript.js"></script>
