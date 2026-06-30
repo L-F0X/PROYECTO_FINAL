@@ -39,16 +39,16 @@ $lotes = $stmt->fetchAll();
 </head>
 <body>
 
-<header>
-    <div class="topbar">
-        <div class="brand">
-            <img src="imagenes/sena-logo.png" alt="SENA">
-            <h1>BICERGAM | <span>SENA</span></h1>
-        </div>
-        <div class="user-actions">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> (<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)
-            <a href="logout.php" class="logout-link">Cerrar Sesión</a>
-        </div>
+<header class="header-main">
+    <div class="header-left">
+        <h1 class="header-title">BICERGAM | <span class="accent-color">SENA</span></h1>
+    </div>
+    <div class="header-center">
+        <span class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
+        <a href="logout.php" class="btn-logout">Cerrar Sesión</a>
+    </div>
+    <div class="header-right">
+        <img src="imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
     </div>
 </header>
 
@@ -58,13 +58,17 @@ $lotes = $stmt->fetchAll();
         <p><?= htmlspecialchars($panelDescripcion) ?></p>
     </div>
     <?php if ($rolNombre === 'instructor'): ?>
-        <div style="display:flex; gap:12px; margin-bottom:18px;">
-            <a href="instructor_dashboard.php" class="btn btn-sena">Ir al Panel de Instructor</a>
-            <a href="instructor_profile.php" class="btn">Editar Perfil</a>
-            <a href="crear.php" class="btn btn-sena" style="margin-left:auto;">+ Crear Nuevo Lote</a>
+        <div class="actions-bar">
+            <div class="left-actions">
+                <a href="instructor_dashboard.php" class="btn btn-sena">Ir al Panel de Instructor</a>
+                <a href="instructor_profile.php" class="btn btn-secondary">Editar Perfil</a>
+            </div>
+            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
         </div>
     <?php else: ?>
-        <a href="crear.php" class="btn btn-sena" style="margin-bottom: 20px;">+ Crear Nuevo Lote</a>
+        <div class="actions-bar justify-end">
+            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
+        </div>
     <?php endif; ?>
 
     <table>

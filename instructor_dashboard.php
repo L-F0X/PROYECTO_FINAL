@@ -58,9 +58,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crear.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-            <a href="crear.php" class="sidebar-link">+ Crear Nuevo Lote</a>
-            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crear.php" class="sidebar-link">Consulta de Lotes</a>
         </div>
 
         <div class="sidebar-group">
@@ -71,6 +70,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
+            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
