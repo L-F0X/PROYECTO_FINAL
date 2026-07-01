@@ -285,11 +285,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crud_instructor/crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-            <a href="crud_instructor/consulta_lote.php" class="sidebar-link">Consulta de Lotes</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
             <a href="crud_instructor/matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="crud_instructor/certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
@@ -378,7 +376,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
                 <div class="profile-actions">
                     <button type="submit" class="btn-save" id="btn-guardar-perfil">Guardar cambios</button>
-                    <a href="instructor_dashboard.php" class="btn-back" id="btn-volver-dashboard">
+                    <a href="index.php" class="btn-back" id="btn-volver-dashboard">
                         ← Volver
                     </a>
                 </div>
