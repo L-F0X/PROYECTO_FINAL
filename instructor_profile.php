@@ -8,7 +8,7 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $usuarioId = intval($_SESSION['usuario_id']);
 $rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
-if ($rol !== 'instructor') {
+if (!in_array($rol, ['instructor', 'coordinacion'])) {
     header('Location: index.php');
     exit;
 }
@@ -266,7 +266,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
-        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+        <a href="profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
             <?php else: ?>
@@ -281,21 +281,44 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-logo">
             <img src="imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;">
         </div>
-        <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-            <a href="crear.php" class="sidebar-link">Consulta de Lotes</a>
-        </div>
-        <div class="sidebar-group">
-            <h4>Consultas</h4>
-            <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
-            <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
-        </div>
-        <div class="sidebar-group sidebar-group--session">
-            <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link active">Editar Perfil</a>
-            <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
-        </div>
+        <!-- Sidebar: show role-specific links below -->
+        <?php if ($rol === 'instructor'): ?>
+            <div class="sidebar-group">
+                <h4>Operaciones</h4>
+                <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+                <a href="crear.php" class="sidebar-link">Consulta de Lotes</a>
+            </div>
+
+            <div class="sidebar-group">
+                <h4>Consultas</h4>
+                <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
+                <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            </div>
+
+            <div class="sidebar-group sidebar-group--session">
+                <h4>Sesión</h4>
+                <a href="instructor_profile.php" class="sidebar-link active">Editar Perfil</a>
+                <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+            </div>
+        <?php else: ?>
+            <div class="sidebar-group">
+                <h4>Operaciones</h4>
+                <a href="coordinador_dashboard.php" class="sidebar-link sidebar-link--primary">Aprobación de Fichas</a>
+                <a href="index.php?from=coordinador" class="sidebar-link">Ver Lotes</a>
+            </div>
+
+            <div class="sidebar-group">
+                <h4>Consultas</h4>
+                <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
+                <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            </div>
+
+            <div class="sidebar-group sidebar-group--session">
+                <h4>Sesión</h4>
+                <a href="profile.php" class="sidebar-link active">Editar Perfil</a>
+                <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+            </div>
+        <?php endif; ?>
     </aside>
 
     <main class="dashboard-main">
@@ -329,7 +352,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 </div>
             <?php endif; ?>
 
-            <form action="instructor_profile.php" method="POST" enctype="multipart/form-data" id="form-perfil">
+            <form action="profile.php" method="POST" enctype="multipart/form-data" id="form-perfil">
                 <div class="profile-grid">
 
                     <div class="profile-field">
@@ -376,9 +399,11 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
                 <div class="profile-actions">
                     <button type="submit" class="btn-save" id="btn-guardar-perfil">Guardar cambios</button>
-                    <a href="instructor_dashboard.php" class="btn-back" id="btn-volver-dashboard">
-                        ← Volver
-                    </a>
+                    <?php if ($rol === 'instructor'): ?>
+                        <a href="instructor_dashboard.php" class="btn-back" id="btn-volver-dashboard">← Volver</a>
+                    <?php else: ?>
+                        <a href="coordinador_dashboard.php" class="btn-back" id="btn-volver-dashboard">← Volver</a>
+                    <?php endif; ?>
                 </div>
             </form>
 

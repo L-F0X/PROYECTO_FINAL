@@ -17,7 +17,7 @@ if ($rolNombre === 'instructor') {
     $stmt->execute([$usuarioId]);
     $panelTitulo = 'Panel de Instructor';
     $panelDescripcion = 'Aquí verás los lotes que has creado o que están a tu cargo como instructor.';
-} elseif ($rolNombre === 'coordinador') {
+} elseif (in_array($rolNombre, ['coordinador', 'coordinacion'], true)) {
     $stmt = $pdo->query("SELECT * FROM lote_requerimiento ORDER BY FECHA_CREACION DESC");
     $panelTitulo = 'Panel de Coordinador';
     $panelDescripcion = 'Revisa, coordina y da seguimiento a los lotes de requerimiento del equipo.';
@@ -61,13 +61,27 @@ $lotes = $stmt->fetchAll();
         <div class="actions-bar">
             <div class="left-actions">
                 <a href="instructor_dashboard.php" class="btn btn-sena">Ir al Panel de Instructor</a>
-                <a href="instructor_profile.php" class="btn btn-secondary">Editar Perfil</a>
+                <a href="profile.php" class="btn btn-secondary">Editar Perfil</a>
             </div>
             <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
         </div>
+    <?php elseif ($rolNombre === 'coordinador'): ?>
+        <div class="actions-bar">
+            <div class="left-actions">
+                <a href="coordinador_dashboard.php" class="btn btn-sena">Ir al Panel de Coordinador</a>
+                <a href="profile.php" class="btn btn-secondary">Editar Perfil</a>
+            </div>
+            <a href="index.php" class="btn btn-secondary">Ver Lotes</a>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['from']) && $_GET['from'] === 'coordinador' && in_array($rolNombre, ['coordinador', 'coordinacion'], true)): ?>
+        <div class="actions-bar">
+            <a href="coordinador_dashboard.php" class="btn btn-secondary">Volver al Panel</a>
+        </div>
     <?php else: ?>
         <div class="actions-bar justify-end">
-            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
+            <a href="index.php" class="btn btn-secondary">Ver Lotes</a>
         </div>
     <?php endif; ?>
 

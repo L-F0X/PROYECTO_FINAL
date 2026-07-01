@@ -2,9 +2,16 @@
 // login.php
 require_once 'conexion.php';
 
-// Si el usuario ya está logueado, redirigir al inicio
+// Si el usuario ya está logueado, redirigir al tablero correcto según su rol
 if (isset($_SESSION['usuario_id'])) {
-    header("Location: index.php");
+    $rolRedirect = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+    if ($rolRedirect === 'instructor') {
+        header("Location: instructor_dashboard.php");
+    } elseif (in_array($rolRedirect, ['coordinador', 'coordinacion'], true)) {
+        header("Location: coordinador_dashboard.php");
+    } else {
+        header("Location: index.php");
+    }
     exit;
 }
 
@@ -58,7 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         error_log('Password for user ID ' . $usuario['ID_USUARIO'] . ' needs rehash. Consider updating hash.');
                     }
 
-                    header("Location: index.php");
+                    $rolLower = strtolower(trim($usuario['NOMBRE_ROL']));
+                    if ($rolLower === 'instructor') {
+                        header("Location: instructor_dashboard.php");
+                    } elseif (in_array($rolLower, ['coordinador', 'coordinacion'], true)) {
+                        header("Location: coordinador_dashboard.php");
+                    } else {
+                        header("Location: index.php");
+                    }
                     exit;
                 } else {
                     $error = "Su usuario se encuentra en estado: " . $usuario['ESTADO'] . ". Contacte al administrador.";
