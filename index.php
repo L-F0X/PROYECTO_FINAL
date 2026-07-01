@@ -63,11 +63,11 @@ $lotes = $stmt->fetchAll();
                 <a href="instructor_dashboard.php" class="btn btn-sena">Ir al Panel de Instructor</a>
                 <a href="instructor_profile.php" class="btn btn-secondary">Editar Perfil</a>
             </div>
-            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
+            <a href="crud_instructor/crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
         </div>
     <?php else: ?>
         <div class="actions-bar justify-end">
-            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
+            <a href="crud_instructor/crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
         </div>
     <?php endif; ?>
 
@@ -97,8 +97,8 @@ $lotes = $stmt->fetchAll();
                         <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
                         <td>
                             <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Materiales</a>
-                            <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
-                            <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
+                            <a href="crud_instructor/editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                            <form action="crud_instructor/eliminar.php" method="POST" style="display:inline; margin:0;">
                                 <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                 <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>

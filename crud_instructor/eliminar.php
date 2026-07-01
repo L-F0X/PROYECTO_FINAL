@@ -1,11 +1,11 @@
 <?php
 // eliminar.php - ahora acepta solo POST con token CSRF
-require_once 'conexion.php';
-require_once 'csrf.php';
+require_once '../conexion.php';
+require_once '../csrf.php';
 
 // Control de acceso: si no hay sesión activa, denegar el proceso inmediatamente
 if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
@@ -24,6 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-header("Location: index.php");
+header("Location: ../index.php");
 exit;
 ?>

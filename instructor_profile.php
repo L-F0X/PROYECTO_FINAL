@@ -283,13 +283,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-            <a href="crear.php" class="sidebar-link">Consulta de Lotes</a>
+            <a href="crud_instructor/crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crud_instructor/consulta_lote.php" class="sidebar-link">Consulta de Lotes</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
             <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            <a href="crud_instructor/certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>

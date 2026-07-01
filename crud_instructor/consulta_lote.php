@@ -1,15 +1,16 @@
 <?php
-// crear.php — Consulta de Lotes (solo lectura para Instructor)
-require_once 'conexion.php';
+// consulta_lote.php — Consulta de Lotes para Instructor
+require_once '../conexion.php';
+require_once '../csrf.php';
 
 if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
 $rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
 if ($rol !== 'instructor') {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -18,9 +19,9 @@ $usuarioId = intval($_SESSION['usuario_id']);
 // Foto de perfil
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
-    $candidate = __DIR__ . '/uploads/profiles/' . $usuarioId . '.' . $ext;
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
     if (file_exists($candidate)) {
-        $photoPath = 'uploads/profiles/' . $usuarioId . '.' . $ext;
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
         break;
     }
 }
@@ -64,7 +65,7 @@ $total = count($lotes);
     <meta charset="UTF-8">
     <meta name="description" content="Consulta de lotes de requerimiento en BICERGAM.">
     <title>Consulta de Lotes - BICERGAM</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="../estilos.css">
     <style>
         /* ── Barra de búsqueda ── */
         .search-bar {
@@ -226,14 +227,14 @@ $total = count($lotes);
 
 <header class="dashboard-header">
     <div class="header-brand">
-        <img src="imagenes/sena-logo.png" alt="SENA">
+        <img src="../imagenes/sena-logo.png" alt="SENA">
     </div>
     <div class="header-user">
         <div class="header-user-text">
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
-        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+        <a href="../instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
             <?php else: ?>
@@ -246,22 +247,23 @@ $total = count($lotes);
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="imagenes/sena-logo.png" alt="SENA">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-            <a href="crear.php" class="sidebar-link active">Consulta de Lotes</a>
+            <a href="consulta_lote.php" class="sidebar-link active">Consulta de Lotes</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
-            <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            <a href="../historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
+            <a href="../matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
-            <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+            <a href="../instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
 
@@ -269,14 +271,14 @@ $total = count($lotes);
         <div class="dashboard-topbar">
             <div>
                 <h2>Consulta de Lotes de Requerimiento</h2>
-                <p class="dashboard-subtitle">Visualiza y busca los lotes registrados en el sistema. Solo lectura.</p>
+                <p class="dashboard-subtitle">Visualiza y busca los lotes registrados en el sistema.</p>
             </div>
         </div>
 
         <div class="panel-card">
 
             <!-- ── Barra de búsqueda ── -->
-            <form method="GET" action="crear.php" id="form-busqueda">
+            <form method="GET" action="consulta_lote.php" id="form-busqueda">
                 <div class="search-bar">
                     <div class="field-group">
                         <label for="q">Buscar por nombre o ID</label>
@@ -311,7 +313,7 @@ $total = count($lotes);
                         Buscar
                     </button>
                     <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                        <a href="crear.php" class="btn-limpiar" id="btn-limpiar">
+                        <a href="consulta_lote.php" class="btn-limpiar" id="btn-limpiar">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                  fill="none" stroke="currentColor" stroke-width="2.5">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -388,7 +390,7 @@ $total = count($lotes);
     </main>
 </div>
 
-<script src="javascript.js"></script>
+<script src="../javascript.js"></script>
 <script>
     // Búsqueda en vivo al escribir (debounce 350ms)
     (function () {

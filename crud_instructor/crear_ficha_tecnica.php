@@ -1,14 +1,14 @@
 <?php
-require_once 'conexion.php';
+require_once '../conexion.php';
 
 if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
 $rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
 if ($rol !== 'instructor') {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -75,9 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Lógica de foto de perfil
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
-    $candidate = __DIR__ . '/uploads/profiles/' . $usuarioId . '.' . $ext;
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
     if (file_exists($candidate)) {
-        $photoPath = 'uploads/profiles/' . $usuarioId . '.' . $ext;
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
         break;
     }
 }
@@ -88,7 +88,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <meta charset="UTF-8">
     <meta name="description" content="Crear ficha técnica de producto en el sistema BICERGAM del SENA.">
     <title>Crear Ficha Técnica - BICERGAM</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="../estilos.css">
     <style>
         /* ── Ficha: contenedor principal ── */
         .ficha-container {
@@ -329,14 +329,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <body>
 <header class="dashboard-header">
     <div class="header-brand">
-        <img src="imagenes/sena-logo.png" alt="SENA">
+        <img src="../imagenes/sena-logo.png" alt="SENA">
     </div>
     <div class="header-user">
         <div class="header-user-text">
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
-        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+        <a href="../instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
             <?php else: ?>
@@ -349,22 +349,22 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="imagenes/sena-logo.png" alt="SENA">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary active">Ficha Técnica</a>
-            <a href="crear.php" class="sidebar-link">Consulta de Lotes</a>
+            <a href="consulta_lote.php" class="sidebar-link">Consulta de Lotes</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
-            <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            <a href="../historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
+            <a href="../matriz.php" class="sidebar-link">Consulta de Matrices</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
-            <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+            <a href="../instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
 
@@ -488,6 +488,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 
-<script src="javascript.js"></script>
+<script src="../javascript.js"></script>
 </body>
 </html>
