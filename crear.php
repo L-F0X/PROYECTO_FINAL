@@ -9,7 +9,9 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
 if ($rol !== 'instructor') {
-    header('Location: index.php');
+    // Preserve coordinator context when redirecting
+    $from = (in_array(strtolower(trim($_SESSION['rol_nombre'] ?? '')), ['coordinador','coordinacion'])) ? '?from=coordinador' : '';
+    header('Location: index.php' . $from);
     exit;
 }
 

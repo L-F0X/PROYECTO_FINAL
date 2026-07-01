@@ -7,3 +7,7 @@ coverage/
 .DS_Store
 .env*
 !.env.example
+
+# Ignore uploaded profile images but keep .gitkeep
+/uploads/profiles/*
+!/uploads/profiles/.gitkeep

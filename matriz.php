@@ -50,8 +50,10 @@ if (!isset($_SESSION['usuario_id'])) {
 // Capturar el ID del lote para ver sus ítems específicos
 $id_lote = isset($_GET['lote']) ? intval($_GET['lote']) : 0;
 
+// Preserve coordinator context when redirecting
+$indexFrom = (in_array(strtolower(trim($_SESSION['rol_nombre'] ?? '')), ['coordinador','coordinacion'])) ? '?from=coordinador' : '';
 if ($id_lote === 0) {
-    header("Location: index.php");
+    header("Location: index.php" . $indexFrom);
     exit;
 }
 
@@ -187,7 +189,7 @@ $items = $stmtItems->fetchAll();
     <h1>BICERGAM | <span>SENA</span></h1>
     <div style="text-align: right; color: white;">
         Usuario: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> | 
-        <a href="index.php" style="color: var(--verde-sena); text-decoration: none; font-weight: bold; margin-right: 15px;">← Volver a Lotes</a>
+        <a href="index.php<?= $indexFrom ?>" style="color: var(--verde-sena); text-decoration: none; font-weight: bold; margin-right: 15px;">← Volver a Lotes</a>
         <a href="logout.php" style="color: var(--alerta-rojo); text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
     </div>
 </header>

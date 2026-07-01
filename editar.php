@@ -9,8 +9,11 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+// Context-preserving query string for coordinador
+$indexFrom = (in_array(strtolower(trim($_SESSION['rol_nombre'] ?? '')), ['coordinador','coordinacion'])) ? '?from=coordinador' : '';
+
 if (!isset($_GET['id'])) {
-    header("Location: index.php");
+    header("Location: index.php" . $indexFrom);
     exit;
 }
 
@@ -22,7 +25,7 @@ $stmt->execute([$id]);
 $lote = $stmt->fetch();
 
 if (!$lote) {
-    header("Location: index.php");
+    header("Location: index.php" . $indexFrom);
     exit;
 }
 
@@ -40,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ?, ESTADO_TRAMITE = ? WHERE ID_LOTE = ?";
     try {
         $pdo->prepare($sql)->execute([$solicitante, $nombre, $estado, $id]);
-        header("Location: index.php");
+        $from = (in_array(strtolower(trim($_SESSION['rol_nombre'] ?? '')), ['coordinador','coordinacion'])) ? '?from=coordinador' : '';
+        header("Location: index.php" . $from);
         exit;
     } catch (\PDOException $e) {
         error_log('Editar lote error: ' . $e->getMessage());
@@ -62,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>BICERGAM | <span>SENA</span></h1>
     <div style="text-align: right; color: white;">
         Usuario: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> | 
-        <a href="index.php" style="color: var(--verde-sena); text-decoration: none; font-weight: bold; margin-right: 15px;">← Volver</a>
+        <a href="index.php<?= $indexFrom ?>" style="color: var(--verde-sena); text-decoration: none; font-weight: bold; margin-right: 15px;">← Volver</a>
         <a href="logout.php" style="color: var(--alerta-rojo); text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
     </div>
 </header>
@@ -88,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <option value="Borrador" <?= $lote['ESTADO_TRAMITE'] == 'Borrador' ? 'selected' : '' ?>>Borrador</option>
                 <option value="Enviado" <?= $lote['ESTADO_TRAMITE'] == 'Enviado' ? 'selected' : '' ?>>Enviado</option>
                 <option value="Aprobado" <?= $lote['ESTADO_TRAMITE'] == 'Aprobado' ? 'selected' : '' ?>>Aprobado</option>
-                <option value="Rechazado" <?= $lote['ESTADO_TRAMITE'] == 'Rechazado' ? 'selected' : '' ?>>Rechazado</option>
             </select>
         </div>
 
