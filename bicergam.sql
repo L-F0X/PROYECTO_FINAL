@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 30-06-2026 a las 16:48:28
+-- Tiempo de generación: 01-07-2026 a las 03:14:41
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -330,7 +330,8 @@ CREATE TABLE `usuario` (
 
 INSERT INTO `usuario` (`ID_USUARIO`, `ID_ROL`, `DOCUMENTO`, `NOMBRE`, `APELLIDO`, `EMAIL`, `PASSWORD`, `ESTADO`) VALUES
 (1, 1, '12345678', 'Carlos', 'Gómez', 'instructor@sena.edu.co', '$2y$10$Prshz7r8TvHIyFKAYA7/2OMFEuExmF2BK89HdFUkxFnYy5fv2yAr.', 'Activo'),
-(2, 2, '987654321', 'Marta', 'Lucía Ruiz', 'mruiz@sena.edu.co', '$2y$10$3wR6Nde0747KSsIUcojtoe.Xn8C0KW7kiOXAjJMh5Jic82d5Hgosi', 'Activo');
+(2, 2, '987654321', 'Marta', 'Lucía Ruiz', 'mruiz@sena.edu.co', '$2y$10$3wR6Nde0747KSsIUcojtoe.Xn8C0KW7kiOXAjJMh5Jic82d5Hgosi', 'Activo'),
+(5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', 'eba5cc646781907654183180e134a2eb8c4422d5627cef0394192ae9118c4c56', 'Activo');
 
 --
 -- Índices para tablas volcadas
@@ -493,7 +494,7 @@ ALTER TABLE `rol`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Restricciones para tablas volcadas
