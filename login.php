@@ -15,8 +15,6 @@ $roleIcons = [
     'Instructor' => 'iconos/instructor-de-manejo.png',
     'Coordinacion' => 'iconos/caracteristicas.png',
     'Almacenista' => 'iconos/deposito.png',
-    'Proveedor' => 'iconos/caracteristicas.png',
-    'Aprendiz' => 'iconos/caracteristicas.png',
 ];
 
 try {
