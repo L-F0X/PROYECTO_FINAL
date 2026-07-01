@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 01-07-2026 a las 03:14:41
+-- Tiempo de generación: 01-07-2026 a las 07:18:58
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -155,7 +155,9 @@ CREATE TABLE `lote_requerimiento` (
 --
 
 INSERT INTO `lote_requerimiento` (`ID_LOTE`, `ID_SOLICITANTE`, `LOTE_NOMBRE`, `ESTADO_TRAMITE`, `FECHA_CREACION`) VALUES
-(2, 1, 'REDES', 'Borrador', '2026-06-29');
+(2, 1, 'REDES', 'Borrador', '2026-06-29'),
+(4, 1, 'Computo', 'Borrador', '2026-07-01'),
+(5, 1, 'Componentes hardware', 'Borrador', '2026-07-01');
 
 -- --------------------------------------------------------
 
@@ -464,7 +466,7 @@ ALTER TABLE `iva`
 -- AUTO_INCREMENT de la tabla `lote_requerimiento`
 --
 ALTER TABLE `lote_requerimiento`
-  MODIFY `ID_LOTE` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `ID_LOTE` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `matriz_item`
