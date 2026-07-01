@@ -1,0 +1,143 @@
+<?php
+require_once '../conexion.php';
+
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: ../login.php');
+    exit;
+}
+
+$rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
+    header('Location: ../login.php');
+    exit;
+}
+
+$usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+
+// Obtener todos los instructores y sus lotes
+try {
+    $sql = "SELECT DISTINCT u.ID_USUARIO, u.NOMBRE, u.APELLIDO, u.EMAIL, u.ESTADO,
+            COUNT(DISTINCT lr.ID_LOTE) as CANTIDAD_LOTES,
+            GROUP_CONCAT(DISTINCT lr.LOTE_NOMBRE SEPARATOR ', ') as LOTES
+            FROM usuario u
+            LEFT JOIN lote_requerimiento lr ON u.ID_USUARIO = lr.ID_SOLICITANTE
+            WHERE u.ID_ROL = 1
+            GROUP BY u.ID_USUARIO
+            ORDER BY u.NOMBRE";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $instructores = $stmt->fetchAll();
+
+} catch (Exception $e) {
+    error_log('Error fetching instructores: ' . $e->getMessage());
+    $instructores = [];
+}
+
+$total = count($instructores);
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Instructores - BICERGAM</title>
+    <link rel="stylesheet" href="../estilos.css">
+</head>
+<body>
+
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Instructores</span></h1>
+            <div class="user-greeting">Coordinador: <strong><?= $usuarioNombre ?></strong></div>
+        </div>
+    </div>
+    <div class="header-right">
+        <a href="index.php" class="btn btn-secondary">Volver</a>
+    </div>
+</header>
+
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
+        </div>
+        <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="index.php" class="sidebar-link">Revisar Lotes</a>
+            <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="instructores.php" class="sidebar-link sidebar-link--primary">Instructores</a>
+            <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
+            <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="dashboard-topbar">
+            <div>
+                <h2>Instructores del Sistema</h2>
+                <p class="dashboard-subtitle">Consulta información de instructores y sus lotes asociados.</p>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div style="margin-bottom: 20px;">
+                <h3>Total de Instructores: <?= $total ?></h3>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Correo</th>
+                        <th>Estado</th>
+                        <th>Lotes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($instructores)): ?>
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px;">No hay instructores registrados.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($instructores as $instructor): ?>
+                            <tr>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['NOMBRE'] . ' ' . $instructor['APELLIDO']) ?></td>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['EMAIL']) ?></td>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                    <span style="padding: 4px 8px; border-radius: 4px; <?= $instructor['ESTADO'] === 'Activo' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
+                                        <?= htmlspecialchars($instructor['ESTADO']) ?>
+                                    </span>
+                                </td>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                    <?= htmlspecialchars($instructor['CANTIDAD_LOTES'] ?? 0) ?>
+                                    <?php if (!empty($instructor['LOTES'])): ?>
+                                        <br><small style="color: #666;"><?= htmlspecialchars(substr($instructor['LOTES'], 0, 50)) . (strlen($instructor['LOTES']) > 50 ? '...' : '') ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                    <a href="instructor_detalle.php?id=<?= htmlspecialchars($instructor['ID_USUARIO']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>
