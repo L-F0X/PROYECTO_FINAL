@@ -38,8 +38,6 @@ $ivas = $stmtIva->fetchAll();
 // Procesar el formulario cuando se envía
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $idMatrizItem      = intval($_POST['id_matriz_item']);
-        $numItem           = intval($_POST['num_item']);
         $nombreItem        = trim($_POST['nombre_item']);
         $codigoUnspsc      = trim($_POST['codigo_unspsc']);
         $denominacion      = trim($_POST['denominacion_tecnica']);
@@ -55,16 +53,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtInsertUnspsc->execute(['SIN', 'ASIG', 'CL', $codigoUnspsc]);
         }
 
-        // Insertar en tabla ficha_tecnica
+        $idLote = isset($_POST['id_lote']) && trim($_POST['id_lote']) !== '' ? intval($_POST['id_lote']) : 0;
+        $cantidad = isset($_POST['cantidad']) ? intval($_POST['cantidad']) : 1;
+
+        if ($idLote <= 0) {
+            throw new Exception("Debe seleccionar un lote de destino para asociar la ficha técnica y crear el material.");
+        }
+
+        // Validar / insertar código UNSPSC si no existe
+        $id_unspsc = 0;
+        $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
+        $stmtCheckUnspsc->execute([$codigoUnspsc]);
+        $found = $stmtCheckUnspsc->fetchColumn();
+        if ($found) {
+            $id_unspsc = intval($found);
+        } else {
+            $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?, ?, ?, ?)");
+            $stmtInsertUnspsc->execute(['SIN', 'ASIG', 'CL', $codigoUnspsc]);
+            $id_unspsc = $pdo->lastInsertId();
+        }
+
+        // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null)
+        $sqlMatrizItem = "INSERT INTO matriz_item 
+            (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA) 
+            VALUES (?, ?, 0, ?, ?, ?, ?, 'Borrador', NULL)";
+        
+        $stmtNewItem = $pdo->prepare($sqlMatrizItem);
+        $stmtNewItem->execute([
+            $idLote, $id_unspsc, $nombreItem . " - " . $denominacion, $unidadMedida, $cantidad, $descripcion
+        ]);
+        $idMatrizItem = $pdo->lastInsertId();
+
+        // 2. Insertar en tabla ficha_tecnica
         $sqlInsert = "INSERT INTO ficha_tecnica
-            (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS)
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
+            (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmtInsert = $pdo->prepare($sqlInsert);
         $stmtInsert->execute([
             $idMatrizItem, $nombreItem, $codigoUnspsc,
-            $denominacion, $unidadMedida, $descripcion, $comentarios
+            $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
         ]);
+        $lastFichaId = $pdo->lastInsertId();
+
+        // 3. Vincular el ID_FICHA_TECNICA recién creado de vuelta a la tabla matriz_item
+        $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
+        $stmtUpdateMatrizItem->execute([$lastFichaId, $idMatrizItem]);
 
         $mensaje = "<div class='alert success'>✓ Ficha Técnica guardada con éxito.</div>";
     } catch (Exception $e) {
@@ -384,24 +418,20 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <!-- ── Título ── -->
                 <div class="ficha-title">Ficha Técnica de Producto</div>
 
-                <!-- ── Fila: ítem de matriz + número ── -->
-                <div class="ficha-meta-row">
-                    <div class="ficha-meta-cell">
-                        <label for="id_matriz_item">Ítem de Matriz (Lote)</label>
-                        <select name="id_matriz_item" id="id_matriz_item" required>
-                            <option value="">-- Seleccione el ítem de la matriz --</option>
-                            <?php foreach ($matrizItems as $mi): ?>
-                                <option value="<?= $mi['ID_MATRIZ_ITEM'] ?>">
-                                    #<?= $mi['ID_MATRIZ_ITEM'] ?> — <?= htmlspecialchars($mi['LOTE_NOMBRE']) ?>: <?= htmlspecialchars(mb_strimwidth($mi['DESCRIPCION_BIEN'], 0, 50, '…')) ?>
-                                </option>
+                <!-- ── SELECCIONAR LOTE DESTINO ── -->
+                <div class="ficha-row">
+                    <div class="ficha-label">Lote Destino (Se creará un material en la matriz) *</div>
+                    <div class="ficha-value">
+                        <select name="id_lote" id="id_lote" required>
+                            <option value="">-- Seleccionar Lote --</option>
+                            <?php foreach ($lotes as $l): ?>
+                                <option value="<?= htmlspecialchars($l['ID_LOTE']) ?>"><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="ficha-meta-cell" style="max-width:160px">
-                        <label for="num_item">Número de Ítem</label>
-                        <input type="number" name="num_item" id="num_item" placeholder="Ej: 2" required min="1">
-                    </div>
                 </div>
+
+
 
                 <!-- ── NUMERO DE ITEM / NOMBRE ── -->
                 <div class="ficha-row">
@@ -433,6 +463,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="ficha-full-row" style="text-align:center">
                     <input type="text" name="unidad_medida" id="unidad_medida"
                            placeholder="Ej: Unidad, Galón, Kit" required style="text-align:center">
+                </div>
+
+                <!-- ── CANTIDAD ── -->
+                <div class="ficha-section-header">Cantidad</div>
+                <div class="ficha-full-row" style="text-align:center">
+                    <input type="number" name="cantidad" id="cantidad" min="1" value="1" required style="text-align:center">
                 </div>
 
                 <!-- ── DESCRIPCIÓN GENERAL ── -->

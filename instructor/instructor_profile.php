@@ -1,15 +1,15 @@
 <?php
-require_once 'conexion.php';
+require_once '../conexion.php';
 
 if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
 $usuarioId = intval($_SESSION['usuario_id']);
 $rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
 if ($rol !== 'instructor') {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = $_FILES['photo'];
         if ($file['error'] === UPLOAD_ERR_OK && isset($allowed[$file['type']])) {
             $ext = $allowed[$file['type']];
-            $dir = __DIR__ . '/uploads/profiles';
+            $dir = __DIR__ . '/../uploads/profiles';
             if (!is_dir($dir)) mkdir($dir, 0755, true);
             $target = $dir . '/' . $usuarioId . '.' . $ext;
             foreach (['jpg','jpeg','png','webp'] as $old) {
@@ -72,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Foto de perfil
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
-    $candidate = __DIR__ . '/uploads/profiles/' . $usuarioId . '.' . $ext;
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
     if (file_exists($candidate)) {
-        $photoPath = 'uploads/profiles/' . $usuarioId . '.' . $ext;
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
         break;
     }
 }
@@ -85,7 +85,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <meta charset="UTF-8">
     <meta name="description" content="Editar perfil del instructor en BICERGAM.">
     <title>Editar Perfil - BICERGAM</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="../estilos.css">
     <style>
         /* ── Tarjeta del perfil ── */
         .profile-card {
@@ -99,168 +99,137 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         .profile-card-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 22px;
-            padding-bottom: 18px;
-            border-bottom: 1px solid #f0f0f0;
+            gap: 20px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--gris-claro);
+            padding-bottom: 20px;
         }
-        .profile-avatar-big {
-            width: 60px;
-            height: 60px;
+        .profile-avatar-wrapper {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .profile-avatar {
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #39a900;
-            flex-shrink: 0;
+            border: 3px solid var(--verde-sena);
         }
-        .profile-avatar-initials {
-            width: 60px;
-            height: 60px;
+        .profile-avatar-placeholder {
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
-            background: linear-gradient(135deg, #39a900, #2e8600);
+            background: var(--azul-sena);
             color: #fff;
-            font-size: 24px;
-            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            font-size: 32px;
+            font-weight: bold;
         }
-        .profile-card-header-info h3 {
-            margin: 0 0 3px;
-            font-size: 17px;
-            font-weight: 700;
-            color: #1a1a2e;
+        .profile-title h3 {
+            margin: 0;
+            color: var(--negro);
+            font-size: 20px;
         }
-        .profile-card-header-info span {
-            font-size: 12px;
-            color: #888;
+        .profile-title p {
+            margin: 4px 0 0 0;
+            color: #666;
+            font-size: 14px;
         }
 
-        /* ── Grid de campos ── */
-        .profile-grid {
+        /* ── Formularios ── */
+        .profile-form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+        .form-row-double {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px 16px;
+            gap: 16px;
         }
-        .profile-grid .full-col { grid-column: 1 / -1; }
-
-        .profile-field label {
+        .profile-label {
             display: block;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        .profile-field input {
-            width: 100%;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 7px;
-            padding: 8px 11px;
-            font-size: 13.5px;
-            box-sizing: border-box;
-            background: #fafafa;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            color: #1a1a2e;
-        }
-        .profile-field input:focus {
-            outline: none;
-            border-color: #39a900;
-            box-shadow: 0 0 0 3px rgba(57,169,0,.1);
-            background: #fff;
-        }
-
-        /* ── Foto ── */
-        .photo-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-top: 4px;
-        }
-        .photo-thumb {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 2px solid #e0e0e0;
-            flex-shrink: 0;
-        }
-        .photo-thumb-placeholder {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .file-input-label {
-            font-size: 12px;
-            color: #555;
-        }
-        .file-input-label input[type="file"] {
-            margin-top: 4px;
-            font-size: 12px;
-        }
-
-        /* ── Acciones ── */
-        .profile-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            padding-top: 18px;
-            border-top: 1px solid #f0f0f0;
-        }
-        .btn-save {
-            background: linear-gradient(135deg,#39a900,#2e8600);
-            color: #fff;
-            border: none;
-            border-radius: 7px;
-            padding: 10px 22px;
-            font-size: 14px;
+            margin-bottom: 6px;
             font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .btn-save:hover  { background: linear-gradient(135deg,#2e8600,#1d5800); }
-        .btn-save:active { transform: scale(0.98); }
-        .btn-back {
-            background: #fff;
-            color: #555;
-            border: 1.5px solid #ddd;
-            border-radius: 7px;
-            padding: 9px 18px;
             font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
+            color: var(--negro);
+        }
+        .profile-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .profile-input:focus {
+            border-color: var(--verde-sena);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(57,181,74,0.15);
+        }
+        .profile-input[readonly] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        /* ── File Upload ── */
+        .file-upload-wrapper {
+            position: relative;
+            margin-top: 5px;
+        }
+        .file-upload-btn {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            transition: border-color 0.2s, color 0.2s;
-        }
-        .btn-back:hover { border-color: #aaa; color: #333; }
-
-        /* ── Alertas ── */
-        .profile-alert {
-            padding: 10px 14px;
-            border-radius: 7px;
-            font-size: 13px;
+            gap: 8px;
+            background: #f5f5f5;
+            border: 1.5px dashed #ccc;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
             font-weight: 500;
-            margin-bottom: 18px;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
         }
-        .profile-alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .profile-alert.error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .file-upload-btn:hover {
+            border-color: var(--verde-sena);
+            background: rgba(57,181,74,0.02);
+        }
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* ── Footer ── */
+        .profile-card-footer {
+            margin-top: 28px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Responsive */
+        @media(max-width: 580px) {
+            .form-row-double {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
 
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
+        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
+        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
@@ -280,21 +249,21 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;">
+            <img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;">
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crud_instructor/crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="crud_instructor/matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
-            <a href="crud_instructor/certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
             <a href="instructor_profile.php" class="sidebar-link active">Editar Perfil</a>
-            <a href="logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
 
@@ -386,6 +355,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 
-<script src="javascript.js"></script>
+<script src="../javascript.js"></script>
 </body>
 </html>

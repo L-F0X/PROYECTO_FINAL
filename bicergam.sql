@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 01-07-2026 a las 07:18:58
+-- Tiempo de generación: 01-07-2026 a las 17:14:17
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -52,7 +52,9 @@ CREATE TABLE `codigo_unspsc` (
 --
 
 INSERT INTO `codigo_unspsc` (`ID_CODIGO`, `SEGMENTO`, `FAMILIA`, `CLASE`, `CODIGO_UNSPSC`) VALUES
-(1, 'SIN', 'ASIG', 'CL', 'SIN_ASIGNAR');
+(1, 'SIN', 'ASIG', 'CL', 'SIN_ASIGNAR'),
+(2, 'SIN', 'ASIG', 'CL', '451278'),
+(3, 'SIN', 'ASIG', 'CL', '451279');
 
 -- --------------------------------------------------------
 
@@ -107,15 +109,24 @@ DELIMITER ;
 
 CREATE TABLE `ficha_tecnica` (
   `ID_FICHA_TECNICA` int(11) NOT NULL,
-  `ID_MATRIZ_ITEM` int(11) NOT NULL,
+  `ID_MATRIZ_ITEM` int(11) DEFAULT NULL,
   `NOMBRE_ITEM` varchar(150) NOT NULL,
   `CODIGO_UNSPSC_FK` varchar(20) DEFAULT NULL,
   `DENOMINACION_TECNICA_BIEN` text NOT NULL,
   `UNIDAD_MEDIDA` varchar(50) NOT NULL,
+  `CANTIDAD` int(255) NOT NULL,
   `DESCRIPCION_GENERAL` text DEFAULT NULL,
   `COMENTARIOS` text DEFAULT NULL,
   `FECHA_EMISION` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish2_ci;
+
+--
+-- Volcado de datos para la tabla `ficha_tecnica`
+--
+
+INSERT INTO `ficha_tecnica` (`ID_FICHA_TECNICA`, `ID_MATRIZ_ITEM`, `NOMBRE_ITEM`, `CODIGO_UNSPSC_FK`, `DENOMINACION_TECNICA_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD`, `DESCRIPCION_GENERAL`, `COMENTARIOS`, `FECHA_EMISION`) VALUES
+(1, NULL, 'esponja', '451278', 'esponja de vasos', 'unidad', 0, 'limpieza esponja para lavar y brillar vasos', '4*5', '2026-07-01 14:38:57'),
+(2, 7, 'esponja', '451279', 'esponja de ollas', 'unidad', 0, 'ollas limpia todo arranca grasa', 'metalicas', '2026-07-01 15:10:19');
 
 -- --------------------------------------------------------
 
@@ -181,15 +192,16 @@ CREATE TABLE `matriz_item` (
   `VALOR_TOTAL_PROMEDIO` int(11) DEFAULT NULL,
   `FICHA_TECNICA` text DEFAULT NULL,
   `ESTADO_ITEM` varchar(30) NOT NULL DEFAULT 'Borrador',
-  `INSTRUCTOR_APOYO` int(11) DEFAULT NULL
+  `INSTRUCTOR_APOYO` int(11) DEFAULT NULL,
+  `ID_FICHA_TECNICA` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish2_ci;
 
 --
 -- Volcado de datos para la tabla `matriz_item`
 --
 
-INSERT INTO `matriz_item` (`ID_MATRIZ_ITEM`, `ID_LOTE`, `ID_NECESIDAD`, `ID_CODIGO_UNSPSC`, `ID_IVA`, `DESCRIPCION_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD_REGULAR`, `OFERTA_1`, `OFERTA_2`, `OFERTA_3`, `VALOR_UNITARIO_PROMEDIO`, `VALOR_TOTAL_PROMEDIO`, `FICHA_TECNICA`, `ESTADO_ITEM`, `INSTRUCTOR_APOYO`) VALUES
-(7, 2, NULL, 1, 1, 'Item prueba automatizada 4', '', 5, NULL, NULL, NULL, NULL, NULL, 'Ficha técnica prueba 4', 'Borrador', NULL);
+INSERT INTO `matriz_item` (`ID_MATRIZ_ITEM`, `ID_LOTE`, `ID_NECESIDAD`, `ID_CODIGO_UNSPSC`, `ID_IVA`, `DESCRIPCION_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD_REGULAR`, `OFERTA_1`, `OFERTA_2`, `OFERTA_3`, `VALOR_UNITARIO_PROMEDIO`, `VALOR_TOTAL_PROMEDIO`, `FICHA_TECNICA`, `ESTADO_ITEM`, `INSTRUCTOR_APOYO`, `ID_FICHA_TECNICA`) VALUES
+(7, 2, NULL, 1, 1, 'Item prueba automatizada 4', '', 5, NULL, NULL, NULL, NULL, NULL, 'Ficha técnica prueba 4', 'Borrador', NULL, 2);
 
 -- --------------------------------------------------------
 
@@ -442,7 +454,7 @@ ALTER TABLE `certificado_existencia`
 -- AUTO_INCREMENT de la tabla `codigo_unspsc`
 --
 ALTER TABLE `codigo_unspsc`
-  MODIFY `ID_CODIGO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `ID_CODIGO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `cotizacion`
@@ -454,7 +466,7 @@ ALTER TABLE `cotizacion`
 -- AUTO_INCREMENT de la tabla `ficha_tecnica`
 --
 ALTER TABLE `ficha_tecnica`
-  MODIFY `ID_FICHA_TECNICA` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ID_FICHA_TECNICA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `iva`
@@ -472,7 +484,7 @@ ALTER TABLE `lote_requerimiento`
 -- AUTO_INCREMENT de la tabla `matriz_item`
 --
 ALTER TABLE `matriz_item`
-  MODIFY `ID_MATRIZ_ITEM` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `ID_MATRIZ_ITEM` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de la tabla `necesidad`
