@@ -15,7 +15,7 @@ $usuarioId = intval($_SESSION['usuario_id'] ?? 0);
 if ($rolNombre === 'instructor') {
     $stmt = $pdo->prepare("SELECT * FROM lote_requerimiento WHERE ID_SOLICITANTE = ? ORDER BY FECHA_CREACION DESC");
     $stmt->execute([$usuarioId]);
-    $panelTitulo = 'Panel de Instructor';
+    $panelTitulo = 'Lotes';
     $panelDescripcion = 'Aquí verás los lotes que has creado o que están a tu cargo como instructor.';
 } elseif ($rolNombre === 'coordinador') {
     $stmt = $pdo->query("SELECT * FROM lote_requerimiento ORDER BY FECHA_CREACION DESC");
@@ -40,8 +40,9 @@ $lotes = $stmt->fetchAll();
 <body>
 
 <header class="header-main">
-    <div class="header-left">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
         <h1 class="header-title">BICERGAM | <span class="accent-color">SENA</span></h1>
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-center">
         <span class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>

@@ -1,5 +1,5 @@
 <?php
-// certificado_existencia.php — Consulta de Certificados de Existencia
+// matriz_consulta.php — Consulta de Ítems de la Matriz para Instructor
 require_once '../conexion.php';
 require_once '../csrf.php';
 
@@ -34,36 +34,37 @@ $where = [];
 $params = [];
 
 if ($busqueda !== '') {
-    $where[] = "(ce.NUMERO_CERTIFICADO LIKE ? OR lr.LOTE_NOMBRE LIKE ? OR ce.ID_LOTE LIKE ?)";
+    $where[] = "(mi.DESCRIPCION_BIEN LIKE ? OR lr.LOTE_NOMBRE LIKE ? OR mi.ID_MATRIZ_ITEM LIKE ?)";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
 
-// Los instructores solo ven los certificados asociados a lotes creados por ellos
+// Los instructores solo ven los ítems asociados a lotes creados por ellos
 $where[] = "lr.ID_SOLICITANTE = ?";
 $params[] = $usuarioId;
 
-$sql = "SELECT ce.ID_CERTIFICADO, ce.NUMERO_CERTIFICADO, ce.ID_LOTE, lr.LOTE_NOMBRE, lr.ESTADO_TRAMITE
-        FROM certificado_existencia ce
-        LEFT JOIN lote_requerimiento lr ON ce.ID_LOTE = lr.ID_LOTE";
+$sql = "SELECT mi.*, lr.LOTE_NOMBRE, u.NOMBRE AS APOYO_NOMBRE, u.APELLIDO AS APOYO_APELLIDO
+        FROM matriz_item mi
+        INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE
+        LEFT JOIN usuario u ON mi.INSTRUCTOR_APOYO = u.ID_USUARIO";
 
 if ($where) {
     $sql .= " WHERE " . implode(' AND ', $where);
 }
-$sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+$sql .= " ORDER BY mi.ID_MATRIZ_ITEM DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$certificados = $stmt->fetchAll();
-$total = count($certificados);
+$items = $stmt->fetchAll();
+$total = count($items);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Consulta de Certificados de Existencia en BICERGAM.">
-    <title>Certificados de Existencia - BICERGAM</title>
+    <meta name="description" content="Consulta de Ítems de la Matriz en BICERGAM.">
+    <title>Consulta de Ítems - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css">
     <style>
         /* ── Barra de búsqueda ── */
@@ -195,16 +196,6 @@ $total = count($certificados);
         }
         .lotes-table .td-nombre { font-weight: 500; }
         .lotes-table .td-solicitante { color: #555; font-size: 13px; }
-
-        /* ── Empty state ── */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #aaa;
-        }
-        .empty-state svg { margin-bottom: 16px; opacity: 0.4; }
-        .empty-state p { font-size: 15px; margin: 0; }
-        .empty-state span { font-size: 13px; color: #bbb; }
     </style>
 </head>
 <body>
@@ -242,8 +233,8 @@ $total = count($certificados);
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="../historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
-            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
-            <a href="certificado_existencia.php" class="sidebar-link active">Certificados Existencia</a>
+            <a href="matriz_consulta.php" class="sidebar-link active">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -255,24 +246,24 @@ $total = count($certificados);
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
-                <h2>Certificados de Existencia</h2>
-                <p class="dashboard-subtitle">Búsqueda y visualización de certificados asociados a tus lotes.</p>
+                <h2>Consulta de Ítems de la Matriz</h2>
+                <p class="dashboard-subtitle">Búsqueda y visualización de bienes registrados en tus lotes.</p>
             </div>
         </div>
 
         <div class="panel-card">
 
             <!-- ── Barra de búsqueda ── -->
-            <form method="GET" action="certificado_existencia.php" id="form-busqueda">
+            <form method="GET" action="matriz_consulta.php" id="form-busqueda">
                 <div class="search-bar">
                     <div class="field-group">
-                        <label for="q">Buscar por Nº Certificado, Nombre o ID de Lote</label>
+                        <label for="q">Buscar por Descripción, Lote o ID de Ítem</label>
                         <input
                             type="text"
                             id="q"
                             name="q"
                             class="search-input"
-                            placeholder="Ej: CERT-102, REDES, 2..."
+                            placeholder="Ej: ESPUMA, REDES, 7..."
                             value="<?= htmlspecialchars($busqueda) ?>"
                             autocomplete="off"
                         >
@@ -285,7 +276,7 @@ $total = count($certificados);
                         Buscar
                     </button>
                     <?php if ($busqueda !== ''): ?>
-                        <a href="certificado_existencia.php" class="btn-limpiar" id="btn-limpiar">
+                        <a href="matriz_consulta.php" class="btn-limpiar" id="btn-limpiar">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                  fill="none" stroke="currentColor" stroke-width="2.5">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -300,7 +291,7 @@ $total = count($certificados);
             <div class="results-meta">
                 <span>Resultados:</span>
                 <span class="badge-count"><?= $total ?></span>
-                <strong>certificado<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?></strong>
+                <strong>ítem<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?></strong>
                 <?php if ($busqueda !== ''): ?>
                     <span style="color:#aaa">— filtro activo</span>
                 <?php endif; ?>
@@ -311,17 +302,19 @@ $total = count($certificados);
                 <table class="lotes-table">
                     <thead>
                         <tr>
-                            <th>ID Certificado</th>
-                            <th>Número de Certificado</th>
-                            <th>ID Lote</th>
-                            <th>Nombre del Lote</th>
-                            <th>Estado del Lote</th>
+                            <th>ID Ítem</th>
+                            <th>Lote</th>
+                            <th>Descripción del Bien</th>
+                            <th>U. Medida</th>
+                            <th>Cantidad</th>
+                            <th>Estado Ítem</th>
+                            <th>Instructor Apoyo</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($certificados)): ?>
+                        <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="5">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
                                              viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
@@ -329,23 +322,29 @@ $total = count($certificados);
                                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                             <line x1="8" y1="11" x2="14" y2="11"/>
                                         </svg>
-                                        <p>No se encontraron certificados</p>
+                                        <p>No se encontraron ítems</p>
                                         <span>Intenta con otro término o limpia la búsqueda</span>
                                     </div>
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($certificados as $c): ?>
+                            <?php foreach ($items as $item): ?>
+                                <?php
+                                    $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
+                                    if ($apoyo === '') $apoyo = '—';
+                                ?>
                                 <tr>
-                                    <td class="td-id">#<?= htmlspecialchars($c['ID_CERTIFICADO']) ?></td>
-                                    <td class="td-nombre"><strong><?= htmlspecialchars($c['NUMERO_CERTIFICADO']) ?></strong></td>
-                                    <td>#<?= htmlspecialchars($c['ID_LOTE']) ?></td>
-                                    <td class="td-solicitante"><?= htmlspecialchars($c['LOTE_NOMBRE']) ?></td>
+                                    <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                    <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
+                                    <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
+                                    <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>
+                                    <td><strong><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></strong></td>
                                     <td>
-                                        <span class="badge-estado badge-<?= htmlspecialchars(strtolower($c['ESTADO_TRAMITE'])) ?>">
-                                            <?= htmlspecialchars($c['ESTADO_TRAMITE']) ?>
+                                        <span class="badge-estado badge-<?= htmlspecialchars(strtolower($item['ESTADO_ITEM'])) ?>">
+                                            <?= htmlspecialchars($item['ESTADO_ITEM']) ?>
                                         </span>
                                     </td>
+                                    <td class="td-solicitante"><?= htmlspecialchars($apoyo) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

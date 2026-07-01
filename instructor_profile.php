@@ -258,8 +258,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <body>
 
 <header class="dashboard-header">
-    <div class="header-brand">
+    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
         <img src="imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
@@ -289,7 +290,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="historial_existencia.php" class="sidebar-link">Historial de Existencia</a>
-            <a href="matriz.php" class="sidebar-link">Consulta de Matrices</a>
+            <a href="crud_instructor/matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="crud_instructor/certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
