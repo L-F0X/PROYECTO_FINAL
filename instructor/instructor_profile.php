@@ -26,19 +26,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $apellido = trim($_POST['apellido'] ?? '');
     $email    = trim($_POST['email']    ?? '');
 
+    $currentPassword = $_POST['current_password'] ?? '';
+    $newPassword     = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+
     if ($nombre !== '' && $apellido !== '' && $email !== '') {
         try {
-            $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ? WHERE ID_USUARIO = ?');
-            $u->execute([$nombre, $apellido, $email, $usuarioId]);
+            $changePassword = false;
+            if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
+                if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+                    throw new Exception('Para cambiar la contraseña, debe completar todos los campos correspondientes.');
+                }
+                if (strlen($newPassword) < 6) {
+                    throw new Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+                }
+                if ($newPassword !== $confirmPassword) {
+                    throw new Exception('La nueva contraseña y su confirmación no coinciden.');
+                }
+
+                // Validar contraseña actual
+                $stmtCheck = $pdo->prepare('SELECT PASSWORD FROM usuario WHERE ID_USUARIO = ?');
+                $stmtCheck->execute([$usuarioId]);
+                $dbPass = $stmtCheck->fetchColumn();
+                if (!$dbPass || !password_verify($currentPassword, $dbPass)) {
+                    throw new Exception('La contraseña actual es incorrecta.');
+                }
+                $changePassword = true;
+            }
+
+            if ($changePassword) {
+                $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ?, PASSWORD = ? WHERE ID_USUARIO = ?');
+                $u->execute([$nombre, $apellido, $email, $newHash, $usuarioId]);
+                $message = '✓ Perfil y contraseña actualizados correctamente.';
+            } else {
+                $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ? WHERE ID_USUARIO = ?');
+                $u->execute([$nombre, $apellido, $email, $usuarioId]);
+                $message = '✓ Perfil actualizado correctamente.';
+            }
             $_SESSION['usuario_nombre'] = $nombre . ' ' . $apellido;
-            $message = '✓ Perfil actualizado correctamente.';
-        } catch (\PDOException $e) {
+        } catch (Exception $e) {
             error_log('Profile update error: ' . $e->getMessage());
-            $message = '✗ Error al actualizar el perfil.';
+            $message = '✗ ' . $e->getMessage();
             $messageType = 'error';
         }
     } else {
-        $message = '✗ Todos los campos son obligatorios.';
+        $message = '✗ Todos los campos de perfil son obligatorios.';
         $messageType = 'error';
     }
 
@@ -270,8 +303,104 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             color: #de3a3a;
             border: 1px solid #fde2e2;
         }
+        .btn-toggle-pwd {
+            background: none;
+            border: none;
+            color: var(--verde-sena);
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            padding: 5px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            transition: color 0.2s;
+            margin-top: 10px;
+        }
+        .btn-toggle-pwd:hover {
+            color: #2e8640;
+            text-decoration: underline;
+        }
+        .password-section-container {
+            grid-column: span 2;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            border-top: 1px dashed #e1e8ed;
+            padding-top: 20px;
+            margin-top: 10px;
+        }
+        /* ── Avatar Edit Hover ── */
+        .avatar-edit-container {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            cursor: pointer;
+            overflow: hidden;
+            border: 3px solid var(--verde-sena);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .avatar-edit-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            font-size: 11px;
+            font-weight: bold;
+            gap: 4px;
+        }
+        .avatar-overlay svg {
+            margin-bottom: 2px;
+        }
+        .profile-avatar-big, .profile-avatar-initials {
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+        /* ── Password input eye toggle ── */
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .password-input-wrapper input {
+            padding-right: 42px !important;
+        }
+        .toggle-password-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .toggle-password-btn:hover {
+            color: var(--verde-sena);
+        }
         @media(max-width: 580px) {
-            .profile-grid {
+            .profile-grid, .password-section-container {
                 grid-template-columns: 1fr;
             }
             .profile-field.full-col {
@@ -337,15 +466,21 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
         <div class="profile-card">
 
-            <!-- ── Cabecera del card con avatar ── -->
+            <!-- ── Cabecera del card con avatar interactivo ── -->
             <div class="profile-card-header">
-                <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto" class="profile-avatar-big">
-                <?php else: ?>
-                    <div class="profile-avatar-initials">
-                        <?= strtoupper(substr($user['NOMBRE'] ?? 'U', 0, 1)) ?>
+                <div class="avatar-edit-container" title="Cambiar foto de perfil" onclick="document.getElementById('p-photo').click();">
+                    <?php if ($photoPath): ?>
+                        <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto" class="profile-avatar-big" id="avatar-preview">
+                    <?php else: ?>
+                        <div class="profile-avatar-initials" id="avatar-initials-preview">
+                            <?= strtoupper(substr($user['NOMBRE'] ?? 'U', 0, 1)) ?>
+                        </div>
+                    <?php endif; ?>
+                    <div class="avatar-overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        <span>Cambiar</span>
                     </div>
-                <?php endif; ?>
+                </div>
                 <div class="profile-card-header-info">
                     <h3><?= htmlspecialchars(($user['NOMBRE'] ?? '') . ' ' . ($user['APELLIDO'] ?? '')) ?></h3>
                     <span><?= htmlspecialchars($user['EMAIL'] ?? '') ?> &nbsp;·&nbsp; Instructor</span>
@@ -359,6 +494,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <?php endif; ?>
 
             <form action="instructor_profile.php" method="POST" enctype="multipart/form-data" id="form-perfil">
+                <!-- Hidden file input for hover avatar edit -->
+                <input type="file" name="photo" id="p-photo" accept="image/png, image/jpeg, image/webp" style="display: none;">
                 <div class="profile-grid">
 
                     <div class="profile-field">
@@ -380,23 +517,41 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     </div>
 
                     <div class="profile-field full-col">
-                        <label>Foto de Perfil</label>
-                        <div class="photo-row">
-                            <?php if ($photoPath): ?>
-                                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto" class="photo-thumb">
-                            <?php else: ?>
-                                <div class="photo-thumb-placeholder">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-                                         viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5">
-                                        <circle cx="12" cy="8" r="4"/>
-                                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                                    </svg>
-                                </div>
-                            <?php endif; ?>
-                            <div class="file-input-label">
-                                <span><?= $photoPath ? 'Cambiar foto' : 'Subir foto' ?> (png, jpg, webp)</span><br>
-                                <input type="file" name="photo" id="p-photo"
-                                       accept="image/png, image/jpeg, image/webp">
+                        <button type="button" class="btn-toggle-pwd" id="btn-toggle-password">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            Cambiar Contraseña
+                        </button>
+                    </div>
+
+                    <div id="password-section" class="password-section-container">
+                        <div class="profile-field full-col">
+                            <label for="p-current-password">Contraseña Actual</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-current-password" name="current_password" placeholder="Ingresa tu contraseña actual">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-current-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label for="p-new-password">Nueva Contraseña</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-new-password" name="new_password" placeholder="Mínimo 6 caracteres">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-new-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label for="p-confirm-password">Confirmar Nueva Contraseña</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-confirm-password" name="confirm_password" placeholder="Repite la nueva contraseña">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-confirm-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -416,5 +571,73 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </div>
 
 <script src="../javascript.js"></script>
+<script>
+// Toggle Password Section Visibility
+document.getElementById('btn-toggle-password').addEventListener('click', function() {
+    var sec = document.getElementById('password-section');
+    var isHidden = window.getComputedStyle(sec).display === 'none';
+    sec.style.display = isHidden ? 'grid' : 'none';
+    
+    if (!isHidden) {
+        document.getElementById('p-current-password').value = '';
+        document.getElementById('p-new-password').value = '';
+        document.getElementById('p-confirm-password').value = '';
+    }
+});
+
+// Toggle password text visibility inside inputs
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const eyeOpen = btn.querySelector('.eye-open');
+    const eyeClosed = btn.querySelector('.eye-closed');
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+    } else {
+        input.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+    }
+}
+
+// Show live preview of selected profile picture
+document.getElementById('p-photo').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewImg = document.getElementById('avatar-preview');
+            if (previewImg) {
+                previewImg.src = e.target.result;
+            } else {
+                const initialsDiv = document.getElementById('avatar-initials-preview');
+                if (initialsDiv) {
+                    const img = document.createElement('img');
+                    img.id = 'avatar-preview';
+                    img.src = e.target.result;
+                    img.className = 'profile-avatar-big';
+                    initialsDiv.parentNode.replaceChild(img, initialsDiv);
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Confirm password change on form submit
+document.getElementById('form-perfil').addEventListener('submit', function(event) {
+    const currentPass = document.getElementById('p-current-password').value.trim();
+    const newPass = document.getElementById('p-new-password').value.trim();
+    const confirmPass = document.getElementById('p-confirm-password').value.trim();
+    
+    if (currentPass !== '' || newPass !== '' || confirmPass !== '') {
+        const confirmacion = confirm("¿Realmente deseas cambiar tu contraseña?");
+        if (!confirmacion) {
+            event.preventDefault();
+        }
+    }
+});
+</script>
 </body>
 </html>
