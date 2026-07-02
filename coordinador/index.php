@@ -87,23 +87,19 @@ $total = count($lotes);
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
         <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
             Bienvenido: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
-                <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
-                <?php else: ?>
-                    <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
-                <?php endif; ?>
-            </a>
-            <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
-        </div>
+        <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
     </div>
 </header>
 
