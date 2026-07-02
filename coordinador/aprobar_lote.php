@@ -70,6 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+
+$photoPath = null;
+foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $candidate = __DIR__ . '/../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+    if (file_exists($candidate)) {
+        $photoPath = '../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+        break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -80,16 +89,26 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 </head>
 <body>
 
-<header class="header-main">
-    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
-        <div>
-            <h1 class="header-title">BICERGAM | <span class="accent-color">Aprobar Lote</span></h1>
-            <div class="user-greeting">Coordinador: <strong><?= $usuarioNombre ?></strong></div>
-        </div>
+<header class="dashboard-header">
+    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
-    <div class="header-right">
-        <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-secondary">Volver</a>
+    <div class="header-user">
+        <div class="header-user-text">
+            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            <span class="header-user-role">(Coordinador)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
+                <?php if ($photoPath): ?>
+                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+                <?php else: ?>
+                    <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+                <?php endif; ?>
+            </a>
+            <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-secondary">Volver</a>
+        </div>
     </div>
 </header>
 
