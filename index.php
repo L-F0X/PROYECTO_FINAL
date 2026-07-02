@@ -12,6 +12,10 @@ $rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? 'instructor'));
 
 if ($rolNombre === 'coordinacion' || $rolNombre === 'coordinador') {
     header("Location: coordinador/index.php");
+} elseif ($rolNombre === 'almacenista') {
+    header("Location: almacenista/index.php");
+} elseif ($rolNombre === 'administrador') {
+    header("Location: Administrador/index.php");
 } else {
     // Por defecto, redirigir al instructor
     header("Location: instructor/index.php");

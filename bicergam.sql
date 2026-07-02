@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 01-07-2026 a las 17:14:17
+-- Tiempo de generación: 02-07-2026 a las 15:49:53
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -20,6 +20,27 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `bicergam`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `auditoria_actividad`
+--
+
+CREATE TABLE `auditoria_actividad` (
+  `ID_AUDITORIA` int(11) NOT NULL,
+  `ID_USUARIO` int(11) NOT NULL,
+  `ACCION` varchar(255) NOT NULL,
+  `DETALLE` text DEFAULT NULL,
+  `FECHA` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `auditoria_actividad`
+--
+
+INSERT INTO `auditoria_actividad` (`ID_AUDITORIA`, `ID_USUARIO`, `ACCION`, `DETALLE`, `FECHA`) VALUES
+(1, 6, 'Creación Usuario', 'Creado nuevo usuario: John Alvarado (ID: 7, Rol: 1, Documento: 159753)', '2026-07-02 13:48:31');
 
 -- --------------------------------------------------------
 
@@ -255,7 +276,8 @@ CREATE TABLE `rol` (
 INSERT INTO `rol` (`ID_ROL`, `NOMBRE_ROL`) VALUES
 (1, 'Instructor'),
 (2, 'Coordinacion'),
-(3, 'Almacenista');
+(3, 'Almacenista'),
+(4, 'administrador');
 
 -- --------------------------------------------------------
 
@@ -345,11 +367,20 @@ CREATE TABLE `usuario` (
 INSERT INTO `usuario` (`ID_USUARIO`, `ID_ROL`, `DOCUMENTO`, `NOMBRE`, `APELLIDO`, `EMAIL`, `PASSWORD`, `ESTADO`) VALUES
 (1, 1, '12345678', 'Carlos', 'Gómez', 'instructor@sena.edu.co', '$2y$10$Prshz7r8TvHIyFKAYA7/2OMFEuExmF2BK89HdFUkxFnYy5fv2yAr.', 'Activo'),
 (2, 2, '987654321', 'Marta', 'Lucía Ruiz', 'mruiz@sena.edu.co', '$2y$10$3wR6Nde0747KSsIUcojtoe.Xn8C0KW7kiOXAjJMh5Jic82d5Hgosi', 'Activo'),
-(5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', 'eba5cc646781907654183180e134a2eb8c4422d5627cef0394192ae9118c4c56', 'Activo');
+(5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', '$2y$10$R9ycuPg7yo.kDHHzEUEkmuC8hzYeSLSKqP.iHoIpAjSVMGDxxMH1K', 'Activo'),
+(6, 4, '1111122398', 'Juan', 'Tovar', 'jjtovarpadilla9@gmail.com', '$2y$10$5hYc3CrtlGEbRIFEHCdzkupxKGpC1REm1W4/GlCnhavpePKsL9iuG', 'Activo'),
+(7, 1, '159753', 'John', 'Alvarado', 'johnalvarado@sena.edu.co', '$2y$10$hWBe9BGPkdfu3NzWNYigwuqGKhuToM4g/lJWzGj6xnviScpnRXNMu', 'Activo');
 
 --
 -- Índices para tablas volcadas
 --
+
+--
+-- Indices de la tabla `auditoria_actividad`
+--
+ALTER TABLE `auditoria_actividad`
+  ADD PRIMARY KEY (`ID_AUDITORIA`),
+  ADD KEY `ID_USUARIO` (`ID_USUARIO`);
 
 --
 -- Indices de la tabla `certificado_existencia`
@@ -445,6 +476,12 @@ ALTER TABLE `usuario`
 --
 
 --
+-- AUTO_INCREMENT de la tabla `auditoria_actividad`
+--
+ALTER TABLE `auditoria_actividad`
+  MODIFY `ID_AUDITORIA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de la tabla `certificado_existencia`
 --
 ALTER TABLE `certificado_existencia`
@@ -502,17 +539,23 @@ ALTER TABLE `proveedor`
 -- AUTO_INCREMENT de la tabla `rol`
 --
 ALTER TABLE `rol`
-  MODIFY `ID_ROL` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `ID_ROL` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Restricciones para tablas volcadas
 --
+
+--
+-- Filtros para la tabla `auditoria_actividad`
+--
+ALTER TABLE `auditoria_actividad`
+  ADD CONSTRAINT `auditoria_actividad_ibfk_1` FOREIGN KEY (`ID_USUARIO`) REFERENCES `usuario` (`ID_USUARIO`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `certificado_existencia`
