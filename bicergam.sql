@@ -345,7 +345,7 @@ CREATE TABLE `usuario` (
 INSERT INTO `usuario` (`ID_USUARIO`, `ID_ROL`, `DOCUMENTO`, `NOMBRE`, `APELLIDO`, `EMAIL`, `PASSWORD`, `ESTADO`) VALUES
 (1, 1, '12345678', 'Carlos', 'Gómez', 'instructor@sena.edu.co', '$2y$10$Prshz7r8TvHIyFKAYA7/2OMFEuExmF2BK89HdFUkxFnYy5fv2yAr.', 'Activo'),
 (2, 2, '987654321', 'Marta', 'Lucía Ruiz', 'mruiz@sena.edu.co', '$2y$10$3wR6Nde0747KSsIUcojtoe.Xn8C0KW7kiOXAjJMh5Jic82d5Hgosi', 'Activo'),
-(5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', 'eba5cc646781907654183180e134a2eb8c4422d5627cef0394192ae9118c4c56', 'Activo');
+(5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', '$2y$10$R9ycuPg7yo.kDHHzEUEkmuC8hzYeSLSKqP.iHoIpAjSVMGDxxMH1K', 'Activo');
 
 --
 -- Índices para tablas volcadas
