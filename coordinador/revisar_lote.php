@@ -91,16 +91,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             Bienvenido: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
-                <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
-                <?php else: ?>
-                    <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
-                <?php endif; ?>
-            </a>
-            <a href="index.php" class="btn btn-secondary">Volver</a>
-        </div>
+        <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
     </div>
 </header>
 

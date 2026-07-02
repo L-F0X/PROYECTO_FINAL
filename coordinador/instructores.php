@@ -14,6 +14,15 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 
+$photoPath = null;
+foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $candidate = __DIR__ . '/../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+    if (file_exists($candidate)) {
+        $photoPath = '../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+        break;
+    }
+}
+
 // Obtener todos los instructores y sus lotes
 try {
     $sql = "SELECT DISTINCT u.ID_USUARIO, u.NOMBRE, u.APELLIDO, u.EMAIL, u.ESTADO,
@@ -35,15 +44,6 @@ try {
 }
 
 $total = count($instructores);
-
-$photoPath = null;
-foreach (['jpg','jpeg','png','webp'] as $ext) {
-    $candidate = __DIR__ . '/../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
-    if (file_exists($candidate)) {
-        $photoPath = '../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
-        break;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -64,16 +64,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             Bienvenido: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
-                <?php if ($photoPath): ?>
-                    <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
-                <?php else: ?>
-                    <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
-                <?php endif; ?>
-            </a>
-            <a href="index.php" class="btn btn-secondary">Volver</a>
-        </div>
+        <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
     </div>
 </header>
 
@@ -95,7 +92,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
