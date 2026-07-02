@@ -97,24 +97,117 @@ $email = htmlspecialchars($user['EMAIL'] ?? 'correo@institucional.com');
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Perfil Coordinador - BICERGAM</title>
+    <title>Perfil Coordinador</title>
     <link rel="stylesheet" href="../estilos.css">
+    <style>
+        .profile-card {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .profile-card-header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e9f0ef;
+            padding-bottom: 18px;
+        }
+        .profile-avatar-wrapper {
+            width: 72px;
+            height: 72px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .profile-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #d4dadb;
+            background: #f8fafb;
+        }
+        .profile-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--verde-sena);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .profile-title h3 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+        .profile-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            align-items: flex-start;
+        }
+        .profile-input {
+            min-width: 0;
+        }
+        .file-upload-wrapper {
+            position: relative;
+            margin-top: 5px;
+        }
+        .file-upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f5f5f5;
+            border: 1.5px dashed #ccc;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+        }
+        .file-upload-btn:hover {
+            border-color: var(--verde-sena);
+            background: rgba(57,181,74,0.05);
+        }
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .profile-card-footer {
+            margin-top: 28px;
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
 </head>
 <body>
-<header class="header-main">
-    <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
-        <div>
-            <h1 class="header-title">Perfil Coordinador</h1>
-            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.8); font-size: 0.95rem;">Actualiza tu información y foto de perfil.</p>
-        </div>
+<header class="dashboard-header">
+    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
     </div>
-    <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
-        <?php if ($photoPath): ?>
-            <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar" style="width: 52px; height: 52px; object-fit: cover;">
-        <?php else: ?>
-            <div class="header-avatar" style="width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 18px;"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
-        <?php endif; ?>
+    <div class="header-user">
+        <div class="header-user-text">
+            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            <span class="header-user-role">(Coordinador)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </div>
     </div>
 </header>
 
@@ -130,9 +223,9 @@ $email = htmlspecialchars($user['EMAIL'] ?? 'correo@institucional.com');
                 <div class="profile-card-header">
                     <div class="profile-avatar-wrapper">
                         <?php if ($photoPath): ?>
-                            <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-avatar">
+                            <img id="current-avatar" src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="profile-avatar">
                         <?php else: ?>
-                            <div class="profile-avatar-placeholder"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+                            <div id="current-avatar" class="profile-avatar-placeholder"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
                         <?php endif; ?>
                     </div>
                     <div class="profile-title">
@@ -170,12 +263,67 @@ $email = htmlspecialchars($user['EMAIL'] ?? 'correo@institucional.com');
                     <label class="profile-label">Foto de Perfil (jpg, png, webp)</label>
                     <div class="file-upload-wrapper">
                         <label class="file-upload-btn">Subir / Cambiar Foto
-                            <input type="file" name="photo" accept="image/png, image/jpeg, image/webp">
+                            <input id="photo-input" type="file" name="photo" accept="image/png, image/jpeg, image/webp">
                         </label>
                     </div>
+                    <div class="photo-preview-note">Vista previa de la imagen seleccionada:</div>
+                    <div id="photo-preview" style="margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 50%; border: 1px solid #d4dadb; overflow: hidden; background: #fff;">
+                        <?php if ($photoPath): ?>
+                            <img src="<?= htmlspecialchars($photoPath) ?>" alt="Previsualización" style="width: 100%; height: 100%; object-fit: cover;">
+                        <?php else: ?>
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #55686e; font-weight: 700; font-size: 1.1rem;">+</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="profile-card-footer">
+                    <a href="index.php" class="btn btn-secondary" style="margin-right: 12px;">Volver al Panel</a>
+                    <button type="submit" class="btn btn-sena">Guardar Cambios</button>
                 </div>
             </form>
     </div>
-</div>
+<script>
+    const photoInput = document.getElementById('photo-input');
+    const photoPreview = document.getElementById('photo-preview');
+    const currentAvatar = document.getElementById('current-avatar');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function () {
+            const file = this.files && this.files[0];
+            if (!file) return;
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                photoPreview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                photoPreview.appendChild(img);
+
+                if (currentAvatar) {
+                    if (currentAvatar.tagName === 'IMG') {
+                        currentAvatar.src = event.target.result;
+                    } else {
+                        const avatarImg = document.createElement('img');
+                        avatarImg.src = event.target.result;
+                        avatarImg.style.width = '100%';
+                        avatarImg.style.height = '100%';
+                        avatarImg.style.objectFit = 'cover';
+                        avatarImg.className = 'profile-avatar';
+                        currentAvatar.replaceWith(avatarImg);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+</script>
 </body>
 </html>

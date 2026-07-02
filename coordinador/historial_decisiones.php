@@ -83,7 +83,6 @@ $total = count($decisiones);
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
