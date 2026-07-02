@@ -77,17 +77,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Manejo de foto
                 if (!empty($_FILES['photo']['name'])) {
-                    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
                     $file = $_FILES['photo'];
-                    if ($file['error'] === UPLOAD_ERR_OK && isset($allowed[$file['type']])) {
-                        $ext = $allowed[$file['type']];
+                    $allowedMime = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg' => 'jpg',
+                        'image/pjpeg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/x-png' => 'png',
+                        'image/webp' => 'webp'
+                    ];
+                    
+                    $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $fileMime = $file['type'];
+                    
+                    if ($file['error'] === UPLOAD_ERR_OK && (isset($allowedMime[$fileMime]) || in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']))) {
+                        $ext = in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']) ? $fileExt : ($allowedMime[$fileMime] ?? 'jpg');
+                        if ($ext === 'jpeg') $ext = 'jpg';
+                        
                         $dir = __DIR__ . '/../uploads/profiles';
                         if (!is_dir($dir)) mkdir($dir, 0755, true);
                         $target = $dir . '/' . $usuarioId . '.' . $ext;
+                        
                         foreach (['jpg','jpeg','png','webp'] as $old) {
                             $oldf = $dir . '/' . $usuarioId . '.' . $old;
-                            if (file_exists($oldf) && $oldf !== $target) @unlink($oldf);
+                            if (file_exists($oldf)) {
+                                @unlink($oldf);
+                            }
                         }
+                        
                         if (move_uploaded_file($file['tmp_name'], $target)) {
                             $message .= ' Foto actualizada.';
                         } else {
@@ -120,7 +137,7 @@ $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
     if (file_exists($candidate)) {
-        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext . '?t=' . filemtime($candidate);
         break;
     }
 }
@@ -131,9 +148,10 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Editar perfil del coordinador en BICERGAM.">
     <title>Editar Perfil Coordinador - BICERGAM</title>
-    <link rel="stylesheet" href="../estilos.css">
+    <link rel="stylesheet" href="../estilos.css?v=<?= filemtime(__DIR__ . '/../estilos.css') ?>">
     <style>
         /* ── Tarjeta del perfil ── */
         .profile-card {
