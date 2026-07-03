@@ -74,6 +74,16 @@ try {
 }
 
 $total = count($lotes);
+
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+$msgType = 'success';
+
+if ($msg === 'aprobado') {
+    $messageText = '✓ Lote aprobado exitosamente.';
+} elseif ($msg === 'rechazado') {
+    $messageText = '✓ Lote rechazado exitosamente.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -136,6 +146,12 @@ $total = count($lotes);
                 <p class="dashboard-subtitle">Revisa, aprueba o rechaza los lotes enviados por los instructores.</p>
             </div>
         </div>
+
+        <?php if ($messageText): ?>
+            <div class="profile-alert <?= $msgType ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;">
+                <?= htmlspecialchars($messageText) ?>
+            </div>
+        <?php endif; ?>
 
         <div class="panel-card">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">

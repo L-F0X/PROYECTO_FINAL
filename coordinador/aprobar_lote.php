@@ -34,6 +34,12 @@ try {
         header('Location: index.php');
         exit;
     }
+
+    // Evitar doble aprobación o procesar lotes que no estén en estado "Enviado"
+    if ($lote['ESTADO_TRAMITE'] !== 'Enviado') {
+        header('Location: index.php');
+        exit;
+    }
 } catch (Exception $e) {
     error_log('Error fetching lote: ' . $e->getMessage());
     header('Location: index.php');
@@ -56,11 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
 
-            $mensaje = 'Lote aprobado exitosamente.';
-            $tipoMensaje = 'success';
-
-            // Redirigir después de 2 segundos
-            header("Refresh: 2; url=index.php");
+            header("Location: revisar_lotes.php?msg=aprobado");
+            exit;
         } catch (Exception $e) {
             error_log('Error aprobando lote: ' . $e->getMessage());
             $mensaje = 'Error al aprobar el lote: ' . $e->getMessage();
