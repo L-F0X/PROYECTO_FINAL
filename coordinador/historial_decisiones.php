@@ -84,12 +84,13 @@ $total = count($decisiones);
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="../imagenes/sena-logo.png" alt="SENA">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Revisar Lotes</a>
-            <a href="historial_decisiones.php" class="sidebar-link sidebar-link--primary">Historial Decisiones</a>
+            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
+            <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
+            <a href="historial_decisiones.php" class="sidebar-link sidebar-link--primary active">Historial Decisiones</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
@@ -99,6 +100,7 @@ $total = count($decisiones);
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
+            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>

@@ -109,44 +109,70 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
 </header>
 
-<div class="container fade-in" style="margin: 30px auto; max-width: 700px;">
-    <div class="role-banner role-coordinador">
-        <h2>Aprobar Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-        <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?></p>
-    </div>
-
-    <div class="panel-card" style="margin-top: 20px;">
-        <?php if (!empty($mensaje)): ?>
-            <div style="padding: 12px; border-radius: 6px; margin-bottom: 20px; <?= $tipoMensaje === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' ?>">
-                <?= htmlspecialchars($mensaje) ?>
-            </div>
-        <?php endif; ?>
-
-        <div style="background: #e8f5e9; border: 1px solid #c8e6c9; padding: 16px; border-radius: 6px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #2e7d32;">¿Estás seguro de que deseas aprobar este lote?</h4>
-            <p style="margin: 8px 0; color: #558b2f;">
-                <strong>Lote:</strong> <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?><br>
-                <strong>ID:</strong> <?= htmlspecialchars($lote['ID_LOTE']) ?><br>
-                <strong>Estado Actual:</strong> <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?>
-            </p>
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
         </div>
-
-        <form method="POST" action="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button type="submit" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Confirmar Aprobación</button>
-                <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Cancelar</a>
-            </div>
-        </form>
-
-        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border-left: 4px solid #ffc107;">
-            <p style="margin: 0; font-size: 13px; color: #666;">
-                <strong>Nota:</strong> Una vez aprobado, el lote pasará al siguiente estado del proceso. Esta acción se registrará en el historial.
-            </p>
+        <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
+            <a href="revisar_lotes.php" class="sidebar-link sidebar-link--primary active">Revisar Lotes</a>
+            <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
-    </div>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
+            <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="container fade-in" style="margin: 0; max-width: 100%;">
+            <div class="role-banner role-coordinador">
+                <h2>Aprobar Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
+                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?></p>
+            </div>
+
+            <div class="panel-card" style="margin-top: 20px;">
+                <?php if (!empty($mensaje)): ?>
+                    <div style="padding: 12px; border-radius: 6px; margin-bottom: 20px; <?= $tipoMensaje === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' ?>">
+                        <?= htmlspecialchars($mensaje) ?>
+                    </div>
+                <?php endif; ?>
+
+                <div style="background: #e8f5e9; border: 1px solid #c8e6c9; padding: 16px; border-radius: 6px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #2e7d32;">¿Estás seguro de que deseas aprobar este lote?</h4>
+                    <p style="margin: 8px 0; color: #558b2f;">
+                        <strong>Lote:</strong> <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?><br>
+                        <strong>ID:</strong> <?= htmlspecialchars($lote['ID_LOTE']) ?><br>
+                        <strong>Estado Actual:</strong> <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?>
+                    </p>
+                </div>
+
+                <form method="POST" action="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button type="submit" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Confirmar Aprobación</button>
+                        <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Cancelar</a>
+                    </div>
+                </form>
+
+                <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; font-size: 13px; color: #666;">
+                        <strong>Nota:</strong> Una vez aprobado, el lote pasará al siguiente estado del proceso. Esta acción se registrará en el historial.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
-
 </body>
 </html>
