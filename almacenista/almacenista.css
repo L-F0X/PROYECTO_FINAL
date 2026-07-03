@@ -1,0 +1,420 @@
+/* almacenista.css — Estilos locales del módulo de almacenista */
+/* Complementa estilos.css sin sobreescribir la identidad visual global */
+
+/* ── Badges de estado de stock ── */
+.stock-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.stock-badge--disponible {
+    background-color: rgba(57, 169, 0, 0.12);
+    color: #2d8500;
+    border: 1px solid rgba(57, 169, 0, 0.25);
+}
+
+.stock-badge--agotado {
+    background-color: rgba(222, 58, 58, 0.1);
+    color: #b82828;
+    border: 1px solid rgba(222, 58, 58, 0.25);
+}
+
+/* ── Badges de tipo de movimiento ── */
+.mov-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.mov-badge--entrada {
+    background-color: rgba(57, 169, 0, 0.12);
+    color: #2d8500;
+}
+
+.mov-badge--salida {
+    background-color: rgba(222, 130, 58, 0.12);
+    color: #b86a10;
+}
+
+/* ── Alertas de feedback ── */
+.alm-alert {
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 22px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: fadeIn 0.35s ease;
+}
+
+.alm-alert--success {
+    background: rgba(57, 169, 0, 0.08);
+    color: #1e6b00;
+    border: 1px solid rgba(57, 169, 0, 0.2);
+}
+
+.alm-alert--error {
+    background: rgba(222, 58, 58, 0.08);
+    color: var(--alerta-rojo);
+    border: 1px solid rgba(222, 58, 58, 0.2);
+}
+
+/* ── Formularios del almacenista ── */
+.alm-form {
+    max-width: 680px;
+}
+
+.alm-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.alm-form-group {
+    margin-bottom: 20px;
+}
+
+.alm-form-group--full {
+    grid-column: 1 / -1;
+}
+
+.alm-form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 0.93rem;
+    color: #264047;
+}
+
+.alm-form-label .required {
+    color: var(--alerta-rojo);
+    margin-left: 2px;
+}
+
+.alm-form-input,
+.alm-form-select,
+.alm-form-textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #d4dadb;
+    border-radius: 10px;
+    font-size: 0.93rem;
+    color: #102935;
+    background: #fafbfb;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+.alm-form-input:focus,
+.alm-form-select:focus,
+.alm-form-textarea:focus {
+    outline: none;
+    border-color: var(--verde-sena);
+    box-shadow: 0 0 0 4px rgba(57, 169, 0, 0.1);
+}
+
+.alm-form-textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.alm-form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: #6b7780;
+}
+
+.alm-form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    align-items: center;
+}
+
+/* ── Detalle de artículo (Kárdex) ── */
+.alm-item-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid #e8eff0;
+}
+
+.alm-item-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(57, 169, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--verde-sena);
+    flex-shrink: 0;
+}
+
+.alm-item-info h3 {
+    margin: 0 0 4px;
+    font-size: 1.25rem;
+    color: var(--gris-oscuro);
+}
+
+.alm-item-info p {
+    margin: 0;
+    color: #6b7780;
+    font-size: 0.9rem;
+}
+
+.alm-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.alm-detail-card {
+    background: #f8fbf8;
+    border: 1px solid #e5eff0;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.alm-detail-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7780;
+    margin-bottom: 6px;
+}
+
+.alm-detail-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--gris-oscuro);
+}
+
+/* ── Tabla responsiva ── */
+.alm-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.alm-table-wrap table {
+    min-width: 600px;
+}
+
+/* ── Acciones en tabla ── */
+.alm-actions-cell {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ── Sección de movimientos recientes ── */
+.alm-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.alm-section-header h3 {
+    margin: 0;
+}
+
+.alm-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7780;
+}
+
+.alm-empty-state span {
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+/* ── Botón volver ── */
+.alm-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #41545a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 18px;
+    transition: color 0.2s ease;
+}
+
+.alm-back-link:hover {
+    color: var(--verde-sena);
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVO — Media Queries
+   ══════════════════════════════════════════ */
+
+/* Tablet */
+@media (max-width: 1100px) {
+    .alm-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .alm-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Móvil grande / Tablet pequeño */
+@media (max-width: 768px) {
+    .alm-form-actions {
+        flex-direction: column;
+    }
+
+    .alm-form-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .alm-item-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .alm-detail-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .alm-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* Header adaptación */
+    .header-main {
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .header-title {
+        font-size: 1.15rem;
+    }
+
+    .user-greeting {
+        font-size: 0.82rem;
+    }
+
+    .sena-logo-img {
+        height: 34px;
+    }
+
+    /* Sidebar como acordeón horizontal */
+    .dashboard-sidebar {
+        padding: 16px 14px;
+        border-radius: 14px;
+    }
+
+    .sidebar-group {
+        margin-bottom: 14px;
+    }
+
+    .sidebar-group h4 {
+        font-size: 0.88rem;
+        margin-bottom: 8px;
+    }
+
+    .sidebar-link {
+        padding: 10px 12px;
+        font-size: 0.88rem;
+        margin-bottom: 8px;
+    }
+
+    /* Dashboard principal */
+    .dashboard-page {
+        padding: 12px;
+        gap: 14px;
+    }
+
+    .dashboard-topbar {
+        padding: 16px;
+    }
+
+    .dashboard-topbar h2 {
+        font-size: 1.35rem;
+    }
+
+    .panel-card {
+        padding: 16px;
+    }
+
+    /* Tabla scroll */
+    .alm-table-wrap {
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+}
+
+/* Móvil pequeño */
+@media (max-width: 480px) {
+    .header-main {
+        padding: 8px 12px;
+    }
+
+    .header-title {
+        font-size: 1rem;
+    }
+
+    .role-badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+    }
+
+    .btn-logout {
+        font-size: 0.78rem;
+        padding: 5px 10px;
+    }
+
+    .dashboard-topbar h2 {
+        font-size: 1.15rem;
+    }
+
+    .dashboard-subtitle {
+        font-size: 0.88rem;
+    }
+
+    .alm-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .alm-item-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2rem;
+    }
+
+    th, td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+}

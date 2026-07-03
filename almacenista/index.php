@@ -69,12 +69,12 @@ $totalItems = count($itemsInventario);
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="../imagenes/sena-logo.png" alt="SENA">
-        </div>
+        </div> 
         <div class="sidebar-group">
             <h4>Gestión de Inventario</h4>
             <a href="index.php" class="sidebar-link sidebar-link--primary">Vista de Stock</a>
-            <a href="#" class="sidebar-link" onclick="alert('Funcionalidad de Registrar Entrada (Boceto)')">Registrar Entrada</a>
-            <a href="#" class="sidebar-link" onclick="alert('Funcionalidad de Registrar Salida (Boceto)')">Registrar Salida</a>
+            <a href="registrar_entrada.php" class="sidebar-link" onclick="alert('Funcionalidad de Registrar Entrada (Boceto)')">Registrar Entrada</a>
+            <a href="registrar_salida.php" class="sidebar-link" onclick="alert('Funcionalidad de Registrar Salida (Boceto)')">Registrar Salida</a>
         </div>
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
