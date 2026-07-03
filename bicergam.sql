@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 02-07-2026 a las 15:49:53
+-- Tiempo de generación: 03-07-2026 a las 19:07:03
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -24,6 +24,21 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `aprobacion_rechazo_lote`
+--
+
+CREATE TABLE `aprobacion_rechazo_lote` (
+  `ID_DECISION` int(11) NOT NULL,
+  `ID_LOTE` int(11) NOT NULL,
+  `ID_COORDINADOR` int(11) NOT NULL,
+  `ESTADO_DECISION` enum('Aprobado','Rechazado') NOT NULL,
+  `JUSTIFICACION` text DEFAULT NULL,
+  `FECHA_DECISION` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `auditoria_actividad`
 --
 
@@ -40,7 +55,9 @@ CREATE TABLE `auditoria_actividad` (
 --
 
 INSERT INTO `auditoria_actividad` (`ID_AUDITORIA`, `ID_USUARIO`, `ACCION`, `DETALLE`, `FECHA`) VALUES
-(1, 6, 'Creación Usuario', 'Creado nuevo usuario: John Alvarado (ID: 7, Rol: 1, Documento: 159753)', '2026-07-02 13:48:31');
+(1, 6, 'Creación Usuario', 'Creado nuevo usuario: John Alvarado (ID: 7, Rol: 1, Documento: 159753)', '2026-07-02 13:48:31'),
+(2, 6, 'Creación Usuario', 'Creado nuevo usuario: Juan Gabriel Alvarado Molina (ID: 8, Rol: 1, Documento: 7140533)', '2026-07-02 14:04:31'),
+(3, 6, 'Creación Usuario', 'Creado nuevo usuario: Juan David (ID: 9, Rol: 1, Documento: 1000000005)', '2026-07-03 15:09:59');
 
 -- --------------------------------------------------------
 
@@ -75,7 +92,10 @@ CREATE TABLE `codigo_unspsc` (
 INSERT INTO `codigo_unspsc` (`ID_CODIGO`, `SEGMENTO`, `FAMILIA`, `CLASE`, `CODIGO_UNSPSC`) VALUES
 (1, 'SIN', 'ASIG', 'CL', 'SIN_ASIGNAR'),
 (2, 'SIN', 'ASIG', 'CL', '451278'),
-(3, 'SIN', 'ASIG', 'CL', '451279');
+(3, 'SIN', 'ASIG', 'CL', '451279'),
+(6, 'SIN', 'ASIG', 'CL', '451271'),
+(7, 'SIN', 'ASIG', 'CL', '125687'),
+(8, 'SIN', 'ASIG', 'CL', '125684');
 
 -- --------------------------------------------------------
 
@@ -138,6 +158,7 @@ CREATE TABLE `ficha_tecnica` (
   `CANTIDAD` int(255) NOT NULL,
   `DESCRIPCION_GENERAL` text DEFAULT NULL,
   `COMENTARIOS` text DEFAULT NULL,
+  `IMAGEN` varchar(255) DEFAULT NULL,
   `FECHA_EMISION` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish2_ci;
 
@@ -145,9 +166,12 @@ CREATE TABLE `ficha_tecnica` (
 -- Volcado de datos para la tabla `ficha_tecnica`
 --
 
-INSERT INTO `ficha_tecnica` (`ID_FICHA_TECNICA`, `ID_MATRIZ_ITEM`, `NOMBRE_ITEM`, `CODIGO_UNSPSC_FK`, `DENOMINACION_TECNICA_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD`, `DESCRIPCION_GENERAL`, `COMENTARIOS`, `FECHA_EMISION`) VALUES
-(1, NULL, 'esponja', '451278', 'esponja de vasos', 'unidad', 0, 'limpieza esponja para lavar y brillar vasos', '4*5', '2026-07-01 14:38:57'),
-(2, 7, 'esponja', '451279', 'esponja de ollas', 'unidad', 0, 'ollas limpia todo arranca grasa', 'metalicas', '2026-07-01 15:10:19');
+INSERT INTO `ficha_tecnica` (`ID_FICHA_TECNICA`, `ID_MATRIZ_ITEM`, `NOMBRE_ITEM`, `CODIGO_UNSPSC_FK`, `DENOMINACION_TECNICA_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD`, `DESCRIPCION_GENERAL`, `COMENTARIOS`, `IMAGEN`, `FECHA_EMISION`) VALUES
+(1, NULL, 'esponja', '451278', 'esponja de vasos', 'unidad', 0, 'limpieza esponja para lavar y brillar vasos', '4*5', NULL, '2026-07-01 14:38:57'),
+(2, 7, 'esponja', '451279', 'esponja de ollas', 'unidad', 0, 'ollas limpia todo arranca grasa', 'metalicas', NULL, '2026-07-01 15:10:19'),
+(3, 15, 'pasta térmica se aplica entre el procesador y el disipador de calor para mejorar la transferencia de calor y mantener la estabilidad del sistema', '451271', 'pasta térmica se aplica entre el procesador y el disipador de calor para mejorar la transferencia de calor y mantener la estabilidad del sistema', 'Unidad', 2, 'La pasta térmica se aplica entre el procesador y el disipador de calor para mejorar la transferencia de calor y mantener la estabilidad del sistema. Es recomendable reemplazarla cada vez que se desmonta el disipador', '', NULL, '2026-07-03 13:00:17'),
+(4, 16, 'Cuchillo de carnicero', '125687', 'Cuchillo de carnicero', 'Unidad', 24, 'Cuchillo mango de madera, hoja de 20cm de largo con cierra', '', 'uploads/fichas/9f83dc6c8de886e017d2d7f9a2056825.webp', '2026-07-03 13:26:16'),
+(5, 17, 'sarten para huevos', '125684', 'sarten para huevos', 'Unidad', 2, 'Sarten antiadherente de acero', '', 'uploads/fichas/6342d77727a5820a680ef8431394eac6.jpg', '2026-07-03 15:52:22');
 
 -- --------------------------------------------------------
 
@@ -188,8 +212,9 @@ CREATE TABLE `lote_requerimiento` (
 
 INSERT INTO `lote_requerimiento` (`ID_LOTE`, `ID_SOLICITANTE`, `LOTE_NOMBRE`, `ESTADO_TRAMITE`, `FECHA_CREACION`) VALUES
 (2, 1, 'REDES', 'Borrador', '2026-06-29'),
-(4, 1, 'Computo', 'Borrador', '2026-07-01'),
-(5, 1, 'Componentes hardware', 'Borrador', '2026-07-01');
+(5, 1, 'Componentes hardware', 'Borrador', '2026-07-01'),
+(6, 1, 'Mantenimiento PC', 'Enviado', '2026-07-02'),
+(7, 1, 'Utencilios de cocina', 'Enviado', '2026-07-03');
 
 -- --------------------------------------------------------
 
@@ -222,7 +247,10 @@ CREATE TABLE `matriz_item` (
 --
 
 INSERT INTO `matriz_item` (`ID_MATRIZ_ITEM`, `ID_LOTE`, `ID_NECESIDAD`, `ID_CODIGO_UNSPSC`, `ID_IVA`, `DESCRIPCION_BIEN`, `UNIDAD_MEDIDA`, `CANTIDAD_REGULAR`, `OFERTA_1`, `OFERTA_2`, `OFERTA_3`, `VALOR_UNITARIO_PROMEDIO`, `VALOR_TOTAL_PROMEDIO`, `FICHA_TECNICA`, `ESTADO_ITEM`, `INSTRUCTOR_APOYO`, `ID_FICHA_TECNICA`) VALUES
-(7, 2, NULL, 1, 1, 'Item prueba automatizada 4', '', 5, NULL, NULL, NULL, NULL, NULL, 'Ficha técnica prueba 4', 'Borrador', NULL, 2);
+(7, 2, NULL, 1, 1, 'Item prueba automatizada 4', '', 5, NULL, NULL, NULL, NULL, NULL, 'Ficha técnica prueba 4', 'Borrador', NULL, 2),
+(15, 6, 3, 6, 1, 'pasta térmica se aplica entre el procesador y el disipador de calor para mejorar la transferencia de calor y mantener la estabilidad del sistema', 'Unidad', 2, NULL, NULL, NULL, NULL, NULL, 'La pasta térmica se aplica entre el procesador y el disipador de calor para mejorar la transferencia de calor y mantener la estabilidad del sistema. Es recomendable reemplazarla cada vez que se desmonta el disipador', 'Pendiente', NULL, 3),
+(16, 7, 4, 7, 1, 'Cuchillo de carnicero', 'Unidad', 24, NULL, NULL, NULL, NULL, NULL, 'Cuchillo mango de madera, hoja de 20cm de largo con cierra', 'Pendiente', 7, 4),
+(17, 7, 5, 8, 1, 'sarten para huevos', 'Unidad', 2, NULL, NULL, NULL, NULL, NULL, 'Sarten antiadherente de acero', 'Pendiente', NULL, 5);
 
 -- --------------------------------------------------------
 
@@ -244,6 +272,15 @@ CREATE TABLE `necesidad` (
   `CANTIDAD_FC_CAMPESINA` int(11) NOT NULL DEFAULT 0,
   `CANTIDAD_NESECIDAD` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish2_ci;
+
+--
+-- Volcado de datos para la tabla `necesidad`
+--
+
+INSERT INTO `necesidad` (`ID_NECESIDAD`, `ID_MATRIZ`, `CANTIDAD_REGULAR`, `CANTIDAD_CAMPESINA_COMPLEMENTARIA`, `CANTIDAD_CAMPESINA_TITULADA`, `CANTIDAD_VULNERABLE`, `CANTIDAD_MEDIA_TECNICA`, `CANTIDAD_FIC`, `CANTIDAD_ECONOMIA_POPULAR`, `CANTIDAD_ENI`, `CANTIDAD_FC_CAMPESINA`, `CANTIDAD_NESECIDAD`) VALUES
+(3, 15, 2, 1, 0, 0, 0, 0, 1, 0, 0, 2),
+(4, 16, 24, 4, 0, 0, 20, 0, 0, 0, 0, 24),
+(5, 17, 2, 1, 0, 0, 0, 0, 0, 1, 0, 2);
 
 -- --------------------------------------------------------
 
@@ -369,11 +406,21 @@ INSERT INTO `usuario` (`ID_USUARIO`, `ID_ROL`, `DOCUMENTO`, `NOMBRE`, `APELLIDO`
 (2, 2, '987654321', 'Marta', 'Lucía Ruiz', 'mruiz@sena.edu.co', '$2y$10$3wR6Nde0747KSsIUcojtoe.Xn8C0KW7kiOXAjJMh5Jic82d5Hgosi', 'Activo'),
 (5, 3, '10203040', 'Nombre', 'Almacenista', 'almacenista@sena.edu.co', '$2y$10$R9ycuPg7yo.kDHHzEUEkmuC8hzYeSLSKqP.iHoIpAjSVMGDxxMH1K', 'Activo'),
 (6, 4, '1111122398', 'Juan', 'Tovar', 'jjtovarpadilla9@gmail.com', '$2y$10$5hYc3CrtlGEbRIFEHCdzkupxKGpC1REm1W4/GlCnhavpePKsL9iuG', 'Activo'),
-(7, 1, '159753', 'John', 'Alvarado', 'johnalvarado@sena.edu.co', '$2y$10$hWBe9BGPkdfu3NzWNYigwuqGKhuToM4g/lJWzGj6xnviScpnRXNMu', 'Activo');
+(7, 1, '159753', 'John', 'Alvarado', 'johnalvarado@sena.edu.co', '$2y$10$hWBe9BGPkdfu3NzWNYigwuqGKhuToM4g/lJWzGj6xnviScpnRXNMu', 'Activo'),
+(8, 1, '7140533', 'Juan Gabriel', 'Alvarado Molina', 'jgalvarado@sena.edu.co', '$2y$10$cLYSYXtLsi2Cdb7DJrCRWep3DfPn4dkiTxb02ulsUc11sJfdQVd1.', 'Activo'),
+(9, 1, '1000000005', 'Juan', 'David', 'juandavid@gmail.com', '$2y$10$ce3NRl9HZWNlVQWsyxnvruflvRZrr3KEtbsQgREX.kycO2e0Z1Sd2', 'Activo');
 
 --
 -- Índices para tablas volcadas
 --
+
+--
+-- Indices de la tabla `aprobacion_rechazo_lote`
+--
+ALTER TABLE `aprobacion_rechazo_lote`
+  ADD PRIMARY KEY (`ID_DECISION`),
+  ADD KEY `ID_LOTE` (`ID_LOTE`),
+  ADD KEY `ID_COORDINADOR` (`ID_COORDINADOR`);
 
 --
 -- Indices de la tabla `auditoria_actividad`
@@ -476,10 +523,16 @@ ALTER TABLE `usuario`
 --
 
 --
+-- AUTO_INCREMENT de la tabla `aprobacion_rechazo_lote`
+--
+ALTER TABLE `aprobacion_rechazo_lote`
+  MODIFY `ID_DECISION` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `auditoria_actividad`
 --
 ALTER TABLE `auditoria_actividad`
-  MODIFY `ID_AUDITORIA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `ID_AUDITORIA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `certificado_existencia`
@@ -491,7 +544,7 @@ ALTER TABLE `certificado_existencia`
 -- AUTO_INCREMENT de la tabla `codigo_unspsc`
 --
 ALTER TABLE `codigo_unspsc`
-  MODIFY `ID_CODIGO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `ID_CODIGO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `cotizacion`
@@ -503,7 +556,7 @@ ALTER TABLE `cotizacion`
 -- AUTO_INCREMENT de la tabla `ficha_tecnica`
 --
 ALTER TABLE `ficha_tecnica`
-  MODIFY `ID_FICHA_TECNICA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `ID_FICHA_TECNICA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `iva`
@@ -515,19 +568,19 @@ ALTER TABLE `iva`
 -- AUTO_INCREMENT de la tabla `lote_requerimiento`
 --
 ALTER TABLE `lote_requerimiento`
-  MODIFY `ID_LOTE` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `ID_LOTE` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de la tabla `matriz_item`
 --
 ALTER TABLE `matriz_item`
-  MODIFY `ID_MATRIZ_ITEM` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `ID_MATRIZ_ITEM` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de la tabla `necesidad`
 --
 ALTER TABLE `necesidad`
-  MODIFY `ID_NECESIDAD` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ID_NECESIDAD` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `proveedor`
@@ -545,11 +598,18 @@ ALTER TABLE `rol`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- Restricciones para tablas volcadas
 --
+
+--
+-- Filtros para la tabla `aprobacion_rechazo_lote`
+--
+ALTER TABLE `aprobacion_rechazo_lote`
+  ADD CONSTRAINT `aprobacion_rechazo_lote_ibfk_1` FOREIGN KEY (`ID_LOTE`) REFERENCES `lote_requerimiento` (`ID_LOTE`),
+  ADD CONSTRAINT `aprobacion_rechazo_lote_ibfk_2` FOREIGN KEY (`ID_COORDINADOR`) REFERENCES `usuario` (`ID_USUARIO`);
 
 --
 -- Filtros para la tabla `auditoria_actividad`
