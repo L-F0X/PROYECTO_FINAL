@@ -221,10 +221,11 @@ body {
 .sidebar-logo {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     margin-bottom: 24px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
+    padding-left: 8px;
 }
 
 .sidebar-logo img {
@@ -251,10 +252,14 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 700;
+    text-align: left;
+    padding-left: 8px;
 }
 
 .sidebar-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 8px;
@@ -265,7 +270,7 @@ body {
     font-weight: 600;
     background: #f8fafc;
     border: 1px solid var(--border-color);
-    text-align: center;
+    text-align: left;
     transition: all 0.2s ease;
 }
 
@@ -969,18 +974,19 @@ tr:hover {
 /* Responsividad */
 @media (max-width: 1100px) {
     .dashboard-page {
-        grid-template-columns: 1fr;
+        grid-template-columns: 240px minmax(0, 1fr);
         width: 100%;
         padding: 16px;
         margin-bottom: 20px;
+        gap: 16px;
     }
     .dashboard-sidebar {
-        position: relative;
-        min-height: auto;
-        top: auto;
+        position: sticky;
+        top: 24px;
+        min-height: calc(100vh - 120px);
         max-width: 100%;
         width: 100%;
-        margin-bottom: 20px;
+        margin-bottom: 0;
     }
     .dashboard-topbar {
         flex-direction: column;
@@ -999,52 +1005,69 @@ tr:hover {
 
 @media (max-width: 768px) {
     .dashboard-page {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr);
         padding: 12px;
         width: 100%;
+        gap: 12px;
     }
     .dashboard-sidebar {
-        padding: 12px;
-        margin-bottom: 16px;
+        padding: 16px 12px;
+        margin-bottom: 0;
         display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 12px;
-        white-space: nowrap;
+        flex-direction: column;
+        gap: 16px;
         border-radius: 12px;
-        position: relative;
-        min-height: auto;
-        top: auto;
-        -webkit-overflow-scrolling: touch;
-        align-items: center;
+        position: sticky;
+        top: 12px;
+        min-height: calc(100vh - 100px);
         background: #ffffff;
         border: 1px solid var(--border-color);
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-    }
-    .dashboard-sidebar::-webkit-scrollbar {
-        display: none; /* Oculta la barra de scroll para una apariencia más limpia */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        align-items: stretch;
     }
     .sidebar-logo {
-        display: none !important;
+        display: flex !important;
+        justify-content: flex-start;
+        padding-left: 8px;
     }
     .sidebar-group {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        margin-bottom: 0;
-        align-items: center;
+        display: block;
+        margin-bottom: 16px;
     }
     .sidebar-group h4 {
-        display: none !important; /* Oculta etiquetas como "OPERACIONES" para ahorrar espacio */
+        display: block !important;
+        text-align: left;
+        padding-left: 8px;
     }
     .sidebar-link {
-        margin-bottom: 0;
-        padding: 8px 16px;
+        margin-bottom: 8px;
+        padding: 10px 12px;
         font-size: 0.85rem;
-        display: inline-block;
-        width: auto;
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        text-align: left;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-page {
+        grid-template-columns: 160px minmax(0, 1fr);
+        padding: 8px;
+        gap: 8px;
+    }
+    .dashboard-sidebar {
+        padding: 12px 8px;
+        min-height: calc(100vh - 80px);
+    }
+    .sidebar-logo img {
+        width: 32px;
+    }
+    .sidebar-link {
+        font-size: 0.8rem;
+        padding: 8px 10px;
     }
 }
 

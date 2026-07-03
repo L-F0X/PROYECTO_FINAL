@@ -45,6 +45,46 @@ if ($rolNombre === 'instructor') {
     $stmt->execute($params);
     $panelTitulo = 'Lotes';
     $panelDescripcion = 'Aquí verás los lotes que has creado o que están a tu cargo como instructor.';
+
+    // Query stats for charts/summary (Instructor)
+    $totalLotes = 0;
+    $totalItems = 0;
+    $totalFichas = 0;
+    $lotesBorrador = 0;
+    $lotesEnviado = 0;
+    $lotesAprobado = 0;
+    $lotesRechazado = 0;
+
+    try {
+        // Total Lotes
+        $stmtCountLotes = $pdo->prepare("SELECT COUNT(*) FROM lote_requerimiento WHERE ID_SOLICITANTE = ?");
+        $stmtCountLotes->execute([$usuarioId]);
+        $totalLotes = intval($stmtCountLotes->fetchColumn());
+
+        // Total Items
+        $stmtCountItems = $pdo->prepare("SELECT COUNT(*) FROM matriz_item mi INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE WHERE lr.ID_SOLICITANTE = ?");
+        $stmtCountItems->execute([$usuarioId]);
+        $totalItems = intval($stmtCountItems->fetchColumn());
+
+        // Total Fichas
+        $stmtCountFichas = $pdo->prepare("SELECT COUNT(*) FROM ficha_tecnica ft INNER JOIN matriz_item mi ON ft.ID_MATRIZ_ITEM = mi.ID_MATRIZ_ITEM INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE WHERE lr.ID_SOLICITANTE = ?");
+        $stmtCountFichas->execute([$usuarioId]);
+        $totalFichas = intval($stmtCountFichas->fetchColumn());
+
+        // Lotes states count
+        $stmtStates = $pdo->prepare("SELECT ESTADO_TRAMITE, COUNT(*) as count FROM lote_requerimiento WHERE ID_SOLICITANTE = ? GROUP BY ESTADO_TRAMITE");
+        $stmtStates->execute([$usuarioId]);
+        $statesData = $stmtStates->fetchAll();
+        foreach ($statesData as $row) {
+            $est = trim($row['ESTADO_TRAMITE']);
+            if ($est === 'Borrador') $lotesBorrador = intval($row['count']);
+            elseif ($est === 'Enviado') $lotesEnviado = intval($row['count']);
+            elseif ($est === 'Aprobado') $lotesAprobado = intval($row['count']);
+            elseif ($est === 'Rechazado') $lotesRechazado = intval($row['count']);
+        }
+    } catch (Exception $e) {
+        error_log('Error cargando estadísticas en index: ' . $e->getMessage());
+    }
 } elseif ($rolNombre === 'coordinador') {
     $sql = "SELECT * FROM lote_requerimiento";
     $params = [];
@@ -156,6 +196,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BICERGAM - Pre-compra SENA</title>
     <link rel="stylesheet" href="../estilos.css?v=<?= filemtime(__DIR__ . '/../estilos.css') ?>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -206,6 +247,55 @@ try {
             <div>
                 <h2>Panel de Instructor</h2>
                 <p class="dashboard-subtitle">Accede a tus herramientas: ficha técnica, certificados de existencia y consulta de matrices.</p>
+            </div>
+        </div>
+
+        <!-- Resumen de Actividad e Indicadores -->
+        <style>
+            .stats-dashboard-grid {
+                display: grid;
+                grid-template-columns: 1.2fr 1fr;
+                gap: 20px;
+                margin-bottom: 24px;
+            }
+            @media (max-width: 768px) {
+                .stats-dashboard-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+        <div class="stats-dashboard-grid">
+            <!-- Tarjetas de Métricas -->
+            <div class="metrics-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid var(--verde-sena);">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Lotes Creados</span>
+                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalLotes ?></h3>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Total requerimientos</p>
+                </div>
+                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #0284c7;">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Ítems Creados</span>
+                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalItems ?></h3>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">En matriz de lotes</p>
+                </div>
+                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #7c3aed; grid-column: span 2;">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Fichas Técnicas</span>
+                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalFichas ?></h3>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Asociadas a materiales</p>
+                </div>
+            </div>
+
+            <!-- Gráfico de Estados -->
+            <div class="chart-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                <h4 style="margin: 0 0 15px; color: var(--texto-oscuro); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Estados de los Lotes</h4>
+                <div style="position: relative; height: 160px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                    <canvas id="lotesChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -276,7 +366,8 @@ try {
                                 <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
                                 <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
                                 <td>
-                                    <a href="../fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
+                                    <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
+                                    <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
                                     <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
                                     <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
@@ -380,13 +471,14 @@ try {
                         <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
                         <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
                         <td>
-                            <a href="../fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
-                            <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
-                            <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
-                                <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>
-                            </form>
+                                    <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
+                                    <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
+                                    <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                                    <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
+                                        <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                        <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>
+                                    </form>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -397,6 +489,54 @@ try {
 <?php endif; ?>
 
 <script src="../javascript.js"></script>
+<?php if ($rolNombre === 'instructor'): ?>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('lotesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Borrador', 'Enviado', 'Aprobado', 'Rechazado'],
+                datasets: [{
+                    data: [
+                        <?= $lotesBorrador ?>,
+                        <?= $lotesEnviado ?>,
+                        <?= $lotesAprobado ?>,
+                        <?= $lotesRechazado ?>
+                    ],
+                    backgroundColor: [
+                        '#64748b', // Borrador - Gris
+                        '#3b82f6', // Enviado - Azul
+                        '#10b981', // Aprobado - Verde
+                        '#ef4444'  // Rechazado - Rojo
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                size: 11,
+                                weight: '600'
+                            },
+                            color: '#475569'
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
+<?php endif; ?>
 <script>
     (function () {
         const input  = document.getElementById('q');

@@ -17,10 +17,11 @@ $mensaje = "";
 
 // Cargar items de la matriz disponibles (del instructor) para asociar la ficha
 $stmtItems = $pdo->prepare("
-    SELECT mi.ID_MATRIZ_ITEM, mi.DESCRIPCION_BIEN, lr.LOTE_NOMBRE
+    SELECT mi.ID_MATRIZ_ITEM, mi.DESCRIPCION_BIEN, lr.LOTE_NOMBRE, mi.ID_LOTE, mi.UNIDAD_MEDIDA, mi.CANTIDAD_REGULAR, c.CODIGO_UNSPSC
     FROM matriz_item mi
     INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE
-    WHERE lr.ID_SOLICITANTE = ?
+    LEFT JOIN codigo_unspsc c ON mi.ID_CODIGO_UNSPSC = c.ID_CODIGO
+    WHERE lr.ID_SOLICITANTE = ? AND mi.ID_FICHA_TECNICA IS NULL
     ORDER BY mi.ID_MATRIZ_ITEM DESC
 ");
 $stmtItems->execute([$usuarioId]);
@@ -35,6 +36,26 @@ $lotes = $stmtLotes->fetchAll();
 $stmtIva = $pdo->query("SELECT ID_IVA, PORCENTAJE, DESCRIPCION FROM iva");
 $ivas = $stmtIva->fetchAll();
 
+// Cargar datos pre-rellenados si se especifica un item en la URL
+$prefilledItem = null;
+$prefilledItemId = isset($_GET['item']) ? intval($_GET['item']) : 0;
+if ($prefilledItemId > 0) {
+    try {
+        $stmtPrefill = $pdo->prepare("
+            SELECT mi.*, lr.LOTE_NOMBRE, c.CODIGO_UNSPSC
+            FROM matriz_item mi
+            INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE
+            LEFT JOIN codigo_unspsc c ON mi.ID_CODIGO_UNSPSC = c.ID_CODIGO
+            WHERE mi.ID_MATRIZ_ITEM = ? AND lr.ID_SOLICITANTE = ? AND mi.ID_FICHA_TECNICA IS NULL
+            LIMIT 1
+        ");
+        $stmtPrefill->execute([$prefilledItemId, $usuarioId]);
+        $prefilledItem = $stmtPrefill->fetch();
+    } catch (Exception $e) {
+        error_log('Error al cargar datos pre-rellenados: ' . $e->getMessage());
+    }
+}
+
 // Procesar el formulario cuando se envía
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -44,20 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $unidadMedida      = trim($_POST['unidad_medida']);
         $descripcion       = trim($_POST['descripcion_general']);
         $comentarios       = trim($_POST['comentarios'] ?? '');
-
-        // Validar / insertar código UNSPSC si no existe
-        $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
-        $stmtCheckUnspsc->execute([$codigoUnspsc]);
-        if (!$stmtCheckUnspsc->fetch()) {
-            $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?, ?, ?, ?)");
-            $stmtInsertUnspsc->execute(['SIN', 'ASIG', 'CL', $codigoUnspsc]);
-        }
-
-        $idLote = isset($_POST['id_lote']) && trim($_POST['id_lote']) !== '' ? intval($_POST['id_lote']) : 0;
-        $cantidad = isset($_POST['cantidad']) ? intval($_POST['cantidad']) : 1;
+        $idLote            = isset($_POST['id_lote']) && trim($_POST['id_lote']) !== '' ? intval($_POST['id_lote']) : 0;
+        $cantidad          = isset($_POST['cantidad']) ? intval($_POST['cantidad']) : 1;
+        $idMatrizItem      = isset($_POST['id_matriz_item']) && trim($_POST['id_matriz_item']) !== '' ? intval($_POST['id_matriz_item']) : 0;
 
         if ($idLote <= 0) {
-            throw new Exception("Debe seleccionar un lote de destino para asociar la ficha técnica y crear el material.");
+            throw new Exception("Debe seleccionar un lote de destino para asociar la ficha técnica.");
         }
 
         // Validar / insertar código UNSPSC si no existe
@@ -73,34 +86,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_unspsc = $pdo->lastInsertId();
         }
 
-        // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null)
-        $sqlMatrizItem = "INSERT INTO matriz_item 
-            (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA) 
-            VALUES (?, ?, 0, ?, ?, ?, ?, 'Borrador', NULL)";
-        
-        $stmtNewItem = $pdo->prepare($sqlMatrizItem);
-        $stmtNewItem->execute([
-            $idLote, $id_unspsc, $nombreItem . " - " . $denominacion, $unidadMedida, $cantidad, $descripcion
-        ]);
-        $idMatrizItem = $pdo->lastInsertId();
+        if ($idMatrizItem > 0) {
+            // Caso A: Asociar a un ítem existente de la matriz
+            // 1. Insertar en tabla ficha_tecnica
+            $sqlInsert = "INSERT INTO ficha_tecnica
+                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmtInsert = $pdo->prepare($sqlInsert);
+            $stmtInsert->execute([
+                $idMatrizItem, $nombreItem, $codigoUnspsc,
+                $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
+            ]);
+            $lastFichaId = $pdo->lastInsertId();
 
-        // 2. Insertar en tabla ficha_tecnica
-        $sqlInsert = "INSERT INTO ficha_tecnica
-            (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            // 2. Actualizar la tabla matriz_item con el ID_FICHA_TECNICA y sincronizar campos
+            $stmtUpdateMatrizItem = $pdo->prepare("
+                UPDATE matriz_item 
+                SET ID_FICHA_TECNICA = ?, ID_CODIGO_UNSPSC = ?, UNIDAD_MEDIDA = ?, CANTIDAD_REGULAR = ? 
+                WHERE ID_MATRIZ_ITEM = ?
+            ");
+            $stmtUpdateMatrizItem->execute([$lastFichaId, $id_unspsc, $unidadMedida, $cantidad, $idMatrizItem]);
 
-        $stmtInsert = $pdo->prepare($sqlInsert);
-        $stmtInsert->execute([
-            $idMatrizItem, $nombreItem, $codigoUnspsc,
-            $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
-        ]);
-        $lastFichaId = $pdo->lastInsertId();
+        } else {
+            // Caso B: Crear un nuevo ítem en matriz y luego asociar la ficha técnica
+            // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null, ID_IVA = 1)
+            $sqlMatrizItem = "INSERT INTO matriz_item 
+                (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA) 
+                VALUES (?, ?, 1, ?, ?, ?, ?, 'Borrador', NULL)";
+            
+            $stmtNewItem = $pdo->prepare($sqlMatrizItem);
+            $stmtNewItem->execute([
+                $idLote, $id_unspsc, $nombreItem . " - " . $denominacion, $unidadMedida, $cantidad, $descripcion
+            ]);
+            $idMatrizItem = $pdo->lastInsertId();
 
-        // 3. Vincular el ID_FICHA_TECNICA recién creado de vuelta a la tabla matriz_item
-        $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
-        $stmtUpdateMatrizItem->execute([$lastFichaId, $idMatrizItem]);
+            // 2. Insertar en tabla ficha_tecnica
+            $sqlInsert = "INSERT INTO ficha_tecnica
+                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmtInsert = $pdo->prepare($sqlInsert);
+            $stmtInsert->execute([
+                $idMatrizItem, $nombreItem, $codigoUnspsc,
+                $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
+            ]);
+            $lastFichaId = $pdo->lastInsertId();
 
-        $mensaje = "<div class='alert success'>✓ Ficha Técnica guardada con éxito.</div>";
+            // 3. Vincular el ID_FICHA_TECNICA recién creado de vuelta a la tabla matriz_item
+            $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
+            $stmtUpdateMatrizItem->execute([$lastFichaId, $idMatrizItem]);
+        }
+
+        $mensaje = "<div class='alert success'>✓ Ficha Técnica guardada y vinculada con éxito.</div>";
+        // Recargar la lista de items
+        $stmtItems->execute([$usuarioId]);
+        $matrizItems = $stmtItems->fetchAll();
     } catch (Exception $e) {
         $mensaje = "<div class='alert error'>✗ Error al guardar: " . htmlspecialchars($e->getMessage()) . "</div>";
     }
@@ -419,26 +458,68 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="ficha-title">Ficha Técnica de Producto</div>
 
                 <!-- ── SELECCIONAR LOTE DESTINO ── -->
-                <div class="ficha-row">
-                    <div class="ficha-label">Lote Destino (Se creará un material en la matriz) *</div>
-                    <div class="ficha-value">
-                        <select name="id_lote" id="id_lote" required>
-                            <option value="">-- Seleccionar Lote --</option>
-                            <?php foreach ($lotes as $l): ?>
-                                <option value="<?= htmlspecialchars($l['ID_LOTE']) ?>"><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                <?php
+                $prefilledNombre = '';
+                $prefilledDenominacion = '';
+                if ($prefilledItem) {
+                    $parts = explode(' - ', $prefilledItem['DESCRIPCION_BIEN'], 2);
+                    $prefilledNombre = trim($parts[0] ?? '');
+                    $prefilledDenominacion = trim($parts[1] ?? '');
+                }
+                ?>
+                <?php if ($prefilledItem): ?>
+                    <input type="hidden" name="id_lote" value="<?= htmlspecialchars($prefilledItem['ID_LOTE']) ?>">
+                    <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($prefilledItem['ID_MATRIZ_ITEM']) ?>">
+                    <div class="ficha-row">
+                        <div class="ficha-label">Lote Destino</div>
+                        <div class="ficha-value">
+                            <input type="text" class="form-control" value="<?= htmlspecialchars($prefilledItem['LOTE_NOMBRE']) ?>" disabled>
+                        </div>
                     </div>
-                </div>
-
-
+                    <div class="ficha-row">
+                        <div class="ficha-label">Ítem Asociado</div>
+                        <div class="ficha-value">
+                            <input type="text" class="form-control" value="<?= htmlspecialchars($prefilledItem['DESCRIPCION_BIEN']) ?> (ID: <?= htmlspecialchars($prefilledItem['ID_MATRIZ_ITEM']) ?>)" disabled>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="ficha-row">
+                        <div class="ficha-label">Lote Destino *</div>
+                        <div class="ficha-value">
+                            <select name="id_lote" id="id_lote" required>
+                                <option value="">-- Seleccionar Lote --</option>
+                                <?php foreach ($lotes as $l): ?>
+                                    <option value="<?= htmlspecialchars($l['ID_LOTE']) ?>"><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ficha-row" id="row_item">
+                        <div class="ficha-label">Asociar a un Ítem Existente *</div>
+                        <div class="ficha-value">
+                            <select name="id_matriz_item" id="id_matriz_item" required>
+                                <option value="">-- Seleccione un Ítem --</option>
+                                <?php foreach ($matrizItems as $item): ?>
+                                    <option value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>" 
+                                            data-lote="<?= htmlspecialchars($item['ID_LOTE']) ?>"
+                                            data-nombre="<?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?>"
+                                            data-unspsc="<?= htmlspecialchars($item['CODIGO_UNSPSC'] ?? 'SIN_ASIGNAR') ?>"
+                                            data-unidad="<?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?? 'Unidad') ?>"
+                                            data-cantidad="<?= htmlspecialchars($item['CANTIDAD_REGULAR'] ?? '1') ?>">
+                                        <?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?> (ID: <?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- ── NUMERO DE ITEM / NOMBRE ── -->
                 <div class="ficha-row">
                     <div class="ficha-label">Nombre del Ítem *</div>
                     <div class="ficha-value">
                         <input type="text" name="nombre_item" id="nombre_item"
-                               placeholder="Ej: ESPUMA LIMPIADORA, 370 ML" required>
+                               placeholder="Ej: ESPUMA LIMPIADORA, 370 ML" value="<?= htmlspecialchars($prefilledNombre) ?>" required>
                     </div>
                 </div>
 
@@ -447,7 +528,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="ficha-label">Código UNSPSC *</div>
                     <div class="ficha-value">
                         <input type="text" name="codigo_unspsc" id="codigo_unspsc"
-                               placeholder="Ej: 47131805" required>
+                               placeholder="Ej: 47131805" value="<?= htmlspecialchars($prefilledItem['CODIGO_UNSPSC'] ?? '') ?>" required>
                     </div>
                 </div>
 
@@ -455,20 +536,20 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="ficha-section-header">Denominación Técnica del Bien</div>
                 <div class="ficha-full-row">
                     <input type="text" name="denominacion_tecnica" id="denominacion_tecnica"
-                           placeholder="Denominación técnica detallada del bien" required>
+                           placeholder="Denominación técnica detallada del bien" value="<?= htmlspecialchars($prefilledDenominacion) ?>" required>
                 </div>
 
                 <!-- ── UNIDAD DE MEDIDA ── -->
                 <div class="ficha-section-header">Unidad de Medida</div>
                 <div class="ficha-full-row" style="text-align:center">
                     <input type="text" name="unidad_medida" id="unidad_medida"
-                           placeholder="Ej: Unidad, Galón, Kit" required style="text-align:center">
+                           placeholder="Ej: Unidad, Galón, Kit" value="<?= htmlspecialchars($prefilledItem['UNIDAD_MEDIDA'] ?? '') ?>" required style="text-align:center">
                 </div>
 
                 <!-- ── CANTIDAD ── -->
                 <div class="ficha-section-header">Cantidad</div>
                 <div class="ficha-full-row" style="text-align:center">
-                    <input type="number" name="cantidad" id="cantidad" min="1" value="1" required style="text-align:center">
+                    <input type="number" name="cantidad" id="cantidad" min="1" value="<?= htmlspecialchars($prefilledItem['CANTIDAD_REGULAR'] ?? '1') ?>" required style="text-align:center">
                 </div>
 
                 <!-- ── DESCRIPCIÓN GENERAL ── -->
@@ -477,7 +558,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="ficha-desc-text">
                         <textarea name="descripcion_general" id="descripcion_general"
                                   placeholder="Tipo de elemento: ...&#10;Tecnología: ...&#10;Presentación: ..."
-                                  required></textarea>
+                                  required><?= htmlspecialchars($prefilledItem['FICHA_TECNICA'] ?? '') ?></textarea>
                     </div>
                     <div class="ficha-desc-img">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5">
@@ -525,5 +606,67 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </div>
 
 <script src="../javascript.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loteSelect = document.getElementById('id_lote');
+    const itemSelect = document.getElementById('id_matriz_item');
+
+    if (loteSelect && itemSelect) {
+        // Al cambiar de lote, filtramos los items elegibles
+        loteSelect.addEventListener('change', function() {
+            const selectedLote = this.value;
+            const options = itemSelect.querySelectorAll('option');
+            
+            itemSelect.value = '';
+            
+            options.forEach(opt => {
+                if (opt.value === '') {
+                    opt.style.display = 'block';
+                } else {
+                    const optLote = opt.getAttribute('data-lote');
+                    if (optLote === selectedLote) {
+                        opt.style.display = 'block';
+                    } else {
+                        opt.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Disparar evento change de itemSelect para limpiar campos
+            itemSelect.dispatchEvent(new Event('change'));
+        });
+
+        // Al cambiar de item, rellenamos los campos automáticamente
+        itemSelect.addEventListener('change', function() {
+            const selectedOpt = this.options[this.selectedIndex];
+            if (!selectedOpt || selectedOpt.value === '') {
+                // Si no hay item seleccionado, limpiar campos
+                document.getElementById('nombre_item').value = '';
+                document.getElementById('codigo_unspsc').value = '';
+                document.getElementById('denominacion_tecnica').value = '';
+                document.getElementById('unidad_medida').value = '';
+                document.getElementById('cantidad').value = '1';
+                return;
+            }
+
+            const fullName = selectedOpt.getAttribute('data-nombre') || '';
+            const parts = fullName.split(' - ');
+            const nombre = parts[0] ? parts[0].trim() : '';
+            const denominacion = parts[1] ? parts[1].trim() : '';
+            
+            document.getElementById('nombre_item').value = nombre;
+            document.getElementById('denominacion_tecnica').value = denominacion || nombre;
+            document.getElementById('codigo_unspsc').value = selectedOpt.getAttribute('data-unspsc') || '';
+            document.getElementById('unidad_medida').value = selectedOpt.getAttribute('data-unidad') || 'Unidad';
+            document.getElementById('cantidad').value = selectedOpt.getAttribute('data-cantidad') || '1';
+        });
+
+        // Disparar inicialmente en caso de que esté pre-seleccionado un lote
+        if (loteSelect.value !== '') {
+            loteSelect.dispatchEvent(new Event('change'));
+        }
+    }
+});
+</script>
 </body>
 </html>
