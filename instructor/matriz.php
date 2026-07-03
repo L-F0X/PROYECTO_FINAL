@@ -380,6 +380,16 @@ $stmtItems = $pdo->prepare("SELECT m.*, c.CODIGO_UNSPSC, i.PORCENTAJE, ua.NOMBRE
                             WHERE m.ID_LOTE = ?");
 $stmtItems->execute([$id_lote]);
 $items = $stmtItems->fetchAll();
+
+$usuarioId = intval($_SESSION['usuario_id']);
+$photoPath = null;
+foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
+    if (file_exists($candidate)) {
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
+        break;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -391,16 +401,49 @@ $items = $stmtItems->fetchAll();
 </head>
 <body>
 
-<header>
-    <h1>BICERGAM | <span>SENA</span></h1>
-    <div style="text-align: right; color: white;">
-        Usuario: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> | 
-        <a href="index.php" style="color: var(--verde-sena); text-decoration: none; font-weight: bold; margin-right: 15px;">← Volver a Lotes</a>
-        <a href="../logout.php" style="color: var(--alerta-rojo); text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
+<header class="dashboard-header">
+    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
+    </div>
+    <div class="header-user">
+        <div class="header-user-text">
+            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+        </div>
+        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
     </div>
 </header>
 
-<div class="container fade-in">
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
+        </div>
+        <div class="sidebar-group">
+            <h4>Operaciones</h4>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="container fade-in" style="margin: 0; max-width: 100%;">
     <h2>Componentes del Lote: <span style="color: var(--verde-sena);"><?= htmlspecialchars($loteInfo['LOTE_NOMBRE'] ?? 'Desconocido') ?></span></h2>
     
     <div style="background: var(--gris-claro); padding: 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid var(--verde-sena);">
@@ -838,5 +881,7 @@ $items = $stmtItems->fetchAll();
         calculateTotal();
     });
 </script>
+    </main>
+</div>
 </body>
 </html>

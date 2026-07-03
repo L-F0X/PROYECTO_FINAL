@@ -101,106 +101,132 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
 </header>
 
-<div class="container fade-in" style="margin: 30px auto; max-width: 1100px;">
-    <div class="role-banner role-coordinador">
-        <h2>Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-        <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
-    </div>
-
-    <!-- Información del Instructor -->
-    <div class="panel-card" style="margin-top: 20px;">
-        <h3>Información del Instructor Solicitante</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Nombre:</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Correo:</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['EMAIL']) ?></td>
-            </tr>
-            <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Rol:</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;">Instructor</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha Creación:</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
-            </tr>
-        </table>
-        <div style="margin-top: 15px;">
-            <a href="instructores.php?id=<?= htmlspecialchars($lote['ID_SOLICITANTE']) ?>" class="btn btn-sena" style="padding: 8px 16px;">Ver más instructores</a>
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
         </div>
-    </div>
+        <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
+            <a href="revisar_lotes.php" class="sidebar-link sidebar-link--primary active">Revisar Lotes</a>
+            <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
+            <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
 
-    <!-- Items del Lote -->
-    <div class="panel-card" style="margin-top: 20px;">
-        <h3>Items del Lote (<?= count($items) ?>)</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-                <tr style="background-color: #f5f5f5;">
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Item</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Descrición</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Cantidad</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Unidad</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($items)): ?>
+    <main class="dashboard-main">
+        <div class="container fade-in" style="margin: 0; max-width: 100%;">
+            <div class="role-banner role-coordinador">
+                <h2>Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
+                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
+            </div>
+
+            <!-- Información del Instructor -->
+            <div class="panel-card" style="margin-top: 20px;">
+                <h3>Información del Instructor Solicitante</h3>
+                <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                        <td colspan="5" style="padding: 20px; text-align: center; color: #999;">No hay items registrados en este lote.</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Nombre:</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Correo:</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['EMAIL']) ?></td>
                     </tr>
-                <?php else: ?>
-                    <?php foreach ($items as $item): ?>
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 12px;"><?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
-                            <td style="padding: 12px;"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
-                            <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
-                            <td style="padding: 12px;"><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
-                            <td style="padding: 12px;"><?= htmlspecialchars($item['ESTADO_ITEM']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Historial de Decisiones -->
-    <?php if (!empty($historial)): ?>
-        <div class="panel-card" style="margin-top: 20px;">
-            <h3>Historial de Decisiones</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                <thead>
-                    <tr style="background-color: #f5f5f5;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Fecha</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Decisión</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Justificación</th>
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Rol:</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">Instructor</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha Creación:</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($historial as $decision): ?>
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 12px;"><?= htmlspecialchars($decision['FECHA_DECISION']) ?></td>
-                            <td style="padding: 12px;">
-                                <span style="padding: 4px 8px; border-radius: 4px; <?= $decision['ESTADO_DECISION'] === 'Aprobado' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
-                                    <?= htmlspecialchars($decision['ESTADO_DECISION']) ?>
-                                </span>
-                            </td>
-                            <td style="padding: 12px;"><?= htmlspecialchars($decision['JUSTIFICACION'] ?? 'N/A') ?></td>
+                </table>
+                <div style="margin-top: 15px;">
+                    <a href="instructores.php?id=<?= htmlspecialchars($lote['ID_SOLICITANTE']) ?>" class="btn btn-sena" style="padding: 8px 16px;">Ver más instructores</a>
+                </div>
+            </div>
+
+            <!-- Items del Lote -->
+            <div class="panel-card" style="margin-top: 20px;">
+                <h3>Items del Lote (<?= count($items) ?>)</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Item</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Descrición</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Cantidad</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Unidad</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($items)): ?>
+                            <tr>
+                                <td colspan="5" style="padding: 20px; text-align: center; color: #999;">No hay items registrados en este lote.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($items as $item): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;"><?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
+                                    <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($item['ESTADO_ITEM']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
 
-    <!-- Acciones -->
-    <?php if ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <a href="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">Aprobar Lote</a>
-            <a href="rechazar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px;">Rechazar Lote</a>
-        </div>
-    <?php endif; ?>
+            <!-- Historial de Decisiones -->
+            <?php if (!empty($historial)): ?>
+                <div class="panel-card" style="margin-top: 20px;">
+                    <h3>Historial de Decisiones</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Fecha</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Decisión</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Justificación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($historial as $decision): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;"><?= htmlspecialchars($decision['FECHA_DECISION']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <span style="padding: 4px 8px; border-radius: 4px; <?= $decision['ESTADO_DECISION'] === 'Aprobado' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
+                                            <?= htmlspecialchars($decision['ESTADO_DECISION']) ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($decision['JUSTIFICACION'] ?? 'N/A') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
 
-    <a href="index.php" class="btn btn-secondary" style="padding: 10px 20px; margin-top: 20px; display: inline-block;">Volver a Lotes</a>
+            <!-- Acciones -->
+            <?php if ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <a href="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">Aprobar Lote</a>
+                    <a href="rechazar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px;">Rechazar Lote</a>
+                </div>
+            <?php endif; ?>
+
+            <a href="revisar_lotes.php" class="btn btn-secondary" style="padding: 10px 20px; margin-top: 20px; display: inline-block;">Volver a Lotes</a>
+        </div>
+    </main>
 </div>
-
 </body>
 </html>

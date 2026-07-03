@@ -186,80 +186,103 @@ try {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Administrador</span></h1>
+            <div class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Administrador') ?></strong> <span class="role-badge">(Administrador)</span></div>
         </div>
     </div>
     <div class="header-right">
-        <a href="index.php" class="btn btn-secondary" style="margin-right: 10px;">Atrás</a>
         <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
-<div class="container" style="padding: 20px;">
-    <div class="profile-card">
-        <h2>Editar Usuario - ID: <?= htmlspecialchars($user['ID_USUARIO']) ?></h2>
-        <p>Actualiza la información del usuario. Deja la contraseña en blanco si no deseas cambiarla.</p>
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
+        </div>
+        <div class="sidebar-group">
+            <h4>Administración</h4>
+            <a href="index.php" class="sidebar-link sidebar-link--primary">Gestión Usuarios</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Módulos del Sistema</h4>
+            <a href="../instructor/index.php" class="sidebar-link">Panel Instructor</a>
+            <a href="../coordinador/index.php" class="sidebar-link">Panel Coordinador</a>
+            <a href="../almacenista/index.php" class="sidebar-link">Panel Almacenista</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
 
-        <?php if ($error): ?>
-            <div style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
-                <?= htmlspecialchars($error) ?>
+    <main class="dashboard-main">
+        <div class="container" style="padding: 20px; margin: 0; max-width: 100%;">
+            <div class="profile-card">
+                <h2>Editar Usuario - ID: <?= htmlspecialchars($user['ID_USUARIO']) ?></h2>
+                <p>Actualiza la información del usuario. Deja la contraseña en blanco si no deseas cambiarla.</p>
+
+                <?php if ($error): ?>
+                    <div style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
+                        <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php endif; ?>
+
+                <form action="editar_usuario.php?id=<?= $idUsuario ?>" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+
+                    <div class="profile-grid">
+                        <div class="profile-field">
+                            <label for="documento">Documento de Identidad</label>
+                            <input type="text" id="documento" name="documento" value="<?= htmlspecialchars($user['DOCUMENTO']) ?>" required autocomplete="off">
+                        </div>
+
+                        <div class="profile-field">
+                            <label for="id_rol">Rol asignado</label>
+                            <select id="id_rol" name="id_rol" required>
+                                <option value="">Seleccione un rol...</option>
+                                <?php foreach ($roles as $r): ?>
+                                    <option value="<?= $r['ID_ROL'] ?>" <?= $user['ID_ROL'] == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="profile-field">
+                            <label for="nombre">Nombres</label>
+                            <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required autocomplete="off">
+                        </div>
+
+                        <div class="profile-field">
+                            <label for="apellido">Apellidos</label>
+                            <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required autocomplete="off">
+                        </div>
+
+                        <div class="profile-field full-col">
+                            <label for="email">Correo electrónico</label>
+                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['EMAIL']) ?>" required autocomplete="off">
+                        </div>
+
+                        <div class="profile-field">
+                            <label for="password">Contraseña (opcional)</label>
+                            <input type="password" id="password" name="password" placeholder="Nueva contraseña..." autocomplete="new-password">
+                        </div>
+
+                        <div class="profile-field">
+                            <label for="estado">Estado</label>
+                            <select id="estado" name="estado" required>
+                                <option value="Activo" <?= $user['ESTADO'] === 'Activo' ? 'selected' : '' ?>>Activo</option>
+                                <option value="Inactivo" <?= $user['ESTADO'] === 'Inactivo' ? 'selected' : '' ?>>Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button type="submit" class="btn-save">Guardar Cambios</button>
+                        <a href="index.php" class="btn-back">← Volver</a>
+                    </div>
+                </form>
             </div>
-        <?php endif; ?>
-
-        <form action="editar_usuario.php?id=<?= $idUsuario ?>" method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-
-            <div class="profile-grid">
-                <div class="profile-field">
-                    <label for="documento">Documento de Identidad</label>
-                    <input type="text" id="documento" name="documento" value="<?= htmlspecialchars($user['DOCUMENTO']) ?>" required autocomplete="off">
-                </div>
-
-                <div class="profile-field">
-                    <label for="id_rol">Rol asignado</label>
-                    <select id="id_rol" name="id_rol" required>
-                        <option value="">Seleccione un rol...</option>
-                        <?php foreach ($roles as $r): ?>
-                            <option value="<?= $r['ID_ROL'] ?>" <?= $user['ID_ROL'] == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="profile-field">
-                    <label for="nombre">Nombres</label>
-                    <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required autocomplete="off">
-                </div>
-
-                <div class="profile-field">
-                    <label for="apellido">Apellidos</label>
-                    <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required autocomplete="off">
-                </div>
-
-                <div class="profile-field full-col">
-                    <label for="email">Correo electrónico</label>
-                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['EMAIL']) ?>" required autocomplete="off">
-                </div>
-
-                <div class="profile-field">
-                    <label for="password">Contraseña (opcional)</label>
-                    <input type="password" id="password" name="password" placeholder="Nueva contraseña..." autocomplete="new-password">
-                </div>
-
-                <div class="profile-field">
-                    <label for="estado">Estado</label>
-                    <select id="estado" name="estado" required>
-                        <option value="Activo" <?= $user['ESTADO'] === 'Activo' ? 'selected' : '' ?>>Activo</option>
-                        <option value="Inactivo" <?= $user['ESTADO'] === 'Inactivo' ? 'selected' : '' ?>>Inactivo</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="profile-actions">
-                <button type="submit" class="btn-save">Guardar Cambios</button>
-                <a href="index.php" class="btn-back">← Volver</a>
-            </div>
-        </form>
-    </div>
+        </div>
+    </main>
 </div>
-
 </body>
 </html>

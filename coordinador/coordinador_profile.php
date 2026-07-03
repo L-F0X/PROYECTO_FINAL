@@ -423,11 +423,12 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;"></a>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Revisar Lotes</a>
+            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
+            <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
         <div class="sidebar-group">
@@ -438,7 +439,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="coordinador_profile.php" class="sidebar-link active">Editar Perfil</a>
+            <a href="coordinador_profile.php" class="sidebar-link sidebar-link--primary active">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
