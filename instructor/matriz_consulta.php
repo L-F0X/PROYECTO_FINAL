@@ -58,6 +58,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $items = $stmt->fetchAll();
 $total = count($items);
+$isIframe = isset($_GET['iframe']) ? true : false;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -198,7 +199,7 @@ $total = count($items);
         .lotes-table .td-solicitante { color: #555; font-size: 13px; }
     </style>
 </head>
-<body>
+<body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
 
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">

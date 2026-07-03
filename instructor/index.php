@@ -224,20 +224,20 @@ try {
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="../imagenes/sena-logo.png" alt="SENA">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link" id="sidebar-ficha">Ficha Técnica</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
-            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="matriz_consulta.php" class="sidebar-link" id="sidebar-consulta">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link" id="sidebar-certificados">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="instructor_profile.php" class="sidebar-link" id="sidebar-perfil">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
@@ -299,7 +299,7 @@ try {
             </div>
         </div>
 
-        <div class="panel-card">
+        <div class="panel-card" id="lotes-panel-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <h3>Mis Lotes</h3>
                 <div class="actions-bar" style="border: none; padding: 0; margin: 0;">
@@ -380,6 +380,9 @@ try {
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+        <div class="panel-card" id="iframe-panel-card" style="display: none; padding: 0; overflow: hidden; border: none; background: transparent; box-shadow: none;">
+            <iframe id="content-iframe" src="" style="width: 100%; border: none; min-height: 850px; overflow: auto; background: transparent;"></iframe>
         </div>
     </main>
 </div>
@@ -551,6 +554,56 @@ try {
             select.addEventListener('change', () => form.submit());
         }
     })();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarLinks = {
+            'sidebar-ficha': 'crear_ficha_tecnica.php',
+            'sidebar-consulta': 'matriz_consulta.php',
+            'sidebar-certificados': 'certificado_existencia.php',
+            'sidebar-perfil': 'instructor_profile.php'
+        };
+
+        const lotesPanel = document.getElementById('lotes-panel-card');
+        const iframePanel = document.getElementById('iframe-panel-card');
+        const iframe = document.getElementById('content-iframe');
+
+        Object.keys(sidebarLinks).forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Update active class
+                    document.querySelectorAll('.sidebar-link').forEach(link => {
+                        link.classList.remove('active');
+                        link.classList.remove('sidebar-link--primary');
+                    });
+                    btn.classList.add('active');
+
+                    // Load src inside iframe
+                    lotesPanel.style.display = 'none';
+                    iframePanel.style.display = 'block';
+                    iframe.src = sidebarLinks[id] + '?iframe=1';
+                });
+            }
+        });
+
+        // Intercept Inicio button to restore default Lotes list
+        const inicioBtn = document.querySelector('.btn-inicio-nav');
+        if (inicioBtn) {
+            inicioBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Reset active states
+                document.querySelectorAll('.sidebar-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.classList.remove('sidebar-link--primary');
+                });
+                lotesPanel.style.display = 'block';
+                iframePanel.style.display = 'none';
+                iframe.src = '';
+            });
+        }
+    });
 </script>
 </body>
 </html>
