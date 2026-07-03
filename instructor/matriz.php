@@ -212,7 +212,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             }
         }
 
-        // 2. Si se ingresaron cantidades por estrategias, insertar nueva necesidad
+        // 2. Insertar el ítem en matriz_item (con ID_NECESIDAD y ID_FICHA_TECNICA como NULL temporalmente)
+        $sqlInsert = "INSERT INTO matriz_item (ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA) 
+                      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
+        $pdo->prepare($sqlInsert)->execute([
+            $id_lote, 
+            $id_unspsc, 
+            $id_iva, 
+            $descripcion, 
+            $unidad_medida, 
+            $cantidad, 
+            $ficha, 
+            $estadoItem, 
+            $instructor_apoyo
+        ]);
+        $id_matriz_item = $pdo->lastInsertId();
+
+        // 3. Si se ingresaron cantidades por estrategias, insertar nueva necesidad y asociar con el item
         if (count($cantidades) > 0) {
             $map = [
                 'cantidad_campesina_complementaria' => 'CANTIDAD_CAMPESINA_COMPLEMENTARIA',
@@ -235,10 +251,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 CANTIDAD_CAMPESINA_COMPLEMENTARIA, CANTIDAD_CAMPESINA_TITULADA,
                 CANTIDAD_VULNERABLE, CANTIDAD_MEDIA_TECNICA, CANTIDAD_FIC,
                 CANTIDAD_ECONOMIA_POPULAR, CANTIDAD_ENI, CANTIDAD_FC_CAMPESINA
-            ) VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmtNeed = $pdo->prepare($sqlInsertNeed);
             $stmtNeed->execute([
+                $id_matriz_item,
                 $cantidad, $cantidad,
                 $strategyValues['CANTIDAD_CAMPESINA_COMPLEMENTARIA'],
                 $strategyValues['CANTIDAD_CAMPESINA_TITULADA'],
@@ -250,30 +267,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $strategyValues['CANTIDAD_FC_CAMPESINA']
             ]);
             $id_necesidad = $pdo->lastInsertId();
+
+            // Actualizar la matriz con el ID_NECESIDAD generado
+            $stmtUpdateM = $pdo->prepare("UPDATE matriz_item SET ID_NECESIDAD = ? WHERE ID_MATRIZ_ITEM = ?");
+            $stmtUpdateM->execute([$id_necesidad, $id_matriz_item]);
+        } else {
+            // Si ya venía una necesidad seleccionada en el formulario (por prefill de catálogo)
+            if ($id_necesidad > 0) {
+                $stmtUpdateM = $pdo->prepare("UPDATE matriz_item SET ID_NECESIDAD = ? WHERE ID_MATRIZ_ITEM = ?");
+                $stmtUpdateM->execute([$id_necesidad, $id_matriz_item]);
+            }
         }
 
-        // 3. Insertar el ítem en matriz_item
-        $sqlInsert = "INSERT INTO matriz_item (ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        $pdo->prepare($sqlInsert)->execute([
-            $id_lote, 
-            $id_necesidad > 0 ? $id_necesidad : null, 
-            $id_unspsc, 
-            $id_iva, 
-            $descripcion, 
-            $unidad_medida, 
-            $cantidad, 
-            $ficha, 
-            $estadoItem, 
-            $instructor_apoyo, 
-            $id_ficha_tecnica
-        ]);
-        $id_matriz_item = $pdo->lastInsertId();
+        // 4. Crear automáticamente la ficha técnica si no está asociada
+        if (empty($id_ficha_tecnica)) {
+            // Procesar archivo de imagen si se subió uno
+            $imagenPath = null;
+            if (isset($_FILES['imagen_referencia']) && $_FILES['imagen_referencia']['error'] === UPLOAD_ERR_OK) {
+                $fileTmpPath = $_FILES['imagen_referencia']['tmp_name'];
+                $fileName = $_FILES['imagen_referencia']['name'];
+                $fileNameCmps = explode(".", $fileName);
+                $fileExtension = strtolower(end($fileNameCmps));
 
-        // 4. Si creamos una nueva necesidad, actualizar su ID_MATRIZ con el ID del item recién insertado
-        if (count($cantidades) > 0 && $id_necesidad > 0) {
-            $stmtUpdateN = $pdo->prepare("UPDATE necesidad SET ID_MATRIZ = ? WHERE ID_NECESIDAD = ?");
-            $stmtUpdateN->execute([$id_matriz_item, $id_necesidad]);
+                $allowedfileExtensions = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+                if (in_array($fileExtension, $allowedfileExtensions)) {
+                    $uploadFileDir = '../uploads/fichas/';
+                    if (!file_exists($uploadFileDir)) {
+                        mkdir($uploadFileDir, 0777, true);
+                    }
+                    $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+                    $dest_path = $uploadFileDir . $newFileName;
+
+                    if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                        $imagenPath = 'uploads/fichas/' . $newFileName;
+                    }
+                }
+            }
+
+            // Obtener el código unspsc en texto
+            $codUnspscStr = '';
+            if ($id_unspsc > 0) {
+                $stmtGetCod = $pdo->prepare("SELECT CODIGO_UNSPSC FROM codigo_unspsc WHERE ID_CODIGO = ? LIMIT 1");
+                $stmtGetCod->execute([$id_unspsc]);
+                $codUnspscStr = trim($stmtGetCod->fetchColumn() ?: '');
+            }
+            if ($codUnspscStr === '' && $rawUnspsc !== '') {
+                $codUnspscStr = $rawUnspsc;
+            }
+
+            // Nombre del ítem
+            $nombreItem = $descripcion;
+            $denominacion = $descripcion;
+            $parts = explode(' - ', $descripcion, 2);
+            if (count($parts) === 2) {
+                $nombreItem = trim($parts[0]);
+                $denominacion = trim($parts[1]);
+            }
+            if (strlen($nombreItem) > 150) {
+                $nombreItem = substr($nombreItem, 0, 147) . '...';
+            }
+
+            $sqlInsertFicha = "INSERT INTO ficha_tecnica
+                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD, IMAGEN)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmtInsertF = $pdo->prepare($sqlInsertFicha);
+            $stmtInsertF->execute([
+                $id_matriz_item,
+                $nombreItem,
+                $codUnspscStr,
+                $denominacion,
+                $unidad_medida,
+                $ficha, // Ficha técnica (detalles para el coordinador)
+                '', // Comentarios
+                $cantidad,
+                $imagenPath
+            ]);
+            $id_ficha_tecnica = $pdo->lastInsertId();
+
+            // Vincular el ID_FICHA_TECNICA recién creado de vuelta a la tabla matriz_item
+            $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
+            $stmtUpdateMatrizItem->execute([$id_ficha_tecnica, $id_matriz_item]);
+        } else {
+            // Si ya venía una ficha técnica seleccionada (prefill)
+            $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
+            $stmtUpdateMatrizItem->execute([$id_ficha_tecnica, $id_matriz_item]);
         }
 
         // Si la acción fue enviar, marcar el lote como Enviado
@@ -328,7 +405,7 @@ $items = $stmtItems->fetchAll();
     
     <div style="background: var(--gris-claro); padding: 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid var(--verde-sena);">
         <h3>Añadir Material / Bien al Lote</h3>
-        <form action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" method="POST" id="formItem">
+        <form action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" method="POST" id="formItem" enctype="multipart/form-data">
             <input type="hidden" name="accion" value="crear">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="id_ficha_tecnica" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['ID_FICHA_TECNICA']) : '' ?>">
@@ -580,6 +657,13 @@ $items = $stmtItems->fetchAll();
                 <label for="ficha_tecnica">Ficha Técnica (detalles para el coordinador):</label>
                 <textarea id="ficha_tecnica" name="ficha_tecnica" class="form-control" rows="3" placeholder="Detalles adicionales, enlaces o requisitos" <?= $ficha_tecnica_prefill ? 'readonly' : '' ?>><?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['DESCRIPCION_GENERAL']) : '' ?></textarea>
             </div>
+
+            <?php if (!$ficha_tecnica_prefill): ?>
+            <div class="form-group">
+                <label for="imagen_referencia">Imagen de Referencia (opcional):</label>
+                <input type="file" id="imagen_referencia" name="imagen_referencia" class="form-control" accept="image/*" />
+            </div>
+            <?php endif; ?>
 
             <div style="display:flex; gap:10px;">
                 <input type="hidden" name="submit_action" id="submit_action" value="guardar">

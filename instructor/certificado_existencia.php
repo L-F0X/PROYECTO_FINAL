@@ -57,6 +57,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $certificados = $stmt->fetchAll();
 $total = count($certificados);
+$isIframe = isset($_GET['iframe']) ? true : false;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -207,7 +208,7 @@ $total = count($certificados);
         .empty-state span { font-size: 13px; color: #bbb; }
     </style>
 </head>
-<body>
+<body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
 
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">

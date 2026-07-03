@@ -201,9 +201,32 @@ body {
     grid-template-columns: 260px minmax(0, 1fr);
     gap: 24px;
     padding: 24px;
-    width: calc(100% - 48px);
-    max-width: 1300px;
-    margin: 0 auto 40px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 40px 0;
+}
+
+/* iframe mode to hide header & sidebar inside embedded pages */
+body.iframe-mode .dashboard-header,
+body.iframe-mode .dashboard-sidebar,
+body.iframe-mode header {
+    display: none !important;
+}
+body.iframe-mode .dashboard-page,
+body.iframe-mode .container {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+}
+body.iframe-mode .dashboard-main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
 }
 
 .dashboard-sidebar {
@@ -1006,10 +1029,10 @@ tr:hover {
 @media (max-width: 768px) {
     .dashboard-page {
         display: grid;
-        grid-template-columns: 200px minmax(0, 1fr);
+        grid-template-columns: 1fr;
         padding: 12px;
         width: 100%;
-        gap: 12px;
+        gap: 20px;
     }
     .dashboard-sidebar {
         padding: 16px 12px;
@@ -1018,9 +1041,8 @@ tr:hover {
         flex-direction: column;
         gap: 16px;
         border-radius: 12px;
-        position: sticky;
-        top: 12px;
-        min-height: calc(100vh - 100px);
+        position: static;
+        min-height: auto;
         background: #ffffff;
         border: 1px solid var(--border-color);
         box-shadow: 0 4px 20px rgba(0,0,0,0.04);
@@ -1054,13 +1076,13 @@ tr:hover {
 
 @media (max-width: 576px) {
     .dashboard-page {
-        grid-template-columns: 160px minmax(0, 1fr);
+        grid-template-columns: 1fr;
         padding: 8px;
-        gap: 8px;
+        gap: 16px;
     }
     .dashboard-sidebar {
-        padding: 12px 8px;
-        min-height: calc(100vh - 80px);
+        padding: 12px;
+        min-height: auto;
     }
     .sidebar-logo img {
         width: 32px;
@@ -1068,6 +1090,17 @@ tr:hover {
     .sidebar-link {
         font-size: 0.8rem;
         padding: 8px 10px;
+    }
+    .dashboard-header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        text-align: center;
+    }
+    .dashboard-header .header-user {
+        flex-direction: row;
+        justify-content: center;
+        width: 100%;
     }
 }
 

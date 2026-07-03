@@ -134,6 +134,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         break;
     }
 }
+$isIframe = isset($_GET['iframe']) ? true : false;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -437,7 +438,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         }
     </style>
 </head>
-<body>
+<body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
 
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
