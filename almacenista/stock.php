@@ -20,8 +20,7 @@ if (!defined('ACCESO_VALIDO')) {
 
 <!-- Panel de acciones rápidas y buscador -->
 <div class="panel-card" style="margin-bottom: 25px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-        <h3>Inventario Físico (<?= $totalItems ?> Artículos)</h3>
+    <div class="actions-bar no-print" style="border: none; padding: 0; margin: 0 0 20px; justify-content: flex-end;">
         <button class="btn btn-sena" onclick="mostrarModalNuevoArticulo()">+ Nuevo Artículo de Stock</button>
     </div>
 
