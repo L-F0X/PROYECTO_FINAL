@@ -13,6 +13,21 @@ if (!defined('ACCESO_VALIDO')) {
     </div>
 </div>
 
+<div class="panel-card" style="margin-bottom: 20px;">
+    <form method="GET" action="index.php" id="form-busqueda">
+        <input type="hidden" name="tab" value="instructor">
+        <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="field-group" style="flex: 1; min-width: 220px; display: flex; flex-direction: column;">
+                <label for="qi" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar por lote o instructor</label>
+                <input type="text" id="qi" name="qi" class="search-input" placeholder="Ej: REDES, Carlos Gómez..." value="<?= htmlspecialchars($busquedaInstructor) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+            <a href="index.php?tab=instructor" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
+        </div>
+    </form>
+</div>
+
+<div id="resultados-busqueda">
 <?php if (empty($lotesInstructores)): ?>
     <div class="panel-card" style="text-align: center; padding: 40px; color: #64748b;">
         No existen lotes de requerimientos registrados en el sistema.
@@ -102,7 +117,7 @@ if (!defined('ACCESO_VALIDO')) {
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <?php if ($lote['NUMERO_CERTIFICADO']): ?>
-                            <button onclick="imprimirCertificado('<?= htmlspecialchars($lote['NUMERO_CERTIFICADO']) ?>', '<?= htmlspecialchars($lote['LOTE_NOMBRE']) ?>', '<?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?>')" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600;">🖨 Imprimir Certificado</button>
+                            <a href="../instructor/certificado_pdf.php?id=<?= $lote['ID_CERTIFICADO'] ?>" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
                         <?php endif; ?>
 
                         <?php if (!$lote['NUMERO_CERTIFICADO']): ?>
@@ -120,51 +135,4 @@ if (!defined('ACCESO_VALIDO')) {
         </div>
     <?php endforeach; ?>
 <?php endif; ?>
-
-<!-- Estilo e Impresora Mockup Extra -->
-<script>
-function imprimirCertificado(numero, lote, instructor) {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Certificado de Existencia - ${numero}</title>
-            <style>
-                body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                .cert-box { border: 4px double #39A900; padding: 30px; border-radius: 12px; }
-                .logo { text-align: center; margin-bottom: 20px; }
-                h1 { text-align: center; color: #1e293b; margin-top: 0; }
-                .details { margin: 30px 0; background: #f8fafc; padding: 20px; border-radius: 8px; }
-                .footer-sign { margin-top: 50px; display: flex; justify-content: space-between; }
-                .sign-line { border-top: 1px solid #ccc; width: 220px; text-align: center; padding-top: 8px; font-size: 0.9rem; }
-            </style>
-        </head>
-        <body>
-            <div class="cert-box">
-                <div class="logo">
-                    <strong style="color: #39A900; font-size: 1.5rem;">SENA | BICERGAM</strong>
-                </div>
-                <h1>CERTIFICADO DE CONSOLIDACIÓN Y EXISTENCIA</h1>
-                <p>El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado la revisión técnica del requerimiento correspondiente al lote institucional.</p>
-                
-                <div class="details">
-                    <div><strong>Número de Radicado:</strong> ${numero}</div>
-                    <div><strong>Lote Requerido:</strong> ${lote}</div>
-                    <div><strong>Instructor Solicitante:</strong> ${instructor}</div>
-                    <div><strong>Fecha de Certificación:</strong> ${new Date().toLocaleDateString('es-ES')}</div>
-                </div>
-
-                <p>Se confirma la validación de saldos y existencias físicas del inventario de materiales para la consolidación de la oferta académica actual.</p>
-
-                <div class="footer-sign">
-                    <div class="sign-line">Firma del Almacenista<br><small>Almacén Central SENA</small></div>
-                    <div class="sign-line">Firma del Instructor<br><small>Solicitante</small></div>
-                </div>
-            </div>
-            <script>window.onload = function() { window.print(); }</` + `script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}
-</script>
+</div>

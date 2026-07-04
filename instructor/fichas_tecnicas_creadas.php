@@ -131,9 +131,7 @@ $total = count($fichas);
                         >
                     </div>
                     <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
-                    <?php if ($busqueda !== ''): ?>
-                        <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-secondary" style="padding: 8px 16px; text-decoration: none; border: 1px solid #ccc; background: #eee; color: #333; border-radius: 4px;">Limpiar</a>
-                    <?php endif; ?>
+                    <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-secondary" style="padding: 8px 16px; text-decoration: none; border: 1px solid #ccc; background: #eee; color: #333; border-radius: 4px;">Limpiar</a>
                 </div>
             </form>
 

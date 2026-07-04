@@ -202,9 +202,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <p class="dashboard-subtitle">Visualización y exportación de la ficha técnica seleccionada.</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="../instructor/exportar_docx.php?id=<?= $idFicha ?>" class="btn btn-sena" style="text-decoration: none; padding: 10px 18px; font-weight: bold; background-color: #39A900;">
-                    📥 Exportar a Word (DOCX)
-                </a>
+                <button type="button" onclick="window.print()" class="btn btn-sena" style="padding: 10px 18px; font-weight: bold; background-color: #39A900;">
+                    📥 Exportar a PDF
+                </button>
                 <a href="fichas_tecnicas_coordinador.php" class="btn btn-secondary" style="text-decoration: none; padding: 10px 18px; border: 1px solid #ccc; background-color: #eee; color: #333;">
                     Volver al Catálogo
                 </a>

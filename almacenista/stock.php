@@ -41,9 +41,7 @@ if (!defined('ACCESO_VALIDO')) {
                 </select>
             </div>
             <button type="submit" class="btn btn-sena" style="padding: 10px 20px; height: 42px;">Buscar</button>
-            <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                <a href="index.php?tab=stock" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; height: 42px;">Limpiar Filtros</a>
-            <?php endif; ?>
+            <a href="index.php?tab=stock" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; height: 42px;">Limpiar Filtros</a>
         </div>
     </form>
 </div>

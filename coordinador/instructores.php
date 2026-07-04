@@ -13,6 +13,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 }
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+$busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -30,12 +31,20 @@ try {
             GROUP_CONCAT(DISTINCT lr.LOTE_NOMBRE SEPARATOR ', ') as LOTES
             FROM usuario u
             LEFT JOIN lote_requerimiento lr ON u.ID_USUARIO = lr.ID_SOLICITANTE
-            WHERE u.ID_ROL = 1
-            GROUP BY u.ID_USUARIO
-            ORDER BY u.NOMBRE";
+            WHERE u.ID_ROL = 1";
+    $params = [];
+
+    if ($busqueda !== '') {
+        $sql .= " AND (u.NOMBRE LIKE ? OR u.APELLIDO LIKE ? OR u.EMAIL LIKE ?)";
+        $params[] = "%$busqueda%";
+        $params[] = "%$busqueda%";
+        $params[] = "%$busqueda%";
+    }
+
+    $sql .= " GROUP BY u.ID_USUARIO ORDER BY u.NOMBRE";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $instructores = $stmt->fetchAll();
 
 } catch (Exception $e) {
@@ -107,51 +116,61 @@ $total = count($instructores);
         </div>
 
         <div class="panel-card">
-            <div style="margin-bottom: 20px;">
-                <h3>Total de Instructores: <?= $total ?></h3>
-            </div>
+            <form method="GET" action="instructores.php" id="form-busqueda" style="margin-bottom: 20px;">
+                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar instructor</label>
+                        <input type="text" id="q" name="q" class="search-input" placeholder="Buscar por nombre o correo..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <a href="instructores.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
+                </div>
+            </form>
 
-            <table style="width: 100%; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre Completo</th>
-                        <th>Correo</th>
-                        <th>Estado</th>
-                        <th>Lotes</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($instructores)): ?>
+            <div id="resultados-busqueda">
+                <h3>Total de Instructores: <?= $total ?></h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px;">No hay instructores registrados.</td>
+                            <th>ID</th>
+                            <th>Nombre Completo</th>
+                            <th>Correo</th>
+                            <th>Estado</th>
+                            <th>Lotes</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($instructores as $instructor): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($instructores)): ?>
                             <tr>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['NOMBRE'] . ' ' . $instructor['APELLIDO']) ?></td>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['EMAIL']) ?></td>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
-                                    <span style="padding: 4px 8px; border-radius: 4px; <?= $instructor['ESTADO'] === 'Activo' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
-                                        <?= htmlspecialchars($instructor['ESTADO']) ?>
-                                    </span>
-                                </td>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
-                                    <?= htmlspecialchars($instructor['CANTIDAD_LOTES'] ?? 0) ?>
-                                    <?php if (!empty($instructor['LOTES'])): ?>
-                                        <br><small style="color: #666;"><?= htmlspecialchars(substr($instructor['LOTES'], 0, 50)) . (strlen($instructor['LOTES']) > 50 ? '...' : '') ?></small>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: 12px; border-bottom: 1px solid #eee;">
-                                    <a href="instructor_detalle.php?id=<?= htmlspecialchars($instructor['ID_USUARIO']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
-                                </td>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No hay instructores registrados.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($instructores as $instructor): ?>
+                                <tr>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['NOMBRE'] . ' ' . $instructor['APELLIDO']) ?></td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['EMAIL']) ?></td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                        <span style="padding: 4px 8px; border-radius: 4px; <?= $instructor['ESTADO'] === 'Activo' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
+                                            <?= htmlspecialchars($instructor['ESTADO']) ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                        <?= htmlspecialchars($instructor['CANTIDAD_LOTES'] ?? 0) ?>
+                                        <?php if (!empty($instructor['LOTES'])): ?>
+                                            <br><small style="color: #666;"><?= htmlspecialchars(substr($instructor['LOTES'], 0, 50)) . (strlen($instructor['LOTES']) > 50 ? '...' : '') ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                        <a href="instructor_detalle.php?id=<?= htmlspecialchars($instructor['ID_USUARIO']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

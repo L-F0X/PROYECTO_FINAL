@@ -239,15 +239,27 @@ try {
 }
 $totalItems = count($itemsInventario);
 
+// Búsqueda para el Panel Instructor (lote o instructor solicitante)
+$busquedaInstructor = isset($_GET['qi']) ? trim($_GET['qi']) : '';
+
 // Consulta de Lotes e ítems asociados de Instructores para el Panel Instructor
 $lotesInstructores = [];
 try {
-    $sqlLotes = "SELECT lr.*, u.NOMBRE, u.APELLIDO, ce.NUMERO_CERTIFICADO 
+    $sqlLotes = "SELECT lr.*, u.NOMBRE, u.APELLIDO, ce.NUMERO_CERTIFICADO, ce.ID_CERTIFICADO
                  FROM lote_requerimiento lr
                  INNER JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO
                  LEFT JOIN certificado_existencia ce ON lr.ID_LOTE = ce.ID_LOTE
-                 ORDER BY lr.FECHA_CREACION DESC, lr.ID_LOTE DESC";
-    $stmtLotes = $pdo->query($sqlLotes);
+                 WHERE 1=1";
+    $paramsLotes = [];
+    if ($busquedaInstructor !== '') {
+        $sqlLotes .= " AND (lr.LOTE_NOMBRE LIKE ? OR u.NOMBRE LIKE ? OR u.APELLIDO LIKE ?)";
+        $paramsLotes[] = "%$busquedaInstructor%";
+        $paramsLotes[] = "%$busquedaInstructor%";
+        $paramsLotes[] = "%$busquedaInstructor%";
+    }
+    $sqlLotes .= " ORDER BY lr.FECHA_CREACION DESC, lr.ID_LOTE DESC";
+    $stmtLotes = $pdo->prepare($sqlLotes);
+    $stmtLotes->execute($paramsLotes);
     $lotesInstructores = $stmtLotes->fetchAll();
 } catch (Exception $e) {
     error_log('Error al consultar lotes para almacenista: ' . $e->getMessage());
@@ -507,21 +519,6 @@ try {
 
 <script src="../js/apartados.js"></script>
 <script>
-    // Buscador automático rápido (se aplica si existe el input)
-    (function () {
-        const input = document.getElementById('q');
-        const select = document.getElementById('estado');
-        const form = document.getElementById('form-busqueda');
-        if (input && select && form) {
-            let timer;
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 450);
-            });
-            select.addEventListener('change', () => form.submit());
-        }
-    })();
-
     // Lógica de Modales para CRUD
     function mostrarModalNuevoArticulo() {
         document.getElementById('modal-titulo').innerText = "Agregar Nuevo Artículo al Stock";

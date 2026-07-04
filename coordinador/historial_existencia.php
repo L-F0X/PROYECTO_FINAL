@@ -13,6 +13,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 }
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+$busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -29,10 +30,21 @@ try {
             FROM certificado_existencia ce
             INNER JOIN lote_requerimiento lr ON ce.ID_LOTE = lr.ID_LOTE
             INNER JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO
-            ORDER BY ce.ID_CERTIFICADO DESC";
+            WHERE 1=1";
+    $params = [];
+
+    if ($busqueda !== '') {
+        $sql .= " AND (ce.NUMERO_CERTIFICADO LIKE ? OR lr.LOTE_NOMBRE LIKE ? OR u.NOMBRE LIKE ? OR u.APELLIDO LIKE ?)";
+        $params[] = "%$busqueda%";
+        $params[] = "%$busqueda%";
+        $params[] = "%$busqueda%";
+        $params[] = "%$busqueda%";
+    }
+
+    $sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $certificados = $stmt->fetchAll();
 
 } catch (Exception $e) {
@@ -104,42 +116,56 @@ $total = count($certificados);
         </div>
 
         <div class="panel-card">
-            <div style="margin-bottom: 20px;">
-                <h3>Total de Certificados: <?= $total ?></h3>
-            </div>
+            <form method="GET" action="historial_existencia.php" id="form-busqueda" style="margin-bottom: 20px;">
+                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar certificado</label>
+                        <input type="text" id="q" name="q" class="search-input" placeholder="Nº certificado, lote o instructor..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <a href="historial_existencia.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
+                </div>
+            </form>
 
-            <table style="width: 100%; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID Certificado</th>
-                        <th>ID Lote</th>
-                        <th>Nombre Lote</th>
-                        <th>Instructor</th>
-                        <th>Número Certificado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($certificados)): ?>
+            <div id="resultados-busqueda">
+                <h3>Total de Certificados: <?= $total ?></h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 20px;">No hay certificados de existencia registrados.</td>
+                            <th>ID Certificado</th>
+                            <th>ID Lote</th>
+                            <th>Nombre Lote</th>
+                            <th>Instructor</th>
+                            <th>Número Certificado</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($certificados as $cert): ?>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 12px;"><?= htmlspecialchars($cert['ID_CERTIFICADO']) ?></td>
-                                <td style="padding: 12px;">
-                                    <a href="revisar_lote.php?id=<?= htmlspecialchars($cert['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
-                                        <?= htmlspecialchars($cert['ID_LOTE']) ?>
-                                    </a>
-                                </td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($cert['LOTE_NOMBRE']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($cert['NOMBRE'] . ' ' . $cert['APELLIDO']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></td>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($certificados)): ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No hay certificados de existencia registrados.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($certificados as $cert): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;"><?= htmlspecialchars($cert['ID_CERTIFICADO']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <a href="revisar_lote.php?id=<?= htmlspecialchars($cert['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
+                                            <?= htmlspecialchars($cert['ID_LOTE']) ?>
+                                        </a>
+                                    </td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($cert['LOTE_NOMBRE']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($cert['NOMBRE'] . ' ' . $cert['APELLIDO']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <a href="../instructor/certificado_pdf.php?id=<?= $cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

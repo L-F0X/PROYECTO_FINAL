@@ -149,9 +149,7 @@ $total = count($lotes);
                         </select>
                     </div>
                     <button type="submit" class="btn btn-sena" id="btn-buscar">Buscar</button>
-                    <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                        <a href="consulta_lote.php" class="btn btn-secondary">Limpiar</a>
-                    <?php endif; ?>
+                    <a href="consulta_lote.php" class="btn btn-secondary">Limpiar</a>
                 </div>
             </form>
 

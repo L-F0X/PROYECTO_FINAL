@@ -14,6 +14,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
+$busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -33,6 +34,11 @@ try {
             WHERE 1=1";
     
     $params = [];
+
+    if ($busqueda !== '') {
+        $sql .= " AND lr.LOTE_NOMBRE LIKE ?";
+        $params[] = "%$busqueda%";
+    }
 
     if ($filtroEstado !== '') {
         $sql .= " AND arl.ESTADO_DECISION = ?";
@@ -114,13 +120,13 @@ $total = count($decisiones);
         </div>
 
         <div class="panel-card">
-            <div style="margin-bottom: 20px;">
-                <h3>Total de Decisiones: <?= $total ?></h3>
-            </div>
-
             <!-- Filtro -->
-            <form method="GET" action="historial_decisiones.php" style="margin-bottom: 20px;">
-                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end;">
+            <form method="GET" action="historial_decisiones.php" id="form-busqueda" style="margin-bottom: 20px;">
+                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar por lote</label>
+                        <input type="text" id="q" name="q" class="search-input" placeholder="Buscar por nombre del lote..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+                    </div>
                     <div class="field-group" style="min-width: 160px; display: flex; flex-direction: column;">
                         <label for="estado" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Filtrar por estado</label>
                         <select name="estado" id="estado" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
@@ -130,56 +136,57 @@ $total = count($decisiones);
                         </select>
                     </div>
                     <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Filtrar</button>
-                    <?php if ($filtroEstado !== ''): ?>
-                        <a href="historial_decisiones.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
-                    <?php endif; ?>
+                    <a href="historial_decisiones.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
 
-            <table style="width: 100%; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID Lote</th>
-                        <th>Nombre Lote</th>
-                        <th>Coordinador</th>
-                        <th>Decisión</th>
-                        <th>Justificación</th>
-                        <th>Fecha Decisión</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($decisiones)): ?>
+            <div id="resultados-busqueda">
+                <h3>Total de Decisiones: <?= $total ?></h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px;">No hay decisiones registradas.</td>
+                            <th>ID Lote</th>
+                            <th>Nombre Lote</th>
+                            <th>Coordinador</th>
+                            <th>Decisión</th>
+                            <th>Justificación</th>
+                            <th>Fecha Decisión</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($decisiones as $decision): ?>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 12px;">
-                                    <a href="revisar_lote.php?id=<?= htmlspecialchars($decision['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
-                                        <?= htmlspecialchars($decision['ID_LOTE']) ?>
-                                    </a>
-                                </td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($decision['LOTE_NOMBRE']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($decision['NOMBRE'] . ' ' . $decision['APELLIDO']) ?></td>
-                                <td style="padding: 12px;">
-                                    <span style="padding: 4px 8px; border-radius: 4px; <?= $decision['ESTADO_DECISION'] === 'Aprobado' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
-                                        <?= htmlspecialchars($decision['ESTADO_DECISION']) ?>
-                                    </span>
-                                </td>
-                                <td style="padding: 12px;">
-                                    <?php if (!empty($decision['JUSTIFICACION'])): ?>
-                                        <small><?= htmlspecialchars(substr($decision['JUSTIFICACION'], 0, 60)) . (strlen($decision['JUSTIFICACION']) > 60 ? '...' : '') ?></small>
-                                    <?php else: ?>
-                                        <small style="color: #999;">N/A</small>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: 12px;"><?= htmlspecialchars(substr($decision['FECHA_DECISION'], 0, 19)) ?></td>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($decisiones)): ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No hay decisiones registradas.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($decisiones as $decision): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;">
+                                        <a href="revisar_lote.php?id=<?= htmlspecialchars($decision['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
+                                            <?= htmlspecialchars($decision['ID_LOTE']) ?>
+                                        </a>
+                                    </td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($decision['LOTE_NOMBRE']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($decision['NOMBRE'] . ' ' . $decision['APELLIDO']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <span style="padding: 4px 8px; border-radius: 4px; <?= $decision['ESTADO_DECISION'] === 'Aprobado' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
+                                            <?= htmlspecialchars($decision['ESTADO_DECISION']) ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px;">
+                                        <?php if (!empty($decision['JUSTIFICACION'])): ?>
+                                            <small><?= htmlspecialchars(substr($decision['JUSTIFICACION'], 0, 60)) . (strlen($decision['JUSTIFICACION']) > 60 ? '...' : '') ?></small>
+                                        <?php else: ?>
+                                            <small style="color: #999;">N/A</small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars(substr($decision['FECHA_DECISION'], 0, 19)) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

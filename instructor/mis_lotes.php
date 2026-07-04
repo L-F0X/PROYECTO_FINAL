@@ -160,9 +160,7 @@ $total = count($lotes);
                         </select>
                     </div>
                     <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
-                    <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                        <a href="mis_lotes.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
-                    <?php endif; ?>
+                    <a href="mis_lotes.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
 
