@@ -64,6 +64,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Consulta de Ítems de la Matriz en BICERGAM.">
     <title>Consulta de Ítems - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css">

@@ -396,6 +396,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BICERGAM - Matriz de Ítems</title>
     <link rel="stylesheet" href="../estilos.css">
 </head>
@@ -453,7 +454,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="id_ficha_tecnica" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['ID_FICHA_TECNICA']) : '' ?>">
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-grid-2">
                 <div class="form-group">
                     <label for="id_codigo_unspsc">Código UNSPSC (opcional):</label>
                     <input type="text" id="id_codigo_unspsc" name="id_codigo_unspsc" class="form-control" placeholder="Ej: 635188316" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />

@@ -273,7 +273,8 @@ try {
         /* Responsive sidebar integration */
         @media (max-width: 992px) {
             .dashboard-page {
-                grid-template-columns: 1fr !important;
+                /* minmax(0, 1fr), no "1fr" a secas: evita que una tabla ancha reviente el layout */
+                grid-template-columns: minmax(0, 1fr) !important;
             }
             .dashboard-sidebar {
                 position: relative !important;
@@ -332,7 +333,7 @@ try {
         /* Formularios modernos */
         .modern-form {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             background: #ffffff;
             padding: 25px;

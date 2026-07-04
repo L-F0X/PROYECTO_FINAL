@@ -160,6 +160,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Crear ficha técnica de producto en el sistema BICERGAM del SENA.">
     <title>Crear Ficha Técnica - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css">

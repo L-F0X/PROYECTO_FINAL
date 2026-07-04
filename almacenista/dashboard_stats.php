@@ -39,29 +39,29 @@ try {
 }
 ?>
 
-<div class="stats-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;">
-    <div class="stat-card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #39A900;">
-        <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">Total Artículos</span>
-        <strong style="font-size: 2rem; margin-top: 10px;"><?= $stats['total'] ?></strong>
+<div class="stats-container">
+    <div class="stat-card stat-card--dark">
+        <span class="stat-label">Total Artículos</span>
+        <strong class="stat-value"><?= $stats['total'] ?></strong>
     </div>
 
-    <div class="stat-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #10b981; border: 1px solid #e2e8f0; border-left-width: 5px;">
-        <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Stock Óptimo</span>
-        <strong style="font-size: 2rem; margin-top: 10px; color: #10b981;"><?= $stats['optimo'] ?></strong>
+    <div class="stat-card" style="border-left-color: #10b981;">
+        <span class="stat-label">Stock Óptimo</span>
+        <strong class="stat-value" style="color: #10b981;"><?= $stats['optimo'] ?></strong>
     </div>
 
-    <div class="stat-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #f59e0b; border: 1px solid #e2e8f0; border-left-width: 5px;">
-        <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Stock Crítico</span>
-        <strong style="font-size: 2rem; margin-top: 10px; color: #f59e0b;"><?= $stats['critico'] ?></strong>
+    <div class="stat-card" style="border-left-color: #f59e0b;">
+        <span class="stat-label">Stock Crítico</span>
+        <strong class="stat-value" style="color: #f59e0b;"><?= $stats['critico'] ?></strong>
     </div>
 
-    <div class="stat-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #ef4444; border: 1px solid #e2e8f0; border-left-width: 5px;">
-        <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Agotados</span>
-        <strong style="font-size: 2rem; margin-top: 10px; color: #ef4444;"><?= $stats['agotado'] ?></strong>
+    <div class="stat-card" style="border-left-color: #ef4444;">
+        <span class="stat-label">Agotados</span>
+        <strong class="stat-value" style="color: #ef4444;"><?= $stats['agotado'] ?></strong>
     </div>
 
-    <div class="stat-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #0ea5e9; border: 1px solid #e2e8f0; border-left-width: 5px;">
-        <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Certificados Emitidos</span>
-        <strong style="font-size: 2rem; margin-top: 10px; color: #0ea5e9;"><?= $stats['certificados'] ?></strong>
+    <div class="stat-card" style="border-left-color: #0ea5e9;">
+        <span class="stat-label">Certificados Emitidos</span>
+        <strong class="stat-value" style="color: #0ea5e9;"><?= $stats['certificados'] ?></strong>
     </div>
 </div>

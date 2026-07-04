@@ -76,6 +76,7 @@ try {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear Usuario - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css">
     <style>
@@ -90,7 +91,7 @@ try {
         }
         .profile-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             margin-top: 20px;
         }
@@ -142,6 +143,18 @@ try {
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
+        }
+        @media (max-width: 600px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+            .profile-field.full-col {
+                grid-column: span 1;
+            }
+            .profile-card {
+                padding: 20px;
+                margin: 16px auto;
+            }
         }
     </style>
 </head>

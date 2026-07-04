@@ -3,6 +3,9 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 
+// Permite que los parciales incluidos (mis_lotes.php) verifiquen que no se acceden directamente
+define('ACCESO_VALIDO', true);
+
 // Control de acceso: si no hay sesión activa, redirigir al login
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: ../login.php");
@@ -228,16 +231,16 @@ try {
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link" id="sidebar-ficha">Ficha Técnica</a>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
-            <a href="matriz_consulta.php" class="sidebar-link" id="sidebar-consulta">Consulta de Ítems</a>
-            <a href="certificado_existencia.php" class="sidebar-link" id="sidebar-certificados">Certificados Existencia</a>
+            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link" id="sidebar-perfil">Editar Perfil</a>
+            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
@@ -254,136 +257,76 @@ try {
         <style>
             .stats-dashboard-grid {
                 display: grid;
-                grid-template-columns: 1.2fr 1fr;
+                grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
                 gap: 20px;
                 margin-bottom: 24px;
+                align-items: stretch;
             }
-            @media (max-width: 768px) {
+            .stats-dashboard-grid > * {
+                min-width: 0;
+            }
+            @media (max-width: 980px) {
                 .stats-dashboard-grid {
-                    grid-template-columns: 1fr;
+                    grid-template-columns: minmax(0, 1fr);
+                }
+            }
+            .chart-card {
+                min-height: 100%;
+                min-width: 0;
+            }
+            .chart-card .chart-canvas-box {
+                flex: 1;
+                min-height: 180px;
+                min-width: 0;
+            }
+            .instructor-metrics {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 15px;
+                margin-bottom: 0;
+            }
+            .instructor-metrics .metric-card--wide {
+                grid-column: span 2;
+            }
+            @media (max-width: 420px) {
+                .instructor-metrics {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                .instructor-metrics .metric-card--wide {
+                    grid-column: span 1;
                 }
             }
         </style>
         <div class="stats-dashboard-grid">
             <!-- Tarjetas de Métricas -->
-            <div class="metrics-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid var(--verde-sena);">
-                    <div>
-                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Lotes Creados</span>
-                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalLotes ?></h3>
-                    </div>
-                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Total requerimientos</p>
+            <div class="instructor-metrics">
+                <div class="metric-card">
+                    <span class="stat-label">Lotes Creados</span>
+                    <strong class="stat-value"><?= $totalLotes ?></strong>
+                    <p class="stat-hint">Total requerimientos</p>
                 </div>
-                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #0284c7;">
-                    <div>
-                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Ítems Creados</span>
-                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalItems ?></h3>
-                    </div>
-                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">En matriz de lotes</p>
+                <div class="metric-card" style="border-left-color: #0284c7;">
+                    <span class="stat-label">Ítems Creados</span>
+                    <strong class="stat-value"><?= $totalItems ?></strong>
+                    <p class="stat-hint">En matriz de lotes</p>
                 </div>
-                <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #7c3aed; grid-column: span 2;">
-                    <div>
-                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Fichas Técnicas</span>
-                        <h3 style="font-size: 2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalFichas ?></h3>
-                    </div>
-                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Asociadas a materiales</p>
+                <div class="metric-card metric-card--wide" style="border-left-color: #7c3aed;">
+                    <span class="stat-label">Fichas Técnicas</span>
+                    <strong class="stat-value"><?= $totalFichas ?></strong>
+                    <p class="stat-hint">Asociadas a materiales</p>
                 </div>
             </div>
 
             <!-- Gráfico de Estados -->
-            <div class="chart-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+            <div class="chart-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column;">
                 <h4 style="margin: 0 0 15px; color: var(--texto-oscuro); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Estados de los Lotes</h4>
-                <div style="position: relative; height: 160px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                <div class="chart-canvas-box" style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
                     <canvas id="lotesChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="panel-card" id="lotes-panel-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                <h3>Mis Lotes</h3>
-                <div class="actions-bar" style="border: none; padding: 0; margin: 0;">
-                    <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
-                </div>
-            </div>
-
-            <!-- Formulario de búsqueda -->
-            <form method="GET" action="index.php" id="form-busqueda" style="margin-bottom: 20px;">
-                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
-                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar lote</label>
-                        <input
-                            type="text"
-                            id="q"
-                            name="q"
-                            class="search-input"
-                            placeholder="Buscar por nombre o ID..."
-                            value="<?= htmlspecialchars($busqueda) ?>"
-                            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-                            autocomplete="off"
-                        >
-                    </div>
-                    <div class="field-group" style="min-width: 160px; display: flex; flex-direction: column;">
-                        <label for="estado" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Filtrar por estado</label>
-                        <select name="estado" id="estado" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                            <option value="">— Todos —</option>
-                            <?php
-                            $estados = ['Borrador','Enviado','Aprobado','Rechazado'];
-                            foreach ($estados as $e):
-                                $sel = ($filtroEstado === $e) ? 'selected' : '';
-                            ?>
-                                <option value="<?= $e ?>" <?= $sel ?>><?= $e ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
-                    <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                        <a href="index.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
-                    <?php endif; ?>
-                </div>
-            </form>
-
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre del Lote</th>
-                        <th>Estado Trámite</th>
-                        <th>Fecha Creación</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if(empty($lotes)): ?>
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 20px;">No hay lotes registrados o que coincidan con la búsqueda.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach($lotes as $lote): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
-                                <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
-                                <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
-                                <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
-                                <td>
-                                    <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
-                                    <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
-                                    <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
-                                    <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
-                                        <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                        <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <div class="panel-card" id="iframe-panel-card" style="display: none; padding: 0; overflow: hidden; border: none; background: transparent; box-shadow: none;">
-            <iframe id="content-iframe" src="" style="width: 100%; border: none; min-height: 850px; overflow: auto; background: transparent;"></iframe>
-        </div>
+        <?php require_once 'mis_lotes.php'; ?>
     </main>
 </div>
 
@@ -554,56 +497,6 @@ try {
             select.addEventListener('change', () => form.submit());
         }
     })();
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidebarLinks = {
-            'sidebar-ficha': 'crear_ficha_tecnica.php',
-            'sidebar-consulta': 'matriz_consulta.php',
-            'sidebar-certificados': 'certificado_existencia.php',
-            'sidebar-perfil': 'instructor_profile.php'
-        };
-
-        const lotesPanel = document.getElementById('lotes-panel-card');
-        const iframePanel = document.getElementById('iframe-panel-card');
-        const iframe = document.getElementById('content-iframe');
-
-        Object.keys(sidebarLinks).forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-
-                    // Update active class
-                    document.querySelectorAll('.sidebar-link').forEach(link => {
-                        link.classList.remove('active');
-                        link.classList.remove('sidebar-link--primary');
-                    });
-                    btn.classList.add('active');
-
-                    // Load src inside iframe
-                    lotesPanel.style.display = 'none';
-                    iframePanel.style.display = 'block';
-                    iframe.src = sidebarLinks[id] + '?iframe=1';
-                });
-            }
-        });
-
-        // Intercept Inicio button to restore default Lotes list
-        const inicioBtn = document.querySelector('.btn-inicio-nav');
-        if (inicioBtn) {
-            inicioBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                // Reset active states
-                document.querySelectorAll('.sidebar-link').forEach(link => {
-                    link.classList.remove('active');
-                    link.classList.remove('sidebar-link--primary');
-                });
-                lotesPanel.style.display = 'block';
-                iframePanel.style.display = 'none';
-                iframe.src = '';
-            });
-        }
-    });
 </script>
 </body>
 </html>

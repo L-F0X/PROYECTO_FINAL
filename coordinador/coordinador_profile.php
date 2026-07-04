@@ -206,7 +206,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         }
         .profile-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
         }
         .profile-field {
@@ -314,7 +314,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         .password-section-container {
             grid-column: span 2;
             display: none;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             border-top: 1px dashed #e1e8ed;
             padding-top: 20px;

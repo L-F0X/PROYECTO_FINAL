@@ -129,6 +129,26 @@ try {
     error_log('Error cargando roles: ' . $e->getMessage());
 }
 
+// Métricas resumen para el panel principal
+$totalUsuarios = 0;
+$totalActivos = 0;
+$totalInactivos = 0;
+$totalAccionesHoy = 0;
+try {
+    $stmtTotal = $pdo->query("SELECT COUNT(*) FROM usuario");
+    $totalUsuarios = intval($stmtTotal->fetchColumn());
+
+    $stmtActivos = $pdo->query("SELECT COUNT(*) FROM usuario WHERE ESTADO = 'Activo'");
+    $totalActivos = intval($stmtActivos->fetchColumn());
+
+    $totalInactivos = $totalUsuarios - $totalActivos;
+
+    $stmtHoy = $pdo->query("SELECT COUNT(*) FROM auditoria_actividad WHERE DATE(FECHA) = CURDATE()");
+    $totalAccionesHoy = intval($stmtHoy->fetchColumn());
+} catch (Exception $e) {
+    error_log('Error cargando métricas de administrador: ' . $e->getMessage());
+}
+
 $msg = $_GET['msg'] ?? '';
 $msgType = $_GET['type'] ?? 'success';
 $messageText = '';
@@ -148,6 +168,7 @@ if ($msg === 'status_updated') {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BICERGAM - Administrador</title>
     <link rel="stylesheet" href="../estilos.css">
 </head>
@@ -201,6 +222,42 @@ if ($msg === 'status_updated') {
                 <?= htmlspecialchars($messageText) ?>
             </div>
         <?php endif; ?>
+
+        <!-- Resumen del sistema -->
+        <div class="stats-container">
+            <div class="stat-card" style="border-left-color: #7c3aed;">
+                <span class="stat-label">Usuarios Totales</span>
+                <strong class="stat-value"><?= $totalUsuarios ?></strong>
+                <p class="stat-hint">Registrados en el sistema</p>
+            </div>
+            <div class="stat-card" style="border-left-color: #10b981;">
+                <span class="stat-label">Cuentas Activas</span>
+                <strong class="stat-value" style="color: #10b981;"><?= $totalActivos ?></strong>
+                <p class="stat-hint">Pueden iniciar sesión</p>
+            </div>
+            <div class="stat-card" style="border-left-color: #ef4444;">
+                <span class="stat-label">Cuentas Inactivas</span>
+                <strong class="stat-value" style="color: #ef4444;"><?= $totalInactivos ?></strong>
+                <p class="stat-hint">Acceso deshabilitado</p>
+            </div>
+            <div class="stat-card" style="border-left-color: #0284c7;">
+                <span class="stat-label">Actividad de Hoy</span>
+                <strong class="stat-value" style="color: #0284c7;"><?= $totalAccionesHoy ?></strong>
+                <p class="stat-hint">Acciones registradas hoy</p>
+            </div>
+        </div>
+
+        <!-- Accesos rápidos -->
+        <div class="panel-card" style="margin-bottom: 30px;">
+            <h3>Enlaces y Acciones Rápidas</h3>
+            <p class="dashboard-subtitle">Navega rápidamente a las principales secciones de administración.</p>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                <a href="crear_usuario.php" class="btn btn-sena">+ Crear Nuevo Usuario</a>
+                <a href="../coordinador/index.php" class="btn btn-secondary">Panel Coordinador</a>
+                <a href="../almacenista/index.php" class="btn btn-secondary">Panel Almacenista</a>
+                <a href="../instructor/index.php" class="btn btn-secondary">Panel Instructor</a>
+            </div>
+        </div>
 
         <!-- Sección de Gestión de Usuarios -->
         <div class="panel-card" style="margin-bottom: 30px;">

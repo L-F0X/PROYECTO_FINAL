@@ -174,7 +174,7 @@ try {
         </div>
 
         <!-- Sección de Gráficos -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        <div class="charts-grid-2">
             
             <!-- Gráfica 1: Estados de los Lotes -->
             <div class="panel-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 20px;">
