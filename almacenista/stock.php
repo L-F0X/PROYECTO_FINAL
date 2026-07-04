@@ -48,65 +48,68 @@ if (!defined('ACCESO_VALIDO')) {
     </form>
 </div>
 
-<!-- Tabla de Inventario Principal -->
-<div class="panel-card" style="overflow-x: auto;">
-    <table style="width: 100%; min-width: 700px;">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Descripción / Artículo</th>
-                <th>Código UNSPSC</th>
-                <th>Unidad Medida</th>
-                <th>Stock Actual</th>
-                <th>Estado</th>
-                <th style="text-align: center;">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($itemsInventario)): ?>
+<div id="resultados-busqueda">
+    <!-- Tabla de Inventario Principal -->
+    <div class="panel-card" style="overflow-x: auto;">
+        <h3 style="margin-top: 0;">Inventario Físico (<?= $totalItems ?> Artículos)</h3>
+        <table style="width: 100%; min-width: 700px;">
+            <thead>
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">No se encontraron artículos con los criterios especificados.</td>
+                    <th>ID</th>
+                    <th>Descripción / Artículo</th>
+                    <th>Código UNSPSC</th>
+                    <th>Unidad Medida</th>
+                    <th>Stock Actual</th>
+                    <th>Estado</th>
+                    <th style="text-align: center;">Acciones</th>
                 </tr>
-            <?php else: ?>
-                <?php foreach ($itemsInventario as $item): ?>
-                    <?php 
-                        $cant = intval($item['CANTIDAD']);
-                        if ($cant === 0) {
-                            $badgeClass = 'badge-danger';
-                            $estadoTxt = 'Agotado';
-                        } elseif ($cant <= 5) {
-                            $badgeClass = 'badge-warning';
-                            $estadoTxt = 'Stock Crítico';
-                        } else {
-                            $badgeClass = 'badge-success';
-                            $estadoTxt = 'Óptimo';
-                        }
-                    ?>
+            </thead>
+            <tbody>
+                <?php if (empty($itemsInventario)): ?>
                     <tr>
-                        <td><strong>#<?= htmlspecialchars($item['ID_FICHA_TECNICA']) ?></strong></td>
-                        <td>
-                            <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($item['NOMBRE_ITEM']) ?></div>
-                            <div style="font-size: 0.8rem; color: #64748b;"><?= htmlspecialchars($item['DESCRIPCION_GENERAL']) ?></div>
-                        </td>
-                        <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;"><?= htmlspecialchars($item['CODIGO_UNSPSC_FK'] ?: 'Sin asignar') ?></code></td>
-                        <td><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
-                        <td><strong style="font-size: 1.1rem;"><?= $cant ?></strong></td>
-                        <td><span class="badge <?= $badgeClass ?>"><?= $estadoTxt ?></span></td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; gap: 5px; justify-content: center;">
-                                <button class="btn-action-small" style="background: #e0f2fe; color: #0369a1;" 
-                                        onclick="cargarDatosEdicion(<?= htmlspecialchars(json_encode($item)) ?>)">Editar</button>
-                                
-                                <form action="index.php" method="POST" onsubmit="return confirm('¿Seguro que desea eliminar este artículo del stock?');" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete_item">
-                                    <input type="hidden" name="id_ficha_tecnica" value="<?= $item['ID_FICHA_TECNICA'] ?>">
-                                    <button type="submit" class="btn-action-small" style="background: #fee2e2; color: #b91c1c;">Eliminar</button>
-                                </form>
-                            </div>
-                        </td>
+                        <td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">No se encontraron artículos con los criterios especificados.</td>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                <?php else: ?>
+                    <?php foreach ($itemsInventario as $item): ?>
+                        <?php
+                            $cant = intval($item['CANTIDAD']);
+                            if ($cant === 0) {
+                                $badgeClass = 'badge-danger';
+                                $estadoTxt = 'Agotado';
+                            } elseif ($cant <= 5) {
+                                $badgeClass = 'badge-warning';
+                                $estadoTxt = 'Stock Crítico';
+                            } else {
+                                $badgeClass = 'badge-success';
+                                $estadoTxt = 'Óptimo';
+                            }
+                        ?>
+                        <tr>
+                            <td><strong>#<?= htmlspecialchars($item['ID_FICHA_TECNICA']) ?></strong></td>
+                            <td>
+                                <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($item['NOMBRE_ITEM']) ?></div>
+                                <div style="font-size: 0.8rem; color: #64748b;"><?= htmlspecialchars($item['DESCRIPCION_GENERAL']) ?></div>
+                            </td>
+                            <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;"><?= htmlspecialchars($item['CODIGO_UNSPSC_FK'] ?: 'Sin asignar') ?></code></td>
+                            <td><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
+                            <td><strong style="font-size: 1.1rem;"><?= $cant ?></strong></td>
+                            <td><span class="badge <?= $badgeClass ?>"><?= $estadoTxt ?></span></td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 5px; justify-content: center;">
+                                    <button class="btn-action-small" style="background: #e0f2fe; color: #0369a1;"
+                                            onclick="cargarDatosEdicion(<?= htmlspecialchars(json_encode($item)) ?>)">Editar</button>
+
+                                    <form action="index.php" method="POST" onsubmit="return confirm('¿Seguro que desea eliminar este artículo del stock?');" style="display:inline;">
+                                        <input type="hidden" name="action" value="delete_item">
+                                        <input type="hidden" name="id_ficha_tecnica" value="<?= $item['ID_FICHA_TECNICA'] ?>">
+                                        <button type="submit" class="btn-action-small" style="background: #fee2e2; color: #b91c1c;">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
