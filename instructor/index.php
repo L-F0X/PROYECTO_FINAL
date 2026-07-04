@@ -190,6 +190,12 @@ try {
 } catch (Exception $e) {
     error_log('Error cargando fichas técnicas en index: ' . $e->getMessage());
 }
+
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+if ($msg === 'eliminado') {
+    $messageText = '✓ Lote eliminado correctamente.';
+}
 ?>
 
 <!DOCTYPE html>
@@ -207,7 +213,6 @@ try {
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
         <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
@@ -230,6 +235,10 @@ try {
             <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
@@ -248,10 +257,21 @@ try {
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
+                <span class="hud-brand">BICERGAM</span>
                 <h2>Panel de Instructor</h2>
                 <p class="dashboard-subtitle">Accede a tus herramientas: ficha técnica, certificados de existencia y consulta de matrices.</p>
             </div>
+            <div class="hud-status">
+                <span class="hud-dot"></span>
+                <span><?= fecha_larga_es() ?></span>
+            </div>
         </div>
+
+        <?php if (!empty($messageText)): ?>
+            <div class="profile-alert success" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;">
+                <?= htmlspecialchars($messageText) ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Resumen de Actividad e Indicadores -->
         <style>
@@ -326,7 +346,18 @@ try {
             </div>
         </div>
 
-        <?php require_once 'mis_lotes.php'; ?>
+        <!-- Accesos rápidos -->
+        <div class="panel-card">
+            <h3>Enlaces y Acciones Rápidas</h3>
+            <p class="dashboard-subtitle">Navega rápidamente a las principales herramientas del instructor.</p>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                <a href="mis_lotes.php" class="btn btn-sena">Ver Mis Lotes</a>
+                <a href="crear.php" class="btn btn-secondary">+ Crear Nuevo Lote</a>
+                <a href="crear_ficha_tecnica.php" class="btn btn-secondary">Ficha Técnica</a>
+                <a href="matriz_consulta.php" class="btn btn-secondary">Consulta de Ítems</a>
+                <a href="certificado_existencia.php" class="btn btn-secondary">Certificados Existencia</a>
+            </div>
+        </div>
     </main>
 </div>
 
@@ -334,7 +365,6 @@ try {
 <header class="header-main">
     <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
         <h1 class="header-title">BICERGAM | <span class="accent-color">SENA</span></h1>
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-center">
         <span class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
@@ -434,7 +464,7 @@ try {
 </div>
 <?php endif; ?>
 
-<script src="../javascript.js"></script>
+<script src="../js/apartados.js"></script>
 <?php if ($rolNombre === 'instructor'): ?>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -428,6 +428,10 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary active">Ficha Técnica</a>
         </div>
@@ -607,7 +611,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </main>
 </div>
 
-<script src="../javascript.js"></script>
+<script src="../js/apartados.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loteSelect = document.getElementById('id_lote');

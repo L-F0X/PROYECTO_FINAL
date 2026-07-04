@@ -1,91 +1,219 @@
 <?php
 // instructor/mis_lotes.php
-// Panel "Mis Lotes" del instructor: búsqueda, filtro y tabla de lotes propios.
-// Se incluye desde index.php, que ya define $lotes, $busqueda, $filtroEstado
-// y ya cargó conexion.php / csrf.php.
-if (!defined('ACCESO_VALIDO')) {
-    exit('Acceso denegado');
+require_once '../conexion.php';
+require_once '../csrf.php';
+
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: ../login.php');
+    exit;
 }
+
+$rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+if ($rolNombre !== 'instructor') {
+    header('Location: ../index.php');
+    exit;
+}
+
+$usuarioId = intval($_SESSION['usuario_id'] ?? 0);
+
+// Foto de perfil
+$photoPath = null;
+foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
+    if (file_exists($candidate)) {
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
+        break;
+    }
+}
+
+// Parámetros de búsqueda y filtrado
+$busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
+$filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
+
+$sql = "SELECT * FROM lote_requerimiento WHERE ID_SOLICITANTE = ?";
+$params = [$usuarioId];
+if ($busqueda !== '') {
+    $sql .= " AND (LOTE_NOMBRE LIKE ? OR ID_LOTE = ?)";
+    $params[] = "%$busqueda%";
+    $params[] = intval($busqueda);
+}
+if ($filtroEstado !== '') {
+    $sql .= " AND ESTADO_TRAMITE = ?";
+    $params[] = $filtroEstado;
+}
+$sql .= " ORDER BY FECHA_CREACION DESC";
+
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+if ($msg === 'editado') {
+    $messageText = '✓ Lote actualizado correctamente.';
+} elseif ($msg === 'no_editable') {
+    $messageText = '✗ Este lote ya no se puede editar: solo los lotes en Borrador son editables.';
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$lotes = $stmt->fetchAll();
+$total = count($lotes);
 ?>
-<div class="panel-card" id="lotes-panel-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-        <h3>Mis Lotes</h3>
-        <div class="actions-bar" style="border: none; padding: 0; margin: 0;">
-            <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
-        </div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Lotes - BICERGAM</title>
+    <link rel="stylesheet" href="../estilos.css?v=<?= filemtime(__DIR__ . '/../estilos.css') ?>">
+</head>
+<body>
+
+<header class="dashboard-header">
+    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
-
-    <!-- Formulario de búsqueda -->
-    <form method="GET" action="index.php" id="form-busqueda" style="margin-bottom: 20px;">
-        <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
-                <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar lote</label>
-                <input
-                    type="text"
-                    id="q"
-                    name="q"
-                    class="search-input"
-                    placeholder="Buscar por nombre o ID..."
-                    value="<?= htmlspecialchars($busqueda) ?>"
-                    style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-                    autocomplete="off"
-                >
-            </div>
-            <div class="field-group" style="min-width: 160px; display: flex; flex-direction: column;">
-                <label for="estado" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Filtrar por estado</label>
-                <select name="estado" id="estado" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    <option value="">— Todos —</option>
-                    <?php
-                    $estados = ['Borrador','Enviado','Aprobado','Rechazado'];
-                    foreach ($estados as $e):
-                        $sel = ($filtroEstado === $e) ? 'selected' : '';
-                    ?>
-                        <option value="<?= $e ?>" <?= $sel ?>><?= $e ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
-            <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
-                <a href="index.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
-            <?php endif; ?>
+    <div class="header-user">
+        <div class="header-user-text">
+            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
-    </form>
-
-    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre del Lote</th>
-                <th>Estado Trámite</th>
-                <th>Fecha Creación</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if(empty($lotes)): ?>
-                <tr>
-                    <td colspan="5" style="text-align: center; padding: 20px;">No hay lotes registrados o que coincidan con la búsqueda.</td>
-                </tr>
+        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
             <?php else: ?>
-                <?php foreach($lotes as $lote): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
-                        <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
-                        <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
-                        <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
-                        <td>
-                            <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
-                            <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
-                            <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
-                            <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
-                                <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
+                <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
-        </tbody>
-    </table>
+        </a>
+    </div>
+</header>
+
+<div class="dashboard-page">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-logo">
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link sidebar-link--primary active">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Operaciones</h4>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
+        </div>
+        <div class="sidebar-group">
+            <h4>Consultas</h4>
+            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
+            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+        </div>
+        <div class="sidebar-group sidebar-group--session">
+            <h4>Sesión</h4>
+            <a href="instructor_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="dashboard-topbar">
+            <div>
+                <h2>Mis Lotes</h2>
+                <p class="dashboard-subtitle">Consulta, edita y da seguimiento a los lotes de requerimiento que has creado.</p>
+            </div>
+        </div>
+
+        <?php if (!empty($messageText)): ?>
+            <div class="profile-alert <?= $msg === 'no_editable' ? 'error' : 'success' ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; <?= $msg === 'no_editable' ? 'background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;' : 'background: #eff8f1; color: #270; border: 1px solid #d4ebd5;' ?>">
+                <?= htmlspecialchars($messageText) ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="panel-card">
+            <div class="actions-bar no-print" style="border: none; padding: 0; margin: 0 0 20px; justify-content: flex-end;">
+                <a href="crear.php" class="btn btn-sena">+ Crear Nuevo Lote</a>
+            </div>
+
+            <!-- Formulario de búsqueda -->
+            <form method="GET" action="mis_lotes.php" id="form-busqueda" style="margin-bottom: 20px;">
+                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar lote</label>
+                        <input
+                            type="text"
+                            id="q"
+                            name="q"
+                            class="search-input"
+                            placeholder="Buscar por nombre o ID..."
+                            value="<?= htmlspecialchars($busqueda) ?>"
+                            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="field-group" style="min-width: 160px; display: flex; flex-direction: column;">
+                        <label for="estado" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Filtrar por estado</label>
+                        <select name="estado" id="estado" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">— Todos —</option>
+                            <?php
+                            $estados = ['Borrador','Enviado','Aprobado','Rechazado'];
+                            foreach ($estados as $e):
+                                $sel = ($filtroEstado === $e) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $e ?>" <?= $sel ?>><?= $e ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
+                        <a href="mis_lotes.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+
+            <div id="resultados-busqueda">
+                <h3 style="margin-top: 0;">Lotes Registrados (Total: <?= $total ?>)</h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre del Lote</th>
+                            <th>Estado Trámite</th>
+                            <th>Fecha Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if(empty($lotes)): ?>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 20px;">No hay lotes registrados o que coincidan con la búsqueda.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach($lotes as $lote): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                                    <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
+                                    <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
+                                    <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
+                                    <td>
+                                        <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
+                                        <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
+                                        <?php if ($lote['ESTADO_TRAMITE'] === 'Borrador'): ?>
+                                            <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                                        <?php else: ?>
+                                            <span class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px; opacity: 0.5; cursor: not-allowed;" title="Solo los lotes en Borrador se pueden editar.">Editar Lote</span>
+                                        <?php endif; ?>
+                                        <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
+                                            <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                            <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Eliminar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </div>
+
+<script src="../js/apartados.js"></script>
+</body>
+</html>

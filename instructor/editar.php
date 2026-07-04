@@ -26,6 +26,13 @@ if (!$lote) {
     exit;
 }
 
+// Solo los lotes en Borrador pueden editarse: una vez enviados, aprobados
+// o rechazados, el trámite ya está en manos del coordinador.
+if ($lote['ESTADO_TRAMITE'] !== 'Borrador') {
+    header("Location: mis_lotes.php?msg=no_editable");
+    exit;
+}
+
 // Procesar actualización
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
@@ -35,12 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nombre = trim($_POST['lote_nombre']);
     $solicitante = intval($_POST['id_solicitante']);
-    $estado = trim($_POST['estado_tramite']);
-    
-    $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ?, ESTADO_TRAMITE = ? WHERE ID_LOTE = ?";
+
+    // El estado del trámite no se edita aquí: solo el coordinador puede
+    // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
+    $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ESTADO_TRAMITE = 'Borrador'";
     try {
-        $pdo->prepare($sql)->execute([$solicitante, $nombre, $estado, $id]);
-        header("Location: ../index.php");
+        $pdo->prepare($sql)->execute([$solicitante, $nombre, $id]);
+        header("Location: mis_lotes.php?msg=editado");
         exit;
     } catch (\PDOException $e) {
         error_log('Editar lote error: ' . $e->getMessage());
@@ -95,6 +103,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
@@ -126,18 +138,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <input type="number" id="id_solicitante" name="id_solicitante" class="form-control" value="<?= $lote['ID_SOLICITANTE'] ?>" required style="border-radius: 7px; padding: 10px 14px;">
                 </div>
 
-                <div class="form-group">
-                    <label for="estado_tramite">Estado del Trámite:</label>
-                    <select id="estado_tramite" name="estado_tramite" class="form-control" style="border-radius: 7px; padding: 10px 14px;">
-                        <option value="Borrador" <?= $lote['ESTADO_TRAMITE'] == 'Borrador' ? 'selected' : '' ?>>Borrador</option>
-                        <option value="Enviado" <?= $lote['ESTADO_TRAMITE'] == 'Enviado' ? 'selected' : '' ?>>Enviado</option>
-                        <option value="Aprobado" <?= $lote['ESTADO_TRAMITE'] == 'Aprobado' ? 'selected' : '' ?>>Aprobado</option>
-                        <option value="Rechazado" <?= $lote['ESTADO_TRAMITE'] == 'Rechazado' ? 'selected' : '' ?>>Rechazado</option>
-                    </select>
-                </div>
-
                 <div style="display: flex; gap: 12px; margin-top: 15px;">
-                    <a href="../index.php" class="btn btn-secondary" style="border-radius: 7px; padding: 11px 22px;">Cancelar</a>
+                    <a href="mis_lotes.php" class="btn btn-secondary" style="border-radius: 7px; padding: 11px 22px;">Cancelar</a>
                     <button type="submit" class="btn btn-sena" style="border-radius: 7px; padding: 11px 22px;">Actualizar Requerimiento</button>
                 </div>
             </form>
@@ -145,6 +147,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 
-<script src="../javascript.js"></script>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

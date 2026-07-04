@@ -69,7 +69,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <style>
         .ficha-table-view {
             width: 100%;
-            border-collapse: collapse;
+
             margin: 20px 0;
             font-family: Arial, sans-serif;
             border: 2px solid #333;
@@ -180,6 +180,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
@@ -211,7 +215,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </div>
         </div>
 
-        <div class="panel-card" style="max-width: 820px; margin: 0 auto; padding: 20px;">
+        <div class="panel-card" style="max-width: 820px; width: 100%; margin: 0 auto; padding: 20px;">
             <table class="ficha-table-view">
                 <thead>
                     <tr>

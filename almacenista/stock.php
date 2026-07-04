@@ -8,8 +8,13 @@ if (!defined('ACCESO_VALIDO')) {
 
 <div class="dashboard-topbar" style="margin-bottom: 20px;">
     <div>
+        <span class="hud-brand">BICERGAM</span>
         <h2>Vista General de Stock</h2>
         <p class="dashboard-subtitle">Control detallado de existencias actuales, especificaciones técnicas y alertas de inventario crítico.</p>
+    </div>
+    <div class="hud-status">
+        <span class="hud-dot"></span>
+        <span><?= fecha_larga_es() ?></span>
     </div>
 </div>
 
@@ -46,7 +51,7 @@ if (!defined('ACCESO_VALIDO')) {
 
 <!-- Tabla de Inventario Principal -->
 <div class="panel-card" style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+    <table style="width: 100%; min-width: 700px;">
         <thead>
             <tr>
                 <th>ID</th>

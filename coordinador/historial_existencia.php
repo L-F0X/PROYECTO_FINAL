@@ -79,7 +79,6 @@ $total = count($certificados);
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -109,7 +108,7 @@ $total = count($certificados);
                 <h3>Total de Certificados: <?= $total ?></h3>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <table style="width: 100%; margin-top: 15px;">
                 <thead>
                     <tr>
                         <th>ID Certificado</th>
@@ -145,5 +144,6 @@ $total = count($certificados);
     </main>
 </div>
 
+<script src="../js/apartados.js"></script>
 </body>
 </html>

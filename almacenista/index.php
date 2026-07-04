@@ -452,8 +452,8 @@ try {
 </div>
 
 <!-- ================= MODAL / FORMULARIO FLOTANTE EDICIÓN Y CREACIÓN (Para Vista de Stock) ================= -->
-<div id="modalArticulo" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:#ffffff; padding:30px; border-radius:12px; max-width:600px; width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+<div id="modalArticulo" class="modal-overlay">
+    <div class="modal-box">
         <h3 id="modal-titulo" style="margin-top:0;">Agregar Nuevo Artículo</h3>
         
         <form action="index.php?tab=stock" method="POST" id="form-modal">
@@ -505,7 +505,7 @@ try {
     </div>
 </div>
 
-<script src="../javascript.js"></script>
+<script src="../js/apartados.js"></script>
 <script>
     // Buscador automático rápido (se aplica si existe el input)
     (function () {
@@ -534,7 +534,7 @@ try {
         document.getElementById('modal-cantidad-container').style.display = "block";
         document.getElementById('modal-descripcion').value = "";
         document.getElementById('modal-comentarios').value = "";
-        document.getElementById('modalArticulo').style.display = "flex";
+        document.getElementById('modalArticulo').classList.add('is-open');
     }
 
     function cargarDatosEdicion(item) {
@@ -548,19 +548,18 @@ try {
         document.getElementById('modal-cantidad-container').style.display = "block";
         document.getElementById('modal-descripcion').value = item.DESCRIPCION_GENERAL || "";
         document.getElementById('modal-comentarios').value = item.COMENTARIOS || "";
-        document.getElementById('modalArticulo').style.display = "flex";
+        document.getElementById('modalArticulo').classList.add('is-open');
     }
 
     function cerrarModal() {
-        document.getElementById('modalArticulo').style.display = "none";
+        document.getElementById('modalArticulo').classList.remove('is-open');
     }
 
     // Toggle de Acordeón para Lotes de Instructores
     function toggleLoteDetalle(idLote) {
         const body = document.getElementById('lote-body-' + idLote);
         if (body) {
-            const isCurrentlyShown = body.style.display === 'block';
-            body.style.display = isCurrentlyShown ? 'none' : 'block';
+            body.classList.toggle('is-open');
         }
     }
 </script>

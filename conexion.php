@@ -36,4 +36,13 @@ try {
      error_log('DB connection error: ' . $e->getMessage());
      die('Error de conexión a la base de datos. Contacte al administrador.');
 }
+
+// Formatea la fecha actual en español sin depender del locale del sistema operativo
+if (!function_exists('fecha_larga_es')) {
+    function fecha_larga_es(): string {
+        $dias = ['Sunday' => 'Domingo', 'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles', 'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado'];
+        $meses = ['January' => 'enero', 'February' => 'febrero', 'March' => 'marzo', 'April' => 'abril', 'May' => 'mayo', 'June' => 'junio', 'July' => 'julio', 'August' => 'agosto', 'September' => 'septiembre', 'October' => 'octubre', 'November' => 'noviembre', 'December' => 'diciembre'];
+        return $dias[date('l')] . ', ' . date('d') . ' de ' . $meses[date('F')];
+    }
+}
 ?>

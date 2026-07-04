@@ -13,6 +13,6 @@ if (ini_get("session_use_cookies")) {
 }
 
 session_destroy();
-header("Location: login.php");
+header("Location: login.php?msg=logout");
 exit;
 ?>

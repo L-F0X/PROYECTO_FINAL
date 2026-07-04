@@ -1,6 +1,25 @@
 /* estilos.css */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
+/* Transiciones suaves entre páginas completas (navegación estilo MPA).
+   En navegadores compatibles (Chromium), esto reemplaza el "corte" brusco
+   entre una página y la siguiente por un cross-fade nativo del navegador. */
+@view-transition {
+    navigation: auto;
+}
+
+/* Respaldo para navegadores sin soporte de View Transitions: fade-in simple */
+@media (prefers-reduced-motion: no-preference) {
+    body {
+        animation: pageFadeIn 0.28s ease-out;
+    }
+}
+
+@keyframes pageFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 :root {
     --verde-sena: #39A900;
     --verde-sena-hover: #2e8800;
@@ -357,6 +376,53 @@ body.iframe-mode .dashboard-main {
     animation: cardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.hud-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--verde-sena);
+    background: var(--verde-sena-light);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(57, 169, 0, 0.2);
+}
+
+.hud-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.hud-status .hud-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--verde-sena);
+    box-shadow: 0 0 0 0 rgba(57, 169, 0, 0.5);
+    animation: hudPulse 2s infinite;
+}
+
+@keyframes hudPulse {
+    0% { box-shadow: 0 0 0 0 rgba(57, 169, 0, 0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(57, 169, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(57, 169, 0, 0); }
+}
+
+@media (max-width: 700px) {
+    .hud-status {
+        display: none;
+    }
+}
+
 .dashboard-topbar h2 {
     margin: 0;
     font-size: 1.8rem;
@@ -554,9 +620,26 @@ table {
     border-collapse: separate;
     border-spacing: 0;
     margin-top: 20px;
-    border-radius: 12px;
-    overflow: hidden;
     border: 1px solid var(--border-color);
+}
+
+/* Las esquinas redondeadas se aplican a las celdas de esquina, no a la
+   tabla en sí: la tabla también es el contenedor con scroll horizontal
+   (ver regla más abajo), y si el "overflow" + "border-radius" se ponen
+   juntos en el mismo elemento que hace scroll, el contenido queda
+   recortado de forma brusca justo en la esquina redondeada (se veía como
+   si el botón de la última columna estuviera "cortado"). */
+thead tr:first-child th:first-child {
+    border-top-left-radius: 12px;
+}
+thead tr:first-child th:last-child {
+    border-top-right-radius: 12px;
+}
+tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
 }
 
 th, td {
@@ -749,6 +832,7 @@ table {
     .dashboard-topbar,
     .dashboard-header,
     .header-main,
+    .hud-status .hud-dot,
     .btn::after {
         animation: none !important;
         transition: none !important;
@@ -1469,5 +1553,203 @@ table {
     }
     .dashboard-header .header-user-text {
         font-size: 0.85rem;
+    }
+}
+
+/* ── Transiciones suaves para acciones dentro de la página (modales, acordeones) ── */
+
+.modal-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.modal-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-overlay .modal-box {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 14px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(-18px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.is-open .modal-box {
+    transform: translateY(0) scale(1);
+}
+
+.lote-body {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.3s ease;
+}
+
+.lote-body.is-open {
+    max-height: 4000px;
+    opacity: 1;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-overlay .modal-box,
+    .lote-body {
+        transition: none !important;
+    }
+}
+
+/* Notificaciones tipo toast: feedback tras acciones (cerrar sesión, eliminar,
+   rechazar, enviar, etc.) sin bloquear la interfaz como una alerta nativa. */
+.toast-stack {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: min(380px, calc(100vw - 40px));
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+    border-left: 4px solid var(--verde-sena);
+    font-size: 0.9rem;
+    color: var(--texto-oscuro);
+    transform: translateX(24px);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+.toast.is-visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast.is-leaving {
+    transform: translateX(24px);
+    opacity: 0;
+}
+
+.toast--error {
+    border-left-color: var(--alerta-rojo);
+}
+
+.toast--info {
+    border-left-color: #0369a1;
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    font-weight: 700;
+}
+
+.toast-message {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    color: var(--texto-oscuro);
+}
+
+/* Modal de confirmación genérico (cerrar sesión, eliminar) construido en JS
+   sobre la misma base visual de .modal-overlay/.modal-box. */
+.confirm-modal-box {
+    max-width: 420px;
+    text-align: center;
+}
+
+.confirm-modal-box h3 {
+    margin-top: 0;
+    color: var(--texto-oscuro);
+}
+
+.confirm-modal-box p {
+    color: var(--texto);
+    margin-bottom: 24px;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        transition: none !important;
+    }
+}
+
+/* Búsqueda en vivo: atenúa levemente los resultados mientras llega la
+   respuesta del fetch, para dar feedback sin parpadeos bruscos. */
+#resultados-busqueda {
+    transition: opacity 0.15s ease;
+}
+
+#resultados-busqueda.is-loading {
+    opacity: 0.6;
+}
+
+/* Utilidad de impresión / exportar a PDF: al imprimir cualquier página del
+   panel, se oculta la navegación y solo queda el contenido a exportar. El
+   usuario usa el diálogo de impresión del navegador y elige "Guardar como PDF". */
+@media print {
+    .dashboard-header,
+    .dashboard-sidebar,
+    .actions-bar,
+    .no-print {
+        display: none !important;
+    }
+
+    .dashboard-page {
+        display: block !important;
+    }
+
+    .dashboard-main {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    body {
+        background: #fff !important;
     }
 }

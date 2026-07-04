@@ -42,7 +42,7 @@ if (!defined('ACCESO_VALIDO')) {
                 </div>
             </div>
             
-            <div class="lote-body" id="lote-body-<?= $lote['ID_LOTE'] ?>" style="display: none; padding: 24px; background: #ffffff;">
+            <div class="lote-body" id="lote-body-<?= $lote['ID_LOTE'] ?>" style="background: #ffffff; padding-left: 24px; padding-right: 24px;">
                 <h4 style="margin-top: 0; margin-bottom: 12px; color: var(--gris-oscuro);">Ítems del Requerimiento:</h4>
                 
                 <?php
@@ -64,7 +64,7 @@ if (!defined('ACCESO_VALIDO')) {
                     <p style="color: #64748b; font-style: italic; margin-bottom: 20px;">Este lote no contiene ningún ítem aún.</p>
                 <?php else: ?>
                     <div style="overflow-x: auto; margin-bottom: 20px;">
-                        <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.9rem;">
+                        <table style="width: 100%; min-width: 600px; font-size: 0.9rem;">
                             <thead>
                                 <tr style="background-color: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
                                     <th style="padding: 10px; text-align: left;">Descripción Item</th>

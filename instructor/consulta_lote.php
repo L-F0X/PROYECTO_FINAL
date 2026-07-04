@@ -92,6 +92,10 @@ $total = count($lotes);
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
         </div>
@@ -151,67 +155,55 @@ $total = count($lotes);
                 </div>
             </form>
 
-            <!-- ── Contador ── -->
-            <div class="results-meta" style="margin: 20px 0;">
-                <span>Resultados: </span><strong><?= $total ?></strong> lote<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?>
-            </div>
+            <div id="resultados-busqueda">
+                <!-- ── Contador ── -->
+                <div class="results-meta" style="margin: 20px 0;">
+                    <span>Resultados: </span><strong><?= $total ?></strong> lote<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?>
+                </div>
 
-            <!-- ── Tabla ── -->
-            <div class="lotes-table-wrap">
-                <table class="lotes-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre del Lote</th>
-                            <th>Estado</th>
-                            <th>Fecha Creación</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($lotes)): ?>
+                <!-- ── Tabla ── -->
+                <div class="lotes-table-wrap">
+                    <table class="lotes-table" style="width: 100%;">
+                        <thead>
                             <tr>
-                                <td colspan="5" style="text-align: center; padding: 20px;">
-                                    No se encontraron lotes para esta búsqueda.
-                                </td>
+                                <th>ID</th>
+                                <th>Nombre del Lote</th>
+                                <th>Estado</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($lotes as $l): ?>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($lotes)): ?>
                                 <tr>
-                                    <td>#<?= htmlspecialchars($l['ID_LOTE']) ?></td>
-                                    <td><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></td>
-                                    <td><strong><?= htmlspecialchars($l['ESTADO_TRAMITE']) ?></strong></td>
-                                    <td><?= htmlspecialchars($l['FECHA_CREACION']) ?></td>
-                                    <td>
-                                        <a href="../matriz.php?lote=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Materiales</a>
-                                        <a href="editar.php?id=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                                    <td colspan="5" style="text-align: center; padding: 20px;">
+                                        No se encontraron lotes para esta búsqueda.
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            <?php else: ?>
+                                <?php foreach ($lotes as $l): ?>
+                                    <tr>
+                                        <td>#<?= htmlspecialchars($l['ID_LOTE']) ?></td>
+                                        <td><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></td>
+                                        <td><strong><?= htmlspecialchars($l['ESTADO_TRAMITE']) ?></strong></td>
+                                        <td><?= htmlspecialchars($l['FECHA_CREACION']) ?></td>
+                                        <td>
+                                            <a href="matriz.php?lote=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Materiales</a>
+                                            <?php if ($l['ESTADO_TRAMITE'] === 'Borrador'): ?>
+                                                <a href="editar.php?id=<?= htmlspecialchars($l['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
 </div>
 
-<script src="../javascript.js"></script>
-<script>
-    (function () {
-        const input  = document.getElementById('q');
-        const select = document.getElementById('estado');
-        const form   = document.getElementById('form-busqueda');
-        let timer;
-
-        function submitDelayed() {
-            clearTimeout(timer);
-            timer = setTimeout(() => form.submit(), 350);
-        }
-
-        input.addEventListener('input', submitDelayed);
-        select.addEventListener('change', () => form.submit());
-    })();
-</script>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

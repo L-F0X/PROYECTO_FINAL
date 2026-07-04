@@ -120,7 +120,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link sidebar-link--primary active">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -178,5 +177,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </main>
 </div>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

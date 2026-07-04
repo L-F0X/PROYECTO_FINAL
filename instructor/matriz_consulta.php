@@ -165,7 +165,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         }
         .lotes-table {
             width: 100%;
-            border-collapse: collapse;
+
             font-size: 14px;
         }
         .lotes-table thead tr {
@@ -228,6 +228,10 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
         </div>
@@ -287,90 +291,77 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
             </form>
 
-            <!-- ── Contador ── -->
-            <div class="results-meta">
-                <span>Resultados:</span>
-                <span class="badge-count"><?= $total ?></span>
-                <strong>ítem<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?></strong>
-                <?php if ($busqueda !== ''): ?>
-                    <span style="color:#aaa">— filtro activo</span>
-                <?php endif; ?>
-            </div>
+            <div id="resultados-busqueda">
+                <!-- ── Contador ── -->
+                <div class="results-meta">
+                    <span>Resultados:</span>
+                    <span class="badge-count"><?= $total ?></span>
+                    <strong>ítem<?= $total !== 1 ? 's' : '' ?> encontrado<?= $total !== 1 ? 's' : '' ?></strong>
+                    <?php if ($busqueda !== ''): ?>
+                        <span style="color:#aaa">— filtro activo</span>
+                    <?php endif; ?>
+                </div>
 
-            <!-- ── Tabla ── -->
-            <div class="lotes-table-wrap">
-                <table class="lotes-table">
-                    <thead>
-                        <tr>
-                            <th>ID Ítem</th>
-                            <th>Lote</th>
-                            <th>Descripción del Bien</th>
-                            <th>U. Medida</th>
-                            <th>Cantidad</th>
-                            <th>Estado Ítem</th>
-                            <th>Instructor Apoyo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($items)): ?>
+                <!-- ── Tabla ── -->
+                <div class="lotes-table-wrap">
+                    <table class="lotes-table">
+                        <thead>
                             <tr>
-                                <td colspan="7">
-                                    <div class="empty-state">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
-                                             viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                            <line x1="8" y1="11" x2="14" y2="11"/>
-                                        </svg>
-                                        <p>No se encontraron ítems</p>
-                                        <span>Intenta con otro término o limpia la búsqueda</span>
-                                    </div>
-                                </td>
+                                <th>ID Ítem</th>
+                                <th>Lote</th>
+                                <th>Descripción del Bien</th>
+                                <th>U. Medida</th>
+                                <th>Cantidad</th>
+                                <th>Estado Ítem</th>
+                                <th>Instructor Apoyo</th>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($items as $item): ?>
-                                <?php
-                                    $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
-                                    if ($apoyo === '') $apoyo = '—';
-                                ?>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($items)): ?>
                                 <tr>
-                                    <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
-                                    <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
-                                    <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
-                                    <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>
-                                    <td><strong><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></strong></td>
-                                    <td>
-                                        <span class="badge-estado badge-<?= htmlspecialchars(strtolower($item['ESTADO_ITEM'])) ?>">
-                                            <?= htmlspecialchars($item['ESTADO_ITEM']) ?>
-                                        </span>
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
+                                                 viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                                <line x1="8" y1="11" x2="14" y2="11"/>
+                                            </svg>
+                                            <p>No se encontraron ítems</p>
+                                            <span>Intenta con otro término o limpia la búsqueda</span>
+                                        </div>
                                     </td>
-                                    <td class="td-solicitante"><?= htmlspecialchars($apoyo) ?></td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            <?php else: ?>
+                                <?php foreach ($items as $item): ?>
+                                    <?php
+                                        $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
+                                        if ($apoyo === '') $apoyo = '—';
+                                    ?>
+                                    <tr>
+                                        <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                        <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
+                                        <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
+                                        <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>
+                                        <td><strong><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></strong></td>
+                                        <td>
+                                            <span class="badge-estado badge-<?= htmlspecialchars(strtolower($item['ESTADO_ITEM'])) ?>">
+                                                <?= htmlspecialchars($item['ESTADO_ITEM']) ?>
+                                            </span>
+                                        </td>
+                                        <td class="td-solicitante"><?= htmlspecialchars($apoyo) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </div><!-- /.panel-card -->
     </main>
 </div>
 
-<script src="../javascript.js"></script>
-<script>
-    // Búsqueda en vivo al escribir (debounce 350ms)
-    (function () {
-        const input  = document.getElementById('q');
-        const form   = document.getElementById('form-busqueda');
-        let timer;
-
-        function submitDelayed() {
-            clearTimeout(timer);
-            timer = setTimeout(() => form.submit(), 350);
-        }
-
-        input.addEventListener('input', submitDelayed);
-    })();
-</script>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

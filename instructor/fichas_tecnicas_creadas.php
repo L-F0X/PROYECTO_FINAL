@@ -85,6 +85,10 @@ $total = count($fichas);
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
         </div>
@@ -133,59 +137,48 @@ $total = count($fichas);
                 </div>
             </form>
 
-            <div class="results-meta" style="margin: 15px 0;">
-                <span>Resultados: </span><strong><?= $total ?></strong> ficha<?= $total !== 1 ? 's' : '' ?> encontrada<?= $total !== 1 ? 's' : '' ?>
-            </div>
+            <div id="resultados-busqueda">
+                <div class="results-meta" style="margin: 15px 0;">
+                    <span>Resultados: </span><strong><?= $total ?></strong> ficha<?= $total !== 1 ? 's' : '' ?> encontrada<?= $total !== 1 ? 's' : '' ?>
+                </div>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre del Ítem</th>
-                        <th>Código UNSPSC</th>
-                        <th>Denominación Técnica</th>
-                        <th>Unidad de Medida</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($fichas)): ?>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px;">No hay fichas técnicas registradas.</td>
+                            <th>ID</th>
+                            <th>Nombre del Ítem</th>
+                            <th>Código UNSPSC</th>
+                            <th>Denominación Técnica</th>
+                            <th>Unidad de Medida</th>
+                            <th>Acción</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($fichas as $f): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($fichas)): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?></td>
-                                <td><strong><?= htmlspecialchars($f['NOMBRE_ITEM']) ?></strong></td>
-                                <td><?= htmlspecialchars($f['CODIGO_UNSPSC_FK']) ?></td>
-                                <td><?= htmlspecialchars($f['DENOMINACION_TECNICA_BIEN']) ?></td>
-                                <td><?= htmlspecialchars($f['UNIDAD_MEDIDA']) ?></td>
-                                <td>
-                                    <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
-                                </td>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No hay fichas técnicas registradas.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($fichas as $f): ?>
+                                <tr>
+                                    <td>#<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?></td>
+                                    <td><strong><?= htmlspecialchars($f['NOMBRE_ITEM']) ?></strong></td>
+                                    <td><?= htmlspecialchars($f['CODIGO_UNSPSC_FK']) ?></td>
+                                    <td><?= htmlspecialchars($f['DENOMINACION_TECNICA_BIEN']) ?></td>
+                                    <td><?= htmlspecialchars($f['UNIDAD_MEDIDA']) ?></td>
+                                    <td>
+                                        <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>
 
-<script src="../javascript.js"></script>
-<script>
-    (function () {
-        const input  = document.getElementById('q');
-        const form   = document.getElementById('form-busqueda');
-        if (input && form) {
-            let timer;
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 350);
-            });
-        }
-    })();
-</script>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

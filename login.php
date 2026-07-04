@@ -10,6 +10,11 @@ if (isset($_SESSION['usuario_id'])) {
 
 $error = "";
 
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+if ($msg === 'logout') {
+    $messageText = '✓ Sesión cerrada correctamente.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
@@ -92,6 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="error-msg"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
+        <?php if (!empty($messageText)): ?>
+            <div class="profile-alert success" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;"><?= htmlspecialchars($messageText) ?></div>
+        <?php endif; ?>
+
         <form id="formLogin" action="login.php" method="POST">
             <div class="form-group">
                 <label for="email">Correo Electrónico Institucional</label>
@@ -108,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 </div>
 
+<script src="js/apartados.js"></script>
 <script>
     // Validación rápida con JS para evitar envíos vacíos no intencionados
     document.getElementById('formLogin').addEventListener('submit', function(e) {

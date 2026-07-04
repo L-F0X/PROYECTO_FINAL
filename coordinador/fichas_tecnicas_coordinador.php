@@ -14,6 +14,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
+$busquedaUnspsc = isset($_GET['unspsc']) ? trim($_GET['unspsc']) : '';
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -38,6 +39,11 @@ try {
         $sql .= " AND (ft.NOMBRE_ITEM LIKE ? OR ft.ID_FICHA_TECNICA = ?)";
         $params[] = "%$busqueda%";
         $params[] = intval($busqueda);
+    }
+
+    if ($busquedaUnspsc !== '') {
+        $sql .= " AND cu.CODIGO_UNSPSC LIKE ?";
+        $params[] = "%$busquedaUnspsc%";
     }
 
     $sql .= " ORDER BY ft.FECHA_EMISION DESC";
@@ -90,7 +96,6 @@ $total = count($fichas);
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -116,73 +121,70 @@ $total = count($fichas);
         </div>
 
         <div class="panel-card">
-            <div style="margin-bottom: 20px;">
-                <h3>Total de Fichas Técnicas: <?= $total ?></h3>
-            </div>
-
             <!-- Búsqueda -->
             <form method="GET" action="fichas_tecnicas_coordinador.php" id="form-busqueda" style="margin-bottom: 20px;">
-                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end;">
+                <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
                     <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
-                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar ficha</label>
+                        <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar por nombre</label>
                         <input type="text" id="q" name="q" class="search-input" placeholder="Buscar por nombre..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     </div>
+                    <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+                        <label for="unspsc" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Código UNSPSC</label>
+                        <input type="text" id="unspsc" name="unspsc" class="search-input" placeholder="Ej: 43211508" value="<?= htmlspecialchars($busquedaUnspsc) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
                     <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
-                    <?php if ($busqueda !== ''): ?>
+                    <?php if ($busqueda !== '' || $busquedaUnspsc !== ''): ?>
                         <a href="fichas_tecnicas_coordinador.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                     <?php endif; ?>
                 </div>
             </form>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre Item</th>
-                        <th>Código UNSPSC</th>
-                        <th>Unidad Medida</th>
-                        <th>Cantidad</th>
-                        <th>Usado En</th>
-                        <th>Fecha Emisión</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($fichas)): ?>
+            <div id="resultados-busqueda">
+                <div style="margin-bottom: 20px;">
+                    <h3>Total de Fichas Técnicas: <?= $total ?></h3>
+                </div>
+
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 20px;">No hay fichas técnicas registradas.</td>
+                            <th>ID</th>
+                            <th>Nombre Item</th>
+                            <th>Código UNSPSC</th>
+                            <th>Unidad Medida</th>
+                            <th>Cantidad</th>
+                            <th>Usado En</th>
+                            <th>Fecha Emisión</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($fichas as $ficha): ?>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 12px;"><?= htmlspecialchars($ficha['ID_FICHA_TECNICA']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($ficha['NOMBRE_ITEM']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($ficha['CODIGO_UNSPSC'] ?? 'N/A') ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?></td>
-                                <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['CANTIDAD']) ?></td>
-                                <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['ITEMS_COUNT']) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars(substr($ficha['FECHA_EMISION'], 0, 19)) ?></td>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($fichas)): ?>
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 20px;">No hay fichas técnicas registradas.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($fichas as $ficha): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;"><?= htmlspecialchars($ficha['ID_FICHA_TECNICA']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($ficha['NOMBRE_ITEM']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($ficha['CODIGO_UNSPSC'] ?? 'N/A') ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?></td>
+                                    <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['CANTIDAD']) ?></td>
+                                    <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['ITEMS_COUNT']) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars(substr($ficha['FECHA_EMISION'], 0, 19)) ?></td>
+                                    <td style="padding: 12px;">
+                                        <a href="ver_ficha_tecnica.php?id=<?= $ficha['ID_FICHA_TECNICA'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>
 
-<script>
-    (function () {
-        const input = document.getElementById('q');
-        const form = document.getElementById('form-busqueda');
-        if (input && form) {
-            let timer;
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 350);
-            });
-        }
-    })();
-</script>
-
+<script src="../js/apartados.js"></script>
 </body>
 </html>

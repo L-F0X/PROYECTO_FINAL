@@ -45,11 +45,13 @@ $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
 
 // Obtener todos los lotes para coordinador
 try {
+    // Los lotes en Borrador aún no han sido enviados por el instructor,
+    // así que el coordinador no debe verlos todavía.
     $sql = "SELECT lr.*, u.NOMBRE, u.APELLIDO, u.EMAIL,
             (SELECT COUNT(*) FROM matriz_item WHERE ID_LOTE = lr.ID_LOTE) as ITEMS_COUNT
             FROM lote_requerimiento lr
             INNER JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO
-            WHERE 1=1";
+            WHERE lr.ESTADO_TRAMITE != 'Borrador'";
     $params = [];
 
     if ($busqueda !== '') {
@@ -122,7 +124,6 @@ if ($msg === 'aprobado') {
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link sidebar-link--primary active">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -154,10 +155,6 @@ if ($msg === 'aprobado') {
         <?php endif; ?>
 
         <div class="panel-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                <h3>Lotes de Requerimiento (Total: <?= $total ?>)</h3>
-            </div>
-
             <!-- Formulario de búsqueda y filtrado -->
             <form method="GET" action="revisar_lotes.php" id="form-busqueda" style="margin-bottom: 20px;">
                 <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
@@ -169,7 +166,6 @@ if ($msg === 'aprobado') {
                         <label for="estado" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Filtrar por estado</label>
                         <select name="estado" id="estado" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                             <option value="">— Todos —</option>
-                            <option value="Borrador" <?= $filtroEstado === 'Borrador' ? 'selected' : '' ?>>Borrador</option>
                             <option value="Enviado" <?= $filtroEstado === 'Enviado' ? 'selected' : '' ?>>Enviado</option>
                             <option value="Aprobado" <?= $filtroEstado === 'Aprobado' ? 'selected' : '' ?>>Aprobado</option>
                             <option value="Rechazado" <?= $filtroEstado === 'Rechazado' ? 'selected' : '' ?>>Rechazado</option>
@@ -182,65 +178,53 @@ if ($msg === 'aprobado') {
                 </div>
             </form>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>ID Lote</th>
-                        <th>Nombre</th>
-                        <th>Instructor</th>
-                        <th>Items</th>
-                        <th>Estado</th>
-                        <th>Fecha</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($lotes)): ?>
+            <div id="resultados-busqueda">
+                <h3>Lotes de Requerimiento (Total: <?= $total ?>)</h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 20px;">No hay lotes registrados.</td>
+                            <th>ID Lote</th>
+                            <th>Nombre</th>
+                            <th>Instructor</th>
+                            <th>Items</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($lotes as $lote): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($lotes)): ?>
                             <tr>
-                                <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
-                                <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
-                                <td><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
-                                <td><?= htmlspecialchars($lote['ITEMS_COUNT']) ?></td>
-                                <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
-                                <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
-                                <td>
-                                    <div style="display: flex; gap: 5px;">
-                                        <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
-                                        <?php if ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
-                                            <a href="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; text-decoration: none; cursor: pointer;">Aprobar</a>
-                                            <a href="rechazar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; text-decoration: none; cursor: pointer;">Rechazar</a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
+                                <td colspan="7" style="text-align: center; padding: 20px;">No hay lotes registrados.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($lotes as $lote): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                                    <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
+                                    <td><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
+                                    <td><?= htmlspecialchars($lote['ITEMS_COUNT']) ?></td>
+                                    <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
+                                    <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
+                                    <td>
+                                        <div style="display: flex; gap: 5px;">
+                                            <a href="revisar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                            <?php if ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
+                                                <a href="aprobar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; text-decoration: none; cursor: pointer;">Aprobar</a>
+                                                <a href="rechazar_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; text-decoration: none; cursor: pointer;">Rechazar</a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>
 
-<script>
-    (function () {
-        const input = document.getElementById('q');
-        const select = document.getElementById('estado');
-        const form = document.getElementById('form-busqueda');
-        if (input && select && form) {
-            let timer;
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 350);
-            });
-            select.addEventListener('change', () => form.submit());
-        }
-    })();
-</script>
-
+<script src="../js/apartados.js"></script>
 </body>
 </html>

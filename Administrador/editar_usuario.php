@@ -297,5 +297,6 @@ try {
         </div>
     </main>
 </div>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

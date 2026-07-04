@@ -212,8 +212,13 @@ if ($msg === 'status_updated') {
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
+                <span class="hud-brand">BICERGAM</span>
                 <h2>Panel de Administración General</h2>
                 <p class="dashboard-subtitle">Administra cuentas de usuario, asigna roles, activa/desactiva cuentas y supervisa la actividad del sistema.</p>
+            </div>
+            <div class="hud-status">
+                <span class="hud-dot"></span>
+                <span><?= fecha_larga_es() ?></span>
             </div>
         </div>
 
@@ -261,8 +266,7 @@ if ($msg === 'status_updated') {
 
         <!-- Sección de Gestión de Usuarios -->
         <div class="panel-card" style="margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                <h3>Gestión de Usuarios (Total: <?= count($usuarios) ?>)</h3>
+            <div class="actions-bar no-print" style="border: none; padding: 0; margin: 0 0 20px; justify-content: flex-end;">
                 <a href="crear_usuario.php" class="btn btn-sena">+ Crear Nuevo Usuario</a>
             </div>
 
@@ -289,60 +293,63 @@ if ($msg === 'status_updated') {
                 </div>
             </form>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>Documento</th>
-                        <th>Nombre Completo</th>
-                        <th>Correo Electrónico</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($usuarios)): ?>
+            <div id="resultados-busqueda">
+                <h3>Gestión de Usuarios (Total: <?= count($usuarios) ?>)</h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron usuarios.</td>
+                            <th>Documento</th>
+                            <th>Nombre Completo</th>
+                            <th>Correo Electrónico</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($usuarios as $usr): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($usuarios)): ?>
                             <tr>
-                                <td><?= htmlspecialchars($usr['DOCUMENTO']) ?></td>
-                                <td><?= htmlspecialchars($usr['NOMBRE'] . ' ' . $usr['APELLIDO']) ?></td>
-                                <td><?= htmlspecialchars($usr['EMAIL']) ?></td>
-                                <td><span class="role-badge"><?= htmlspecialchars($usr['NOMBRE_ROL']) ?></span></td>
-                                <td>
-                                    <strong style="color: <?= $usr['ESTADO'] === 'Activo' ? 'var(--verde-sena)' : 'var(--alerta-rojo)' ?>;">
-                                        <?= htmlspecialchars($usr['ESTADO']) ?>
-                                    </strong>
-                                </td>
-                                <td>
-                                    <div style="display: flex; gap: 8px;">
-                                        <a href="editar_usuario.php?id=<?= $usr['ID_USUARIO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Editar</a>
-                                        
-                                        <!-- Formulario para activar/desactivar -->
-                                        <form action="index.php" method="POST" style="margin: 0; display: inline;">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                            <input type="hidden" name="accion" value="toggle_estado">
-                                            <input type="hidden" name="id_usuario" value="<?= $usr['ID_USUARIO'] ?>">
-                                            <input type="hidden" name="nuevo_estado" value="<?= $usr['ESTADO'] === 'Activo' ? 'Inactivo' : 'Activo' ?>">
-                                            
-                                            <?php if ($usr['ID_USUARIO'] === intval($_SESSION['usuario_id'])): ?>
-                                                <button type="button" class="btn" style="padding: 5px 10px; font-size: 12px; border: none; background: #ccc; color: #666; cursor: not-allowed;" title="No puedes desactivarte a ti mismo" disabled>Desactivar</button>
-                                            <?php elseif ($usr['ESTADO'] === 'Activo'): ?>
-                                                <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Desactivar</button>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--verde-sena); color: white;">Activar</button>
-                                            <?php endif; ?>
-                                        </form>
-                                    </div>
-                                </td>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron usuarios.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($usuarios as $usr): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($usr['DOCUMENTO']) ?></td>
+                                    <td><?= htmlspecialchars($usr['NOMBRE'] . ' ' . $usr['APELLIDO']) ?></td>
+                                    <td><?= htmlspecialchars($usr['EMAIL']) ?></td>
+                                    <td><span class="role-badge"><?= htmlspecialchars($usr['NOMBRE_ROL']) ?></span></td>
+                                    <td>
+                                        <strong style="color: <?= $usr['ESTADO'] === 'Activo' ? 'var(--verde-sena)' : 'var(--alerta-rojo)' ?>;">
+                                            <?= htmlspecialchars($usr['ESTADO']) ?>
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 8px;">
+                                            <a href="editar_usuario.php?id=<?= $usr['ID_USUARIO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Editar</a>
+
+                                            <!-- Formulario para activar/desactivar -->
+                                            <form action="index.php" method="POST" style="margin: 0; display: inline;">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                                <input type="hidden" name="accion" value="toggle_estado">
+                                                <input type="hidden" name="id_usuario" value="<?= $usr['ID_USUARIO'] ?>">
+                                                <input type="hidden" name="nuevo_estado" value="<?= $usr['ESTADO'] === 'Activo' ? 'Inactivo' : 'Activo' ?>">
+
+                                                <?php if ($usr['ID_USUARIO'] === intval($_SESSION['usuario_id'])): ?>
+                                                    <button type="button" class="btn" style="padding: 5px 10px; font-size: 12px; border: none; background: #ccc; color: #666; cursor: not-allowed;" title="No puedes desactivarte a ti mismo" disabled>Desactivar</button>
+                                                <?php elseif ($usr['ESTADO'] === 'Activo'): ?>
+                                                    <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--alerta-rojo); color: white;">Desactivar</button>
+                                                <?php else: ?>
+                                                    <button type="submit" class="btn" style="padding: 5px 10px; font-size: 12px; border: none; background: var(--verde-sena); color: white;">Activar</button>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Sección de Actividad de Usuarios -->
@@ -350,7 +357,7 @@ if ($msg === 'status_updated') {
             <h3>Actividad Reciente en el Sistema</h3>
             <p class="dashboard-subtitle">Historial de las últimas operaciones registradas por los administradores y coordinadores.</p>
             
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <table style="width: 100%; margin-top: 15px;">
                 <thead>
                     <tr>
                         <th>Fecha</th>
@@ -380,22 +387,7 @@ if ($msg === 'status_updated') {
     </main>
 </div>
 
-<script src="../javascript.js"></script>
-<script>
-    (function () {
-        const input = document.getElementById('q');
-        const select = document.getElementById('rol');
-        const form = document.getElementById('form-busqueda');
-        if (input && select && form) {
-            let timer;
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => form.submit(), 350);
-            });
-            select.addEventListener('change', () => form.submit());
-        }
-    })();
-</script>
+<script src="../js/apartados.js"></script>
 
 </body>
 </html>

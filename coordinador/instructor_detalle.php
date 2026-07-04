@@ -31,11 +31,12 @@ try {
         exit;
     }
 
-    // Obtener lotes del instructor
-    $sqlLotes = "SELECT lr.*, 
+    // Obtener lotes del instructor (los lotes en Borrador aún no se han
+    // enviado, así que el coordinador no debe verlos aquí tampoco)
+    $sqlLotes = "SELECT lr.*,
                 (SELECT COUNT(*) FROM matriz_item WHERE ID_LOTE = lr.ID_LOTE) as ITEMS_COUNT
                 FROM lote_requerimiento lr
-                WHERE lr.ID_SOLICITANTE = ?
+                WHERE lr.ID_SOLICITANTE = ? AND lr.ESTADO_TRAMITE != 'Borrador'
                 ORDER BY lr.FECHA_CREACION DESC";
     
     $stmtLotes = $pdo->prepare($sqlLotes);
@@ -106,7 +107,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -133,7 +133,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <!-- Información del Instructor -->
             <div class="panel-card" style="margin-top: 20px;">
                 <h3>Información Personal</h3>
-                <table style="width: 100%; border-collapse: collapse;">
+                <table style="width: 100%;">
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">ID Usuario:</td>
                         <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
@@ -156,7 +156,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <!-- Lotes del Instructor -->
             <div class="panel-card" style="margin-top: 20px;">
                 <h3>Lotes Creados (<?= count($lotes) ?>)</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <table style="width: 100%; margin-top: 10px;">
                     <thead>
                         <tr style="background-color: #f5f5f5;">
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Lote</th>
@@ -198,7 +198,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <?php if (!empty($apoyo)): ?>
                 <div class="panel-card" style="margin-top: 20px;">
                     <h3>Instructores de Apoyo Asociados (<?= count($apoyo) ?>)</h3>
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <table style="width: 100%; margin-top: 10px;">
                         <thead>
                             <tr style="background-color: #f5f5f5;">
                                 <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Nombre</th>
@@ -227,5 +227,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </main>
 </div>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

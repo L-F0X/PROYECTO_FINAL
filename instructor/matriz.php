@@ -72,6 +72,14 @@ $stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE FROM lote_requerimiento WHERE ID_L
 $stmtLote->execute([$id_lote]);
 $loteInfo = $stmtLote->fetch();
 
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+if ($msg === 'enviado') {
+    $messageText = '✓ Solicitud enviada al coordinador correctamente.';
+} elseif ($msg === 'guardado') {
+    $messageText = '✓ Ítem guardado como borrador correctamente.';
+}
+
 // Cargar lista de instructores para el select de apoyo
 $instructors = [];
 try {
@@ -359,7 +367,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
 
         $pdo->commit();
-        header("Location: matriz.php?lote=" . urlencode($id_lote));
+        $msgParam = $submitAction === 'enviar' ? '&msg=enviado' : '&msg=guardado';
+        header("Location: matriz.php?lote=" . urlencode($id_lote) . $msgParam);
         exit;
     } catch (Exception $e) {
         if ($transactionStarted && $pdo->inTransaction()) {
@@ -428,6 +437,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <img src="../imagenes/sena-logo.png" alt="SENA">
         </div>
         <div class="sidebar-group">
+            <h4>Gestión de Lotes</h4>
+            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+        </div>
+        <div class="sidebar-group">
             <h4>Operaciones</h4>
             <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
@@ -446,7 +459,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <main class="dashboard-main">
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
     <h2>Componentes del Lote: <span style="color: var(--verde-sena);"><?= htmlspecialchars($loteInfo['LOTE_NOMBRE'] ?? 'Desconocido') ?></span></h2>
-    
+
+    <?php if (!empty($messageText)): ?>
+        <div class="profile-alert success" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;">
+            <?= htmlspecialchars($messageText) ?>
+        </div>
+    <?php endif; ?>
+
     <div style="background: var(--gris-claro); padding: 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid var(--verde-sena);">
         <h3>Añadir Material / Bien al Lote</h3>
         <form action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" method="POST" id="formItem" enctype="multipart/form-data">
@@ -884,5 +903,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </script>
     </main>
 </div>
+<script src="../js/apartados.js"></script>
 </body>
 </html>

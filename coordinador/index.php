@@ -88,7 +88,6 @@ try {
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
         <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
@@ -112,7 +111,6 @@ try {
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link sidebar-link--primary active">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -132,8 +130,13 @@ try {
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
+                <span class="hud-brand">BICERGAM</span>
                 <h2>Panel Principal del Coordinador</h2>
                 <p class="dashboard-subtitle">Visualiza el resumen institucional de los lotes, instructores y decisiones.</p>
+            </div>
+            <div class="hud-status">
+                <span class="hud-dot"></span>
+                <span><?= fecha_larga_es() ?></span>
             </div>
         </div>
 
@@ -310,5 +313,6 @@ try {
     });
 </script>
 
+<script src="../js/apartados.js"></script>
 </body>
 </html>

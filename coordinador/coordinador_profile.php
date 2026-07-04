@@ -427,7 +427,6 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -559,7 +558,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
     </main>
 </div>
 
-<script src="../javascript.js"></script>
+<script src="../js/apartados.js"></script>
 <script>
 // Toggle Password Section Visibility
 document.getElementById('btn-toggle-password').addEventListener('click', function() {

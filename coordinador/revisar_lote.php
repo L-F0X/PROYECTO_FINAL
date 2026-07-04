@@ -35,6 +35,13 @@ try {
         exit;
     }
 
+    // Los lotes en Borrador aún no han sido enviados por el instructor,
+    // así que el coordinador no debe poder verlos ni siquiera por URL directa.
+    if ($lote['ESTADO_TRAMITE'] === 'Borrador') {
+        header('Location: revisar_lotes.php');
+        exit;
+    }
+
     // Obtener items del lote
     $sqlItems = "SELECT mi.*, ft.NOMBRE_ITEM, ft.DENOMINACION_TECNICA_BIEN, 
                  cu.CODIGO_UNSPSC, iva.PORCENTAJE
@@ -109,7 +116,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
-            <a href="index.php" class="sidebar-link">Inicio (HUD)</a>
             <a href="revisar_lotes.php" class="sidebar-link sidebar-link--primary active">Revisar Lotes</a>
             <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
         </div>
@@ -136,7 +142,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <!-- Información del Instructor -->
             <div class="panel-card" style="margin-top: 20px;">
                 <h3>Información del Instructor Solicitante</h3>
-                <table style="width: 100%; border-collapse: collapse;">
+                <table style="width: 100%;">
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Nombre:</td>
                         <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
@@ -158,7 +164,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <!-- Items del Lote -->
             <div class="panel-card" style="margin-top: 20px;">
                 <h3>Items del Lote (<?= count($items) ?>)</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <table style="width: 100%; margin-top: 10px;">
                     <thead>
                         <tr style="background-color: #f5f5f5;">
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Item</th>
@@ -192,7 +198,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <?php if (!empty($historial)): ?>
                 <div class="panel-card" style="margin-top: 20px;">
                     <h3>Historial de Decisiones</h3>
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <table style="width: 100%; margin-top: 10px;">
                         <thead>
                             <tr style="background-color: #f5f5f5;">
                                 <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Fecha</th>
@@ -229,5 +235,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </main>
 </div>
+<script src="../js/apartados.js"></script>
 </body>
 </html>
