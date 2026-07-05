@@ -433,6 +433,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>

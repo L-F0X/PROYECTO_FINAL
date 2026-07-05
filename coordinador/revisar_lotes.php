@@ -81,10 +81,26 @@ $msg = $_GET['msg'] ?? '';
 $messageText = '';
 $msgType = 'success';
 
+$procesados = intval($_GET['procesados'] ?? 0);
+$omitidos = intval($_GET['omitidos'] ?? 0);
+
 if ($msg === 'aprobado') {
     $messageText = '✓ Lote aprobado exitosamente.';
 } elseif ($msg === 'rechazado') {
     $messageText = '✓ Lote rechazado exitosamente.';
+} elseif ($msg === 'masivo_aprobado') {
+    $messageText = "✓ $procesados lote(s) aprobado(s)." . ($omitidos > 0 ? " $omitidos omitido(s) por no estar en estado Enviado." : '');
+} elseif ($msg === 'masivo_rechazado') {
+    $messageText = "✓ $procesados lote(s) rechazado(s)." . ($omitidos > 0 ? " $omitidos omitido(s) por no estar en estado Enviado." : '');
+} elseif ($msg === 'sinseleccion') {
+    $messageText = '✗ Debe seleccionar al menos un lote.';
+    $msgType = 'error';
+} elseif ($msg === 'faltajustificacion') {
+    $messageText = '✗ La justificación es requerida para rechazar lotes.';
+    $msgType = 'error';
+} elseif ($msg === 'error') {
+    $messageText = '✗ Ocurrió un error al procesar la solicitud.';
+    $msgType = 'error';
 }
 ?>
 <!DOCTYPE html>
@@ -130,6 +146,7 @@ if ($msg === 'aprobado') {
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
@@ -149,7 +166,7 @@ if ($msg === 'aprobado') {
         </div>
 
         <?php if ($messageText): ?>
-            <div class="profile-alert <?= $msgType ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;">
+            <div class="profile-alert <?= $msgType ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; <?= $msgType === 'error' ? 'background: #fdeeee; color: #7a1f1f; border: 1px solid #f0c6c6;' : 'background: #eff8f1; color: #270; border: 1px solid #d4ebd5;' ?>">
                 <?= htmlspecialchars($messageText) ?>
             </div>
         <?php endif; ?>
@@ -176,11 +193,34 @@ if ($msg === 'aprobado') {
                 </div>
             </form>
 
+            <?php $totalEnviados = count(array_filter($lotes, fn($l) => $l['ESTADO_TRAMITE'] === 'Enviado')); ?>
             <div id="resultados-busqueda">
                 <h3>Lotes de Requerimiento (Total: <?= $total ?>)</h3>
+
+                <form method="POST" action="procesar_lotes_masivo.php" id="form-masivo">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                    <input type="hidden" name="accion" id="masivo-accion" value="">
+
+                    <?php if ($totalEnviados > 0): ?>
+                        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#f5f5f5; padding:12px 15px; border-radius:6px; margin:10px 0;">
+                            <strong id="contador-seleccion">0 lote(s) seleccionado(s)</strong>
+                            <button type="button" class="btn" style="padding:6px 14px; font-size:13px; background-color:#28a745; color:white; border:none; border-radius:4px;" onclick="confirmarAccionMasiva('aprobar')">Aprobar Seleccionados</button>
+                            <button type="button" class="btn" style="padding:6px 14px; font-size:13px; background-color:#dc3545; color:white; border:none; border-radius:4px;" onclick="mostrarJustificacionMasiva()">Rechazar Seleccionados</button>
+                        </div>
+                        <div id="caja-justificacion-masiva" style="display:none; background:#fff3f3; border:1px solid #f5c6cb; padding:15px; border-radius:6px; margin-bottom:10px;">
+                            <label for="justificacion-masiva" style="display:block; font-weight:600; margin-bottom:8px;">Justificación del Rechazo Masivo *</label>
+                            <textarea id="justificacion-masiva" name="justificacion" rows="3" style="width:100%; padding:10px; border:1px solid #d4dadb; border-radius:6px;" placeholder="Explique por qué se rechazan los lotes seleccionados..."></textarea>
+                            <div style="margin-top:10px; display:flex; gap:10px;">
+                                <button type="button" class="btn" style="padding:6px 14px; font-size:13px; background-color:#dc3545; color:white; border:none; border-radius:4px;" onclick="confirmarAccionMasiva('rechazar')">Confirmar Rechazo Masivo</button>
+                                <button type="button" class="btn btn-secondary" style="padding:6px 14px; font-size:13px;" onclick="document.getElementById('caja-justificacion-masiva').style.display='none';">Cancelar</button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
+                            <th><?php if ($totalEnviados > 0): ?><input type="checkbox" id="check-todos" title="Seleccionar todos los Enviados"><?php endif; ?></th>
                             <th>ID Lote</th>
                             <th>Nombre</th>
                             <th>Instructor</th>
@@ -193,11 +233,16 @@ if ($msg === 'aprobado') {
                     <tbody>
                         <?php if (empty($lotes)): ?>
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 20px;">No hay lotes registrados.</td>
+                                <td colspan="8" style="text-align: center; padding: 20px;">No hay lotes registrados.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($lotes as $lote): ?>
                                 <tr>
+                                    <td>
+                                        <?php if ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
+                                            <input type="checkbox" name="lotes[]" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="check-lote">
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
                                     <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
                                     <td><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
@@ -218,11 +263,60 @@ if ($msg === 'aprobado') {
                         <?php endif; ?>
                     </tbody>
                 </table>
+                </form>
             </div>
         </div>
     </main>
 </div>
 
 <script src="../js/apartados.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkTodos = document.getElementById('check-todos');
+    const checksLote = document.querySelectorAll('.check-lote');
+    const contador = document.getElementById('contador-seleccion');
+
+    function actualizarContador() {
+        if (!contador) return;
+        const marcados = document.querySelectorAll('.check-lote:checked').length;
+        contador.textContent = marcados + ' lote(s) seleccionado(s)';
+    }
+
+    if (checkTodos) {
+        checkTodos.addEventListener('change', function () {
+            checksLote.forEach(cb => { cb.checked = checkTodos.checked; });
+            actualizarContador();
+        });
+    }
+    checksLote.forEach(cb => cb.addEventListener('change', actualizarContador));
+
+    window.mostrarJustificacionMasiva = function () {
+        if (document.querySelectorAll('.check-lote:checked').length === 0) {
+            alert('Seleccione al menos un lote.');
+            return;
+        }
+        document.getElementById('caja-justificacion-masiva').style.display = 'block';
+    };
+
+    window.confirmarAccionMasiva = function (accion) {
+        const marcados = document.querySelectorAll('.check-lote:checked').length;
+        if (marcados === 0) {
+            alert('Seleccione al menos un lote.');
+            return;
+        }
+        if (accion === 'rechazar' && document.getElementById('justificacion-masiva').value.trim() === '') {
+            alert('La justificación es requerida para rechazar lotes.');
+            return;
+        }
+        const confirmacion = accion === 'aprobar'
+            ? '¿Aprobar los ' + marcados + ' lote(s) seleccionado(s)?'
+            : '¿Rechazar los ' + marcados + ' lote(s) seleccionado(s)?';
+        if (!confirm(confirmacion)) return;
+
+        document.getElementById('masivo-accion').value = accion;
+        document.getElementById('form-masivo').submit();
+    };
+});
+</script>
 </body>
 </html>

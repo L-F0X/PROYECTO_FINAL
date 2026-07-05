@@ -1,4 +1,5 @@
 <?php
+// almacenista/almacenista_profile.php
 require_once '../conexion.php';
 require_once '../csrf.php';
 
@@ -7,13 +8,15 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
-$usuarioId = intval($_SESSION['usuario_id']);
-$rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
-if ($rol !== 'instructor') {
-    header('Location: ../index.php');
+$rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+if ($rolNombre !== 'almacenista') {
+    header('Location: ../login.php');
     exit;
 }
 
+$usuarioId = intval($_SESSION['usuario_id']);
+
+// Mensajes de estado
 $message = '';
 $messageType = 'success';
 
@@ -22,114 +25,119 @@ $stmt = $pdo->prepare('SELECT NOMBRE, APELLIDO, EMAIL FROM usuario WHERE ID_USUA
 $stmt->execute([$usuarioId]);
 $user = $stmt->fetch();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_token'] ?? '')) {
-    $message = '✗ Token CSRF inválido. Recargue la página e intente de nuevo.';
-    $messageType = 'error';
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-
-    if ($action === 'update_profile') {
+// Procesar actualización de perfil
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        $message = 'Token CSRF inválido.';
+        $messageType = 'error';
+    } else {
         $nombre   = trim($_POST['nombre']   ?? '');
         $apellido = trim($_POST['apellido'] ?? '');
         $email    = trim($_POST['email']    ?? '');
 
-        if ($nombre !== '' && $apellido !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword     = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        if ($nombre === '' || $apellido === '' || $email === '') {
+            $message = '✗ Todos los campos de perfil son obligatorios.';
+            $messageType = 'error';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $message = '✗ El correo electrónico no tiene un formato válido.';
             $messageType = 'error';
-        } elseif ($nombre !== '' && $apellido !== '' && $email !== '') {
+        } else {
             try {
-                $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ? WHERE ID_USUARIO = ?');
-                $u->execute([$nombre, $apellido, $email, $usuarioId]);
-                $message = '✓ Perfil actualizado correctamente.';
+                $changePassword = false;
+                if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
+                    if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+                        throw new Exception('Para cambiar la contraseña, debe completar todos los campos correspondientes.');
+                    }
+                    if (strlen($newPassword) < 6) {
+                        throw new Exception('La nueva contraseña debe tener al menos 6 caracteres.');
+                    }
+                    if ($newPassword !== $confirmPassword) {
+                        throw new Exception('La nueva contraseña y su confirmación no coinciden.');
+                    }
+
+                    // Validar contraseña actual
+                    $stmtCheck = $pdo->prepare('SELECT PASSWORD FROM usuario WHERE ID_USUARIO = ?');
+                    $stmtCheck->execute([$usuarioId]);
+                    $dbPass = $stmtCheck->fetchColumn();
+                    if (!$dbPass || !password_verify($currentPassword, $dbPass)) {
+                        throw new Exception('La contraseña actual es incorrecta.');
+                    }
+                    $changePassword = true;
+                }
+
+                if ($changePassword) {
+                    $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                    $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ?, PASSWORD = ? WHERE ID_USUARIO = ?');
+                    $u->execute([$nombre, $apellido, $email, $newHash, $usuarioId]);
+                    $message = '✓ Perfil y contraseña actualizados correctamente.';
+                } else {
+                    $u = $pdo->prepare('UPDATE usuario SET NOMBRE = ?, APELLIDO = ?, EMAIL = ? WHERE ID_USUARIO = ?');
+                    $u->execute([$nombre, $apellido, $email, $usuarioId]);
+                    $message = '✓ Perfil actualizado correctamente.';
+                }
                 $_SESSION['usuario_nombre'] = $nombre . ' ' . $apellido;
+
+                // Manejo de foto
+                if (!empty($_FILES['photo']['name'])) {
+                    $file = $_FILES['photo'];
+                    $allowedMime = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg' => 'jpg',
+                        'image/pjpeg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/x-png' => 'png',
+                        'image/webp' => 'webp'
+                    ];
+
+                    $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $fileMime = $file['type'];
+
+                    if ($file['error'] === UPLOAD_ERR_OK && (isset($allowedMime[$fileMime]) || in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']))) {
+                        $ext = in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']) ? $fileExt : ($allowedMime[$fileMime] ?? 'jpg');
+                        if ($ext === 'jpeg') $ext = 'jpg';
+
+                        $dir = __DIR__ . '/../uploads/profiles';
+                        if (!is_dir($dir)) mkdir($dir, 0755, true);
+                        $target = $dir . '/' . $usuarioId . '.' . $ext;
+
+                        foreach (['jpg','jpeg','png','webp'] as $old) {
+                            $oldf = $dir . '/' . $usuarioId . '.' . $old;
+                            if (file_exists($oldf)) {
+                                @unlink($oldf);
+                            }
+                        }
+
+                        if (move_uploaded_file($file['tmp_name'], $target)) {
+                            $message .= ' Foto actualizada.';
+                        } else {
+                            $messageType = 'error';
+                            $message .= ' Error al subir la foto.';
+                        }
+                    } else {
+                        $messageType = 'error';
+                        $message .= ' Formato de imagen no permitido.';
+                    }
+                }
             } catch (PDOException $e) {
                 error_log('Profile update error: ' . $e->getMessage());
                 $message = $e->getCode() === '23000'
                     ? '✗ Ese correo electrónico ya está en uso por otro usuario.'
                     : '✗ No se pudo actualizar el perfil. Contacte al administrador.';
                 $messageType = 'error';
-            }
-        } else {
-            $message = '✗ Todos los campos de perfil son obligatorios.';
-            $messageType = 'error';
-        }
-
-        // Manejo de foto
-        if (!empty($_FILES['photo']['name'])) {
-            $file = $_FILES['photo'];
-            $allowedMime = [
-                'image/jpeg' => 'jpg',
-                'image/jpg' => 'jpg',
-                'image/pjpeg' => 'jpg',
-                'image/png' => 'png',
-                'image/x-png' => 'png',
-                'image/webp' => 'webp'
-            ];
-            
-            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $fileMime = $file['type'];
-            
-            if ($file['error'] === UPLOAD_ERR_OK && (isset($allowedMime[$fileMime]) || in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']))) {
-                $ext = in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']) ? $fileExt : ($allowedMime[$fileMime] ?? 'jpg');
-                if ($ext === 'jpeg') $ext = 'jpg';
-                
-                $dir = __DIR__ . '/../uploads/profiles';
-                if (!is_dir($dir)) mkdir($dir, 0755, true);
-                $target = $dir . '/' . $usuarioId . '.' . $ext;
-                
-                foreach (['jpg','jpeg','png','webp'] as $old) {
-                    $oldf = $dir . '/' . $usuarioId . '.' . $old;
-                    if (file_exists($oldf)) {
-                        @unlink($oldf);
-                    }
-                }
-                
-                if (move_uploaded_file($file['tmp_name'], $target)) {
-                    $message .= ($message ? ' ' : '') . 'Foto actualizada.';
-                } else {
-                    $messageType = 'error';
-                    $message .= ($message ? ' ' : '') . 'Error al subir la foto.';
-                }
-            } else {
+            } catch (Exception $e) {
+                error_log('Profile update error: ' . $e->getMessage());
+                $message = '✗ ' . $e->getMessage();
                 $messageType = 'error';
-                $message .= ($message ? ' ' : '') . 'Formato de imagen no permitido.';
             }
-        }
-    } elseif ($action === 'change_password') {
-        $currentPassword = $_POST['current_password'] ?? '';
-        $newPassword     = $_POST['new_password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
-
-        try {
-            if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
-                throw new Exception('Para cambiar la contraseña, debe completar todos los campos correspondientes.');
-            }
-            if (strlen($newPassword) < 6) {
-                throw new Exception('La nueva contraseña debe tener al menos 6 caracteres.');
-            }
-            if ($newPassword !== $confirmPassword) {
-                throw new Exception('La nueva contraseña y su confirmación no coinciden.');
-            }
-
-            // Validar contraseña actual
-            $stmtCheck = $pdo->prepare('SELECT PASSWORD FROM usuario WHERE ID_USUARIO = ?');
-            $stmtCheck->execute([$usuarioId]);
-            $dbPass = $stmtCheck->fetchColumn();
-            if (!$dbPass || !password_verify($currentPassword, $dbPass)) {
-                throw new Exception('La contraseña actual es incorrecta.');
-            }
-
-            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $u = $pdo->prepare('UPDATE usuario SET PASSWORD = ? WHERE ID_USUARIO = ?');
-            $u->execute([$newHash, $usuarioId]);
-            $message = '✓ Contraseña actualizada correctamente.';
-        } catch (Exception $e) {
-            error_log('Password update error: ' . $e->getMessage());
-            $message = '✗ ' . $e->getMessage();
-            $messageType = 'error';
         }
     }
 
+    // Recargar datos
     $stmt->execute([$usuarioId]);
     $user = $stmt->fetch();
 }
@@ -143,18 +151,18 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         break;
     }
 }
-$isIframe = isset($_GET['iframe']) ? true : false;
+
+$usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Editar perfil del instructor en BICERGAM.">
-    <title>Editar Perfil - BICERGAM</title>
+    <meta name="description" content="Editar perfil del almacenista en BICERGAM.">
+    <title>Editar Perfil Almacenista - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css?v=<?= filemtime(__DIR__ . '/../estilos.css') ?>">
     <style>
-        /* ── Tarjeta del perfil ── */
         .profile-card {
             background: #fff;
             border-radius: 12px;
@@ -237,51 +245,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             outline: none;
             box-shadow: 0 0 0 3px rgba(57,181,74,0.15);
         }
-        /* Photo Row & Upload */
-        .photo-row {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: #fdfdfd;
-            border: 1px dashed #ccc;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .photo-thumb {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--verde-sena);
-        }
-        .photo-thumb-placeholder {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .file-input-label {
-            flex: 1;
-            font-size: 13px;
-            color: #555;
-            position: relative;
-        }
-        .file-input-label span {
-            font-weight: bold;
-            color: var(--verde-sena);
-            cursor: pointer;
-        }
-        .file-input-label input[type="file"] {
-            margin-top: 5px;
-            border: none !important;
-            padding: 0 !important;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        /* Actions */
         .profile-actions {
             margin-top: 30px;
             display: flex;
@@ -319,7 +282,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         .btn-back:hover {
             color: var(--verde-sena);
         }
-        /* Alerts */
         .profile-alert {
             padding: 12px 16px;
             border-radius: 6px;
@@ -365,7 +327,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             padding-top: 20px;
             margin-top: 10px;
         }
-        /* ── Avatar Edit Hover ── */
         .avatar-edit-container {
             position: relative;
             width: 90px;
@@ -407,7 +368,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             box-shadow: none !important;
             border-radius: 0 !important;
         }
-        /* ── Password input eye toggle ── */
         .password-input-wrapper {
             position: relative;
             display: flex;
@@ -440,56 +400,43 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             .profile-field.full-col {
                 grid-column: span 1;
             }
-            .photo-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
         }
     </style>
 </head>
-<body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
+<body>
 
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
-        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
-            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Almacén Central</span></h1>
+            <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
         </div>
-        <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
-            <?php if ($photoPath): ?>
-                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
-            <?php else: ?>
-                <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
-            <?php endif; ?>
-        </a>
+    </div>
+    <div class="header-right">
+        <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;">
+            <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
-            <h4>Gestión de Lotes</h4>
-            <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+            <h4>Gestión de Inventario</h4>
+            <a href="index.php?tab=stock" class="sidebar-link">Vista de Stock</a>
+            <a href="index.php?tab=entrada" class="sidebar-link">Registrar Entrada</a>
+            <a href="index.php?tab=salida" class="sidebar-link">Registrar Salida</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
-            <h4>Consultas</h4>
-            <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
-            <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <h4>Módulos del Sistema</h4>
+            <a href="index.php?tab=instructor" class="sidebar-link">Panel Instructor</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="instructor_profile.php" class="sidebar-link active">Editar Perfil</a>
+            <a href="almacenista_profile.php" class="sidebar-link sidebar-link--primary active">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
@@ -504,7 +451,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
 
         <div class="profile-card">
 
-            <!-- ── Cabecera del card con avatar interactivo ── -->
             <div class="profile-card-header">
                 <div class="avatar-edit-container" title="Cambiar foto de perfil" onclick="document.getElementById('p-photo').click();">
                     <?php if ($photoPath): ?>
@@ -521,7 +467,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
                 <div class="profile-card-header-info">
                     <h3><?= htmlspecialchars(($user['NOMBRE'] ?? '') . ' ' . ($user['APELLIDO'] ?? '')) ?></h3>
-                    <span><?= htmlspecialchars($user['EMAIL'] ?? '') ?> &nbsp;·&nbsp; Instructor</span>
+                    <span><?= htmlspecialchars($user['EMAIL'] ?? '') ?> &nbsp;·&nbsp; Almacenista</span>
                 </div>
             </div>
 
@@ -531,10 +477,8 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
             <?php endif; ?>
 
-            <form action="instructor_profile.php" method="POST" enctype="multipart/form-data" id="form-perfil">
-                <input type="hidden" name="action" value="update_profile">
+            <form action="almacenista_profile.php" method="POST" enctype="multipart/form-data" id="form-perfil">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                <!-- Hidden file input for hover avatar edit -->
                 <input type="file" name="photo" id="p-photo" accept="image/png, image/jpeg, image/webp" style="display: none;">
                 <div class="profile-grid">
 
@@ -556,6 +500,46 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                                value="<?= htmlspecialchars($user['EMAIL'] ?? '') ?>" required>
                     </div>
 
+                    <div class="profile-field full-col">
+                        <button type="button" class="btn-toggle-pwd" id="btn-toggle-password">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            Cambiar Contraseña
+                        </button>
+                    </div>
+
+                    <div id="password-section" class="password-section-container">
+                        <div class="profile-field full-col">
+                            <label for="p-current-password">Contraseña Actual</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-current-password" name="current_password" placeholder="Ingresa tu contraseña actual">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-current-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label for="p-new-password">Nueva Contraseña</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-new-password" name="new_password" placeholder="Mínimo 6 caracteres">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-new-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label for="p-confirm-password">Confirmar Nueva Contraseña</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="p-confirm-password" name="confirm_password" placeholder="Repite la nueva contraseña">
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-confirm-password', this)">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div><!-- /.profile-grid -->
 
                 <div class="profile-actions">
@@ -566,65 +550,17 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
             </form>
 
-            <form action="instructor_profile.php" method="POST" id="form-password" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
-                <input type="hidden" name="action" value="change_password">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                <div class="profile-field full-col" style="margin-bottom: 15px;">
-                    <button type="button" class="btn-toggle-pwd" id="btn-toggle-password">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        Cambiar Contraseña
-                    </button>
-                </div>
-
-                <div id="password-section" class="password-section-container">
-                    <div class="profile-field full-col">
-                        <label for="p-current-password">Contraseña Actual</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="p-current-password" name="current_password" placeholder="Ingresa tu contraseña actual" required>
-                            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-current-password', this)">
-                                <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="profile-field">
-                        <label for="p-new-password">Nueva Contraseña</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="p-new-password" name="new_password" placeholder="Mínimo 6 caracteres" required>
-                            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-new-password', this)">
-                                <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="profile-field">
-                        <label for="p-confirm-password">Confirmar Nueva Contraseña</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="p-confirm-password" name="confirm_password" placeholder="Repite la nueva contraseña" required>
-                            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('p-confirm-password', this)">
-                                <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="profile-field full-col" style="margin-top: 15px;">
-                        <button type="submit" class="btn-save" style="background-color: #333;" id="btn-guardar-contrasena">Actualizar Contraseña</button>
-                    </div>
-                </div>
-            </form>
-
         </div><!-- /.profile-card -->
     </main>
 </div>
 
 <script src="../js/apartados.js"></script>
 <script>
-// Toggle Password Section Visibility
 document.getElementById('btn-toggle-password').addEventListener('click', function() {
     var sec = document.getElementById('password-section');
     var isHidden = window.getComputedStyle(sec).display === 'none';
     sec.style.display = isHidden ? 'grid' : 'none';
-    
+
     if (!isHidden) {
         document.getElementById('p-current-password').value = '';
         document.getElementById('p-new-password').value = '';
@@ -632,7 +568,6 @@ document.getElementById('btn-toggle-password').addEventListener('click', functio
     }
 });
 
-// Toggle password text visibility inside inputs
 function togglePasswordVisibility(inputId, btn) {
     const input = document.getElementById(inputId);
     const eyeOpen = btn.querySelector('.eye-open');
@@ -648,7 +583,6 @@ function togglePasswordVisibility(inputId, btn) {
     }
 }
 
-// Show live preview of selected profile picture
 document.getElementById('p-photo').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file) {
@@ -672,12 +606,11 @@ document.getElementById('p-photo').addEventListener('change', function(event) {
     }
 });
 
-// Confirm password change on form submit
-document.getElementById('form-password').addEventListener('submit', function(event) {
+document.getElementById('form-perfil').addEventListener('submit', function(event) {
     const currentPass = document.getElementById('p-current-password').value.trim();
     const newPass = document.getElementById('p-new-password').value.trim();
     const confirmPass = document.getElementById('p-confirm-password').value.trim();
-    
+
     if (currentPass !== '' || newPass !== '' || confirmPass !== '') {
         const confirmacion = confirm("¿Realmente deseas cambiar tu contraseña?");
         if (!confirmacion) {

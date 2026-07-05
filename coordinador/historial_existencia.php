@@ -97,6 +97,7 @@ $total = count($certificados);
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link sidebar-link--primary active">Certificados Existencia</a>
         </div>
@@ -137,13 +138,14 @@ $total = count($certificados);
                             <th>Nombre Lote</th>
                             <th>Instructor</th>
                             <th>Número Certificado</th>
+                            <th>Fecha Emisión</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($certificados)): ?>
                             <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">No hay certificados de existencia registrados.</td>
+                                <td colspan="7" style="text-align: center; padding: 20px;">No hay certificados de existencia registrados.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($certificados as $cert): ?>
@@ -157,6 +159,7 @@ $total = count($certificados);
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['LOTE_NOMBRE']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['NOMBRE'] . ' ' . $cert['APELLIDO']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></td>
+                                    <td style="padding: 12px;"><?= !empty($cert['FECHA_EMISION']) ? htmlspecialchars(date('d/m/Y', strtotime($cert['FECHA_EMISION']))) : 'N/D' ?></td>
                                     <td style="padding: 12px;">
                                         <a href="../instructor/certificado_pdf.php?id=<?= $cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                     </td>

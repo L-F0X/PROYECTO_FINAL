@@ -47,11 +47,23 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+$usuarioId = intval($_SESSION['usuario_id']);
+
 // Capturar el ID del lote para ver sus ítems específicos
 $id_lote = isset($_GET['lote']) ? intval($_GET['lote']) : 0;
 
 if ($id_lote === 0) {
     header("Location: index.php");
+    exit;
+}
+
+// Verificar que el lote pertenezca al instructor autenticado (evita que un
+// instructor edite/consulte el lote de otro cambiando el parámetro ?lote=)
+$stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE, ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+$stmtLote->execute([$id_lote, $usuarioId]);
+$loteInfo = $stmtLote->fetch();
+if (!$loteInfo) {
+    header("Location: mis_lotes.php");
     exit;
 }
 
@@ -67,17 +79,14 @@ if ($id_ficha_tecnica_get > 0) {
     }
 }
 
-// Obtener información del lote actual
-$stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE FROM lote_requerimiento WHERE ID_LOTE = ?");
-$stmtLote->execute([$id_lote]);
-$loteInfo = $stmtLote->fetch();
-
 $msg = $_GET['msg'] ?? '';
 $messageText = '';
 if ($msg === 'enviado') {
     $messageText = '✓ Solicitud enviada al coordinador correctamente.';
 } elseif ($msg === 'guardado') {
     $messageText = '✓ Ítem guardado como borrador correctamente.';
+} elseif ($msg === 'item_eliminado') {
+    $messageText = '✓ Ítem quitado del lote correctamente.';
 }
 
 // Cargar lista de instructores para el select de apoyo
@@ -141,11 +150,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
 }
 
+// Procesar eliminación de un ítem de la matriz (solo permitido mientras el lote esté en Borrador)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'eliminar_item') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die('Token CSRF inválido.');
+    }
+    if ($loteInfo['ESTADO_TRAMITE'] !== 'Borrador') {
+        die('Solo se pueden quitar ítems de un lote en Borrador.');
+    }
+    $id_matriz_item = isset($_POST['id_matriz_item']) ? intval($_POST['id_matriz_item']) : 0;
+
+    $transactionStarted = false;
+    try {
+        $stmtCheckItem = $pdo->prepare("SELECT ID_MATRIZ_ITEM FROM matriz_item WHERE ID_MATRIZ_ITEM = ? AND ID_LOTE = ?");
+        $stmtCheckItem->execute([$id_matriz_item, $id_lote]);
+        if (!$stmtCheckItem->fetchColumn()) {
+            throw new Exception("El ítem indicado no pertenece a este lote.");
+        }
+
+        $pdo->beginTransaction();
+        $transactionStarted = true;
+
+        // Desvincular (no borrar) la ficha técnica: sigue disponible en el catálogo compartido
+        $pdo->prepare("UPDATE ficha_tecnica SET ID_MATRIZ_ITEM = NULL WHERE ID_MATRIZ_ITEM = ?")->execute([$id_matriz_item]);
+        $pdo->prepare("DELETE FROM cotizacion WHERE ID_MATRIZ_ITEM = ?")->execute([$id_matriz_item]);
+        $pdo->prepare("DELETE FROM necesidad WHERE ID_MATRIZ = ?")->execute([$id_matriz_item]);
+        $pdo->prepare("DELETE FROM matriz_item WHERE ID_MATRIZ_ITEM = ?")->execute([$id_matriz_item]);
+
+        $pdo->commit();
+        header("Location: matriz.php?lote=" . $id_lote . "&msg=item_eliminado");
+        exit;
+    } catch (Exception $e) {
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Error eliminando ítem de matriz: ' . $e->getMessage());
+        die('Error al quitar el ítem: ' . htmlspecialchars($e->getMessage()));
+    }
+}
+
 // Procesar inserción de un nuevo ítem si se envía el formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'crear') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {
         die('Token CSRF inválido.');
+    }
+    if ($loteInfo['ESTADO_TRAMITE'] !== 'Borrador') {
+        die('Solo se pueden agregar ítems o enviar un lote que esté en Borrador.');
     }
     $rawUnspsc = isset($_POST['id_codigo_unspsc']) ? trim($_POST['id_codigo_unspsc']) : '';
     $id_unspsc = 0;
@@ -177,17 +229,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $pdo->beginTransaction();
         $transactionStarted = true;
 
-        // 1. Resolver código UNSPSC si se ingresó texto
+        // 1. Resolver código UNSPSC si se ingresó uno: debe existir en el catálogo (ya no se crean códigos "al vuelo")
         if ($rawUnspsc !== '') {
             $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
             $stmtCheckUnspsc->execute([$rawUnspsc]);
             $found = $stmtCheckUnspsc->fetchColumn();
-            if ($found) {
-                $id_unspsc = intval($found);
-            } else {
-                $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?,?,?,?)")->execute(['SIN','ASIG', 'CL', $rawUnspsc]);
-                $id_unspsc = $pdo->lastInsertId();
+            if (!$found) {
+                throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias o déjelo vacío.");
             }
+            $id_unspsc = intval($found);
         }
 
         // Si no se proporciona un ID UNSPSC, resolver usando la Ficha Técnica
@@ -201,9 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $found = $stmtCu->fetchColumn();
                 if ($found) {
                     $id_unspsc = intval($found);
-                } else {
-                    $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?,?,?,?)")->execute(['SIN','ASIG', 'CL', $cod]);
-                    $id_unspsc = $pdo->lastInsertId();
                 }
             }
         }
@@ -390,7 +437,6 @@ $stmtItems = $pdo->prepare("SELECT m.*, c.CODIGO_UNSPSC, i.PORCENTAJE, ua.NOMBRE
 $stmtItems->execute([$id_lote]);
 $items = $stmtItems->fetchAll();
 
-$usuarioId = intval($_SESSION['usuario_id']);
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
@@ -466,6 +512,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     <?php endif; ?>
 
+    <?php if ($loteInfo['ESTADO_TRAMITE'] !== 'Borrador'): ?>
+    <div style="background: #fff3cd; padding: 16px 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid #ffc107; color: #664d03;">
+        Este lote está en estado <strong><?= htmlspecialchars($loteInfo['ESTADO_TRAMITE']) ?></strong> y ya no admite nuevos ítems.
+        <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Rechazado'): ?>
+            Puedes corregirlo desde <a href="mis_lotes.php">Mis Lotes</a> con la opción "Corregir y Reenviar".
+        <?php endif; ?>
+    </div>
+    <?php else: ?>
     <div style="background: var(--gris-claro); padding: 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid var(--verde-sena);">
         <h3>Añadir Material / Bien al Lote</h3>
         <form action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" method="POST" id="formItem" enctype="multipart/form-data">
@@ -474,9 +528,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <input type="hidden" name="id_ficha_tecnica" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['ID_FICHA_TECNICA']) : '' ?>">
             
             <div class="form-grid-2">
-                <div class="form-group">
-                    <label for="id_codigo_unspsc">Código UNSPSC (opcional):</label>
-                    <input type="text" id="id_codigo_unspsc" name="id_codigo_unspsc" class="form-control" placeholder="Ej: 635188316" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />
+                <div class="form-group" style="position: relative;">
+                    <label for="id_codigo_unspsc_busqueda">Código UNSPSC (opcional):</label>
+                    <input type="text" id="id_codigo_unspsc_busqueda" class="form-control" autocomplete="off"
+                           placeholder="Escriba el nombre o código del producto para buscar"
+                           value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>"
+                           <?= $ficha_tecnica_prefill ? 'disabled' : '' ?> />
+                    <input type="hidden" id="id_codigo_unspsc" name="id_codigo_unspsc" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />
+                    <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                 </div>
                 <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
@@ -735,6 +794,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </div>
         </form>
     </div>
+    <?php endif; ?>
 
     <h3>Artículos Solicitados en este Lote</h3>
     <table>
@@ -749,12 +809,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <th>Instructor Apoyo</th>
                 <th>Estado</th>
                 <th>Ficha Técnica</th>
+                <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?><th>Acciones</th><?php endif; ?>
             </tr>
         </thead>
         <tbody>
             <?php if(empty($items)): ?>
                 <tr>
-                    <td colspan="9" style="text-align: center;">No se han agregado materiales a este requerimiento todavía.</td>
+                    <td colspan="10" style="text-align: center;">No se han agregado materiales a este requerimiento todavía.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach($items as $item): ?>
@@ -801,6 +862,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 </select>
                             </form>
                         </td>
+                        <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
+                        <td>
+                            <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" onsubmit="return confirm('¿Quitar este ítem del lote?');">
+                                <input type="hidden" name="accion" value="eliminar_item">
+                                <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                <button type="submit" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px; border: none; background: var(--alerta-rojo); color: white; border-radius: 4px;">Quitar</button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -904,5 +975,22 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 <script src="../js/apartados.js"></script>
+<script src="../js/unspsc-autocomplete.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initUnspscAutocomplete({
+        inputSelector: '#id_codigo_unspsc_busqueda',
+        hiddenCodeSelector: '#id_codigo_unspsc',
+        resultsSelector: '#unspsc_resultados',
+        searchUrl: '../ajax/buscar_unspsc.php',
+        onSelect: function (item) {
+            const descripcion = document.getElementById('descripcion_bien');
+            if (descripcion && !descripcion.hasAttribute('readonly') && descripcion.value.trim() === '') {
+                descripcion.value = item.nombre;
+            }
+        }
+    });
+});
+</script>
 </body>
 </html>

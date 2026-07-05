@@ -1,5 +1,6 @@
 <?php
 require_once '../conexion.php';
+require_once '../csrf.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -42,16 +43,25 @@ try {
         exit;
     }
 
-    // Obtener items del lote
-    $sqlItems = "SELECT mi.*, ft.NOMBRE_ITEM, ft.DENOMINACION_TECNICA_BIEN, 
-                 cu.CODIGO_UNSPSC, iva.PORCENTAJE
+    // Obtener items del lote, junto con las hasta 3 ofertas/cotizaciones registradas por ítem
+    $sqlItems = "SELECT mi.*, ft.NOMBRE_ITEM, ft.DENOMINACION_TECNICA_BIEN,
+                 cu.CODIGO_UNSPSC, iva.PORCENTAJE,
+                 c1.VALOR_UNITARIO AS OF1_VALOR, c1.VALOR_TOTAL AS OF1_TOTAL, c1.MARCA_OFRECIDA AS OF1_MARCA, p1.RAZON_SOCIAL AS OF1_PROVEEDOR,
+                 c2.VALOR_UNITARIO AS OF2_VALOR, c2.VALOR_TOTAL AS OF2_TOTAL, c2.MARCA_OFRECIDA AS OF2_MARCA, p2.RAZON_SOCIAL AS OF2_PROVEEDOR,
+                 c3.VALOR_UNITARIO AS OF3_VALOR, c3.VALOR_TOTAL AS OF3_TOTAL, c3.MARCA_OFRECIDA AS OF3_MARCA, p3.RAZON_SOCIAL AS OF3_PROVEEDOR
                  FROM matriz_item mi
                  LEFT JOIN ficha_tecnica ft ON mi.ID_FICHA_TECNICA = ft.ID_FICHA_TECNICA
                  LEFT JOIN codigo_unspsc cu ON mi.ID_CODIGO_UNSPSC = cu.ID_CODIGO
                  LEFT JOIN iva ON mi.ID_IVA = iva.ID_IVA
+                 LEFT JOIN cotizacion c1 ON mi.OFERTA_1 = c1.ID_COTIZACION
+                 LEFT JOIN proveedor p1 ON c1.ID_PROVEEDOR = p1.ID_PROVEEDOR
+                 LEFT JOIN cotizacion c2 ON mi.OFERTA_2 = c2.ID_COTIZACION
+                 LEFT JOIN proveedor p2 ON c2.ID_PROVEEDOR = p2.ID_PROVEEDOR
+                 LEFT JOIN cotizacion c3 ON mi.OFERTA_3 = c3.ID_COTIZACION
+                 LEFT JOIN proveedor p3 ON c3.ID_PROVEEDOR = p3.ID_PROVEEDOR
                  WHERE mi.ID_LOTE = ?
                  ORDER BY mi.ID_MATRIZ_ITEM";
-    
+
     $stmtItems = $pdo->prepare($sqlItems);
     $stmtItems->execute([$idLote]);
     $items = $stmtItems->fetchAll();
@@ -62,10 +72,24 @@ try {
     $stmtHistorial->execute([$idLote]);
     $historial = $stmtHistorial->fetchAll();
 
+    $proveedores = $pdo->query("SELECT ID_PROVEEDOR, NIT, RAZON_SOCIAL FROM proveedor ORDER BY RAZON_SOCIAL")->fetchAll();
+
 } catch (Exception $e) {
     error_log('Error fetching lote details: ' . $e->getMessage());
     header('Location: index.php');
     exit;
+}
+
+$msgOferta = $_GET['msg'] ?? '';
+$mensajeOferta = '';
+$tipoMensajeOferta = 'success';
+if ($msgOferta === 'oferta_agregada') {
+    $mensajeOferta = '✓ Oferta registrada correctamente.';
+} elseif ($msgOferta === 'oferta_quitada') {
+    $mensajeOferta = '✓ Oferta eliminada correctamente.';
+} elseif ($msgOferta === 'oferta_error') {
+    $mensajeOferta = '✗ ' . ($_GET['detalle'] ?? 'No se pudo procesar la oferta.');
+    $tipoMensajeOferta = 'error';
 }
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
@@ -122,6 +146,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
@@ -138,6 +163,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <h2>Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
                 <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
             </div>
+
+            <?php if ($mensajeOferta): ?>
+                <div style="padding: 12px 16px; border-radius: 6px; margin-top: 20px; font-weight: 500; <?= $tipoMensajeOferta === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' ?>">
+                    <?= htmlspecialchars($mensajeOferta) ?>
+                </div>
+            <?php endif; ?>
 
             <!-- Información del Instructor -->
             <div class="panel-card" style="margin-top: 20px;">
@@ -172,21 +203,62 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Cantidad</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Unidad</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Ofertas / Proveedor</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="5" style="padding: 20px; text-align: center; color: #999;">No hay items registrados en este lote.</td>
+                                <td colspan="6" style="padding: 20px; text-align: center; color: #999;">No hay items registrados en este lote.</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($items as $item): ?>
+                            <?php foreach ($items as $item):
+                                $ofertas = [];
+                                foreach ([1, 2, 3] as $n) {
+                                    $valor = $item["OF{$n}_VALOR"] ?? null;
+                                    if ($valor !== null) {
+                                        $ofertas[] = [
+                                            'n' => $n,
+                                            'id_cotizacion' => $item["OFERTA_$n"],
+                                            'proveedor' => $item["OF{$n}_PROVEEDOR"],
+                                            'valor' => $valor,
+                                            'total' => $item["OF{$n}_TOTAL"],
+                                        ];
+                                    }
+                                }
+                            ?>
                                 <tr style="border-bottom: 1px solid #eee;">
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['ESTADO_ITEM']) ?></td>
+                                    <td style="padding: 12px; min-width: 260px;">
+                                        <?php if (empty($ofertas)): ?>
+                                            <span style="color:#999; font-style:italic; font-size:13px;">Sin ofertas registradas</span>
+                                        <?php else: ?>
+                                            <ul style="margin:0 0 8px; padding-left:0; list-style:none; font-size:12px;">
+                                                <?php foreach ($ofertas as $of): ?>
+                                                    <li style="margin-bottom:4px; display:flex; justify-content:space-between; gap:8px;">
+                                                        <span><strong><?= htmlspecialchars($of['proveedor']) ?></strong>: $<?= number_format($of['valor']) ?> u. ($<?= number_format($of['total']) ?> total)</span>
+                                                        <form method="POST" action="gestionar_oferta.php" style="display:inline;" onsubmit="return confirm('¿Quitar esta oferta?');">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                                            <input type="hidden" name="accion" value="quitar">
+                                                            <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
+                                                            <input type="hidden" name="id_cotizacion" value="<?= htmlspecialchars($of['id_cotizacion']) ?>">
+                                                            <button type="submit" style="color:#dc3545; background:none; border:none; cursor:pointer; font-size:12px; text-decoration:underline; padding:0;">Quitar</button>
+                                                        </form>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                            <?php if ($item['VALOR_UNITARIO_PROMEDIO'] !== null): ?>
+                                                <div style="font-size:12px; color:#264047;"><strong>Promedio:</strong> $<?= number_format($item['VALOR_UNITARIO_PROMEDIO']) ?> u. / $<?= number_format($item['VALOR_TOTAL_PROMEDIO']) ?> total</div>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                        <?php if (count($ofertas) < 3): ?>
+                                            <button type="button" class="btn btn-sena" style="padding:4px 10px; font-size:12px; margin-top:6px;" onclick="abrirModalOferta(<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>)">+ Agregar Oferta</button>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -235,6 +307,60 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </main>
 </div>
+
+<!-- ================= MODAL AGREGAR OFERTA ================= -->
+<div id="modalOferta" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">Agregar Oferta / Proveedor</h3>
+        <form action="gestionar_oferta.php" method="POST" id="form-oferta">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+            <input type="hidden" name="accion" value="agregar">
+            <input type="hidden" name="id_matriz_item" id="oferta-id-item" value="">
+
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600; display:block; margin-bottom:5px;">Proveedor</label>
+                <select name="id_proveedor" class="form-control-modern" required>
+                    <option value="">— Seleccionar Proveedor —</option>
+                    <?php foreach ($proveedores as $prov): ?>
+                        <option value="<?= htmlspecialchars($prov['ID_PROVEEDOR']) ?>"><?= htmlspecialchars($prov['RAZON_SOCIAL']) ?> (NIT <?= htmlspecialchars($prov['NIT']) ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+                <a href="proveedores.php" target="_blank" style="font-size:12px;">¿No está en la lista? Crear proveedor nuevo</a>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600; display:block; margin-bottom:5px;">Valor Unitario Ofertado *</label>
+                <input type="number" name="valor_unitario" class="form-control-modern" min="1" required>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600; display:block; margin-bottom:5px;">Marca Ofrecida</label>
+                <input type="text" name="marca_ofrecida" class="form-control-modern">
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600; display:block; margin-bottom:5px;">Firma del Proponente</label>
+                <input type="text" name="firma_proponente" class="form-control-modern">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalOferta()" style="padding:10px 20px;">Cancelar</button>
+                <button type="submit" class="btn btn-sena" style="padding:10px 20px;">Guardar Oferta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="../js/apartados.js"></script>
+<script>
+    function abrirModalOferta(idMatrizItem) {
+        document.getElementById('form-oferta').reset();
+        document.getElementById('oferta-id-item').value = idMatrizItem;
+        document.getElementById('modalOferta').classList.add('is-open');
+    }
+    function cerrarModalOferta() {
+        document.getElementById('modalOferta').classList.remove('is-open');
+    }
+</script>
 </body>
 </html>

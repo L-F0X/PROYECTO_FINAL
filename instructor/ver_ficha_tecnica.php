@@ -206,6 +206,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <p class="dashboard-subtitle">Visualización y exportación de la ficha técnica seleccionada.</p>
             </div>
             <div style="display: flex; gap: 10px;">
+                <a href="editar_ficha_tecnica.php?id=<?= $idFicha ?>" class="btn btn-sena" style="text-decoration: none; padding: 10px 18px; font-weight: bold; background-color: #00324D;">
+                    ✎ Editar
+                </a>
                 <button type="button" onclick="window.print()" class="btn btn-sena" style="padding: 10px 18px; font-weight: bold; background-color: #39A900;">
                     📥 Exportar a PDF
                 </button>

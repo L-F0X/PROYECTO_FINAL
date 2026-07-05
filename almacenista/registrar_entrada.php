@@ -15,6 +15,7 @@ if (!defined('ACCESO_VALIDO')) {
 
 <div class="panel-card">
     <form action="index.php?tab=entrada" method="POST" class="modern-form">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
         <input type="hidden" name="action" value="registrar_entrada">
         
         <div>

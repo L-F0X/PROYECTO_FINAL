@@ -49,6 +49,8 @@ if ($msg === 'editado') {
     $messageText = '✓ Lote actualizado correctamente.';
 } elseif ($msg === 'no_editable') {
     $messageText = '✗ Este lote ya no se puede editar: solo los lotes en Borrador son editables.';
+} elseif ($msg === 'reabierto') {
+    $messageText = '✓ Lote regresado a Borrador. Ya puedes corregirlo y reenviarlo.';
 }
 
 $stmt = $pdo->prepare($sql);
@@ -193,6 +195,12 @@ $total = count($lotes);
                                         <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
                                         <?php if ($lote['ESTADO_TRAMITE'] === 'Borrador'): ?>
                                             <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
+                                        <?php elseif ($lote['ESTADO_TRAMITE'] === 'Rechazado'): ?>
+                                            <form action="reabrir_lote.php" method="POST" style="display:inline; margin:0;" onsubmit="return confirm('El lote volverá a estado Borrador para que lo corrijas y lo reenvíes. ¿Continuar?');">
+                                                <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                                <button type="submit" class="btn" style="padding: 5px 10px; font-size: 12px; border: none; background: #ffc107; color: #664d03; border-radius: 4px;">Corregir y Reenviar</button>
+                                            </form>
                                         <?php else: ?>
                                             <span class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px; opacity: 0.5; cursor: not-allowed;" title="Solo los lotes en Borrador se pueden editar.">Editar Lote</span>
                                         <?php endif; ?>

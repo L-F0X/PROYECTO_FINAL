@@ -111,23 +111,26 @@ if (!defined('ACCESO_VALIDO')) {
                             <div style="margin-top: 4px; color: #166534; font-weight: bold;">
                                 Certificado: <span style="font-family: monospace; font-size: 0.95rem; background: #dcfce7; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(22,101,52,0.15);"><?= htmlspecialchars($lote['NUMERO_CERTIFICADO']) ?></span>
                             </div>
-                        <?php else: ?>
+                        <?php elseif ($lote['ESTADO_TRAMITE'] === 'Aprobado'): ?>
                             <span style="color: #b91c1c; font-weight: bold; margin-left: 5px;">Firma de existencias pendiente</span>
+                        <?php elseif ($lote['ESTADO_TRAMITE'] === 'Rechazado'): ?>
+                            <span style="color: #64748b; font-style: italic; margin-left: 5px;">Rechazado — no aplica certificado</span>
+                        <?php else: ?>
+                            <span style="color: #64748b; font-style: italic; margin-left: 5px;">Pendiente de aprobación por el coordinador</span>
                         <?php endif; ?>
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <?php if ($lote['NUMERO_CERTIFICADO']): ?>
                             <a href="../instructor/certificado_pdf.php?id=<?= $lote['ID_CERTIFICADO'] ?>" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
-                        <?php endif; ?>
-
-                        <?php if (!$lote['NUMERO_CERTIFICADO']): ?>
+                        <?php elseif ($lote['ESTADO_TRAMITE'] === 'Aprobado'): ?>
                             <form action="index.php?tab=instructor" method="POST" style="margin: 0;">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                 <input type="hidden" name="action" value="emitir_certificado">
                                 <input type="hidden" name="id_lote" value="<?= $lote['ID_LOTE'] ?>">
                                 <button type="submit" class="btn btn-sena" style="padding: 10px 20px; font-size: 0.9rem;">Emitir Certificado de Existencia</button>
                             </form>
                         <?php else: ?>
-                            <button class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.9rem;" disabled>Certificado Firmado</button>
+                            <button class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.9rem;" disabled>No disponible</button>
                         <?php endif; ?>
                     </div>
                 </div>

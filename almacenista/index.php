@@ -22,6 +22,19 @@ if ($rolNombre !== 'almacenista') {
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $usuarioId = intval($_SESSION['usuario_id'] ?? 0);
 
+// Migración aditiva: asegurar columnas de auditoría en certificado_existencia
+function almacen_columna_existe(PDO $pdo, string $tabla, string $columna): bool {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+    $stmt->execute([$tabla, $columna]);
+    return (bool) $stmt->fetchColumn();
+}
+if (!almacen_columna_existe($pdo, 'certificado_existencia', 'FECHA_EMISION')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN FECHA_EMISION TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+}
+if (!almacen_columna_existe($pdo, 'certificado_existencia', 'ID_ALMACENISTA')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN ID_ALMACENISTA INT DEFAULT NULL");
+}
+
 // Inicializar variables de feedback
 $successMsg = "";
 $errorMsg = "";
@@ -33,8 +46,12 @@ $tabActiva = isset($_GET['tab']) ? trim($_GET['tab']) : 'stock';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = trim($_POST['action']);
 
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $errorMsg = "Token CSRF inválido. Recargue la página e intente de nuevo.";
+    }
+
     // 1. Agregar nuevo artículo al Stock
-    if ($action === 'add_item') {
+    elseif ($action === 'add_item') {
         $nombre = trim($_POST['nombre_item'] ?? '');
         $codigo_unspsc = trim($_POST['codigo_unspsc'] ?? '');
         $unidad = trim($_POST['unidad_medida'] ?? '');
@@ -44,14 +61,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($nombre === '' || $unidad === '') {
             $errorMsg = "El nombre del artículo y la unidad de medida son obligatorios.";
+        } elseif ($cantidad < 0) {
+            $errorMsg = "La cantidad no puede ser negativa.";
         } else {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO ficha_tecnica (NOMBRE_ITEM, CODIGO_UNSPSC_FK, UNIDAD_MEDIDA, CANTIDAD, DESCRIPCION_GENERAL, COMENTARIOS) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$nombre, $codigo_unspsc, $unidad, $cantidad, $descripcion, $comentarios]);
-                $successMsg = "Artículo '$nombre' agregado exitosamente al inventario.";
-                $tabActiva = 'stock';
-            } catch (Exception $e) {
-                $errorMsg = "Error al guardar el artículo: " . $e->getMessage();
+            $codigoValido = true;
+            if ($codigo_unspsc !== '') {
+                $stmtCheckCod = $pdo->prepare("SELECT 1 FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
+                $stmtCheckCod->execute([$codigo_unspsc]);
+                $codigoValido = (bool) $stmtCheckCod->fetchColumn();
+            }
+            if (!$codigoValido) {
+                $errorMsg = "El código UNSPSC seleccionado no existe en el catálogo.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO ficha_tecnica (NOMBRE_ITEM, CODIGO_UNSPSC_FK, UNIDAD_MEDIDA, CANTIDAD, DESCRIPCION_GENERAL, COMENTARIOS) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$nombre, $codigo_unspsc, $unidad, $cantidad, $descripcion, $comentarios]);
+                    $successMsg = "Artículo '$nombre' agregado exitosamente al inventario.";
+                    $tabActiva = 'stock';
+                } catch (Exception $e) {
+                    $errorMsg = "Error al guardar el artículo: " . $e->getMessage();
+                }
             }
         }
     }
@@ -68,14 +97,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($id_ficha <= 0 || $nombre === '' || $unidad === '') {
             $errorMsg = "Datos inválidos para actualizar el artículo.";
+        } elseif ($cantidad < 0) {
+            $errorMsg = "La cantidad no puede ser negativa.";
         } else {
-            try {
-                $stmt = $pdo->prepare("UPDATE ficha_tecnica SET NOMBRE_ITEM = ?, CODIGO_UNSPSC_FK = ?, UNIDAD_MEDIDA = ?, CANTIDAD = ?, DESCRIPCION_GENERAL = ?, COMENTARIOS = ? WHERE ID_FICHA_TECNICA = ?");
-                $stmt->execute([$nombre, $codigo_unspsc, $unidad, $cantidad, $descripcion, $comentarios, $id_ficha]);
-                $successMsg = "Artículo actualizado correctamente.";
-                $tabActiva = 'stock';
-            } catch (Exception $e) {
-                $errorMsg = "Error al actualizar: " . $e->getMessage();
+            $codigoValido = true;
+            if ($codigo_unspsc !== '') {
+                $stmtCheckCod = $pdo->prepare("SELECT 1 FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
+                $stmtCheckCod->execute([$codigo_unspsc]);
+                $codigoValido = (bool) $stmtCheckCod->fetchColumn();
+            }
+            if (!$codigoValido) {
+                $errorMsg = "El código UNSPSC seleccionado no existe en el catálogo.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("UPDATE ficha_tecnica SET NOMBRE_ITEM = ?, CODIGO_UNSPSC_FK = ?, UNIDAD_MEDIDA = ?, CANTIDAD = ?, DESCRIPCION_GENERAL = ?, COMENTARIOS = ? WHERE ID_FICHA_TECNICA = ?");
+                    $stmt->execute([$nombre, $codigo_unspsc, $unidad, $cantidad, $descripcion, $comentarios, $id_ficha]);
+                    $successMsg = "Artículo actualizado correctamente.";
+                    $tabActiva = 'stock';
+                } catch (Exception $e) {
+                    $errorMsg = "Error al actualizar: " . $e->getMessage();
+                }
             }
         }
     }
@@ -172,20 +213,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
-    // 6. Emitir Certificado de Existencia (para Lotes de Instructores)
+    // 6. Emitir Certificado de Existencia (para Lotes de Instructores, solo si el lote está Aprobado)
     elseif ($action === 'emitir_certificado') {
         $id_lote = intval($_POST['id_lote'] ?? 0);
         if ($id_lote > 0) {
             try {
-                // Verificar si ya existe un certificado
+                $stmtLoteCheck = $pdo->prepare("SELECT ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ?");
+                $stmtLoteCheck->execute([$id_lote]);
+                $estadoLote = $stmtLoteCheck->fetchColumn();
+
                 $stmtCertCheck = $pdo->prepare("SELECT NUMERO_CERTIFICADO FROM certificado_existencia WHERE ID_LOTE = ?");
                 $stmtCertCheck->execute([$id_lote]);
-                if ($stmtCertCheck->fetch()) {
+
+                if ($estadoLote !== 'Aprobado') {
+                    $errorMsg = "Solo se puede emitir certificado de existencia para lotes aprobados.";
+                } elseif ($stmtCertCheck->fetch()) {
                     $errorMsg = "Este lote ya cuenta con un certificado de existencia emitido.";
                 } else {
                     $numCertificado = "CERT-" . str_pad($id_lote, 6, "0", STR_PAD_LEFT) . "-" . time();
-                    $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO) VALUES (?, ?)");
-                    $stmtInsert->execute([$id_lote, $numCertificado]);
+                    $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?, ?)");
+                    $stmtInsert->execute([$id_lote, $numCertificado, $usuarioId]);
 
                     $successMsg = "Certificado de existencia emitido exitosamente: $numCertificado";
                 }
@@ -263,6 +310,16 @@ try {
     $lotesInstructores = $stmtLotes->fetchAll();
 } catch (Exception $e) {
     error_log('Error al consultar lotes para almacenista: ' . $e->getMessage());
+}
+
+// Foto de perfil
+$photoPath = null;
+foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
+    if (file_exists($candidate)) {
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
+        break;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -394,7 +451,14 @@ try {
             <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
         </div>
     </div>
-    <div class="header-right">
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
         <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
     </div>
 </header>
@@ -418,6 +482,7 @@ try {
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
+            <a href="almacenista_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
@@ -469,6 +534,7 @@ try {
         <h3 id="modal-titulo" style="margin-top:0;">Agregar Nuevo Artículo</h3>
         
         <form action="index.php?tab=stock" method="POST" id="form-modal">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="action" id="modal-action" value="add_item">
             <input type="hidden" name="id_ficha_tecnica" id="modal-id-ficha" value="">
 

@@ -166,6 +166,7 @@ $total = count($fichas);
                                     <td><?= htmlspecialchars($f['UNIDAD_MEDIDA']) ?></td>
                                     <td>
                                         <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
+                                        <a href="editar_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none; background-color: #00324D;">Editar</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

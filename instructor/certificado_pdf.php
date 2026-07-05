@@ -18,10 +18,12 @@ if ($idCertificado === 0) {
 }
 
 $stmtCert = $pdo->prepare("
-    SELECT ce.*, lr.LOTE_NOMBRE, lr.FECHA_CREACION, lr.ID_SOLICITANTE, u.NOMBRE, u.APELLIDO, u.EMAIL
+    SELECT ce.*, lr.LOTE_NOMBRE, lr.FECHA_CREACION, lr.ID_SOLICITANTE, u.NOMBRE, u.APELLIDO, u.EMAIL,
+           ua.NOMBRE AS ALMACENISTA_NOMBRE, ua.APELLIDO AS ALMACENISTA_APELLIDO
     FROM certificado_existencia ce
     INNER JOIN lote_requerimiento lr ON ce.ID_LOTE = lr.ID_LOTE
     INNER JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO
+    LEFT JOIN usuario ua ON ce.ID_ALMACENISTA = ua.ID_USUARIO
     WHERE ce.ID_CERTIFICADO = ?
     LIMIT 1
 ");
@@ -166,7 +168,7 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
             <div><strong>Instructor Solicitante:</strong> <?= htmlspecialchars($cert['NOMBRE'] . ' ' . $cert['APELLIDO']) ?></div>
             <div><strong>Correo:</strong> <?= htmlspecialchars($cert['EMAIL']) ?></div>
             <div><strong>Fecha de Creación del Lote:</strong> <?= htmlspecialchars($cert['FECHA_CREACION']) ?></div>
-            <div><strong>Fecha de Certificación:</strong> <?= date('d/m/Y') ?></div>
+            <div><strong>Fecha de Certificación:</strong> <?= htmlspecialchars(!empty($cert['FECHA_EMISION']) ? date('d/m/Y', strtotime($cert['FECHA_EMISION'])) : date('d/m/Y')) ?></div>
         </div>
 
         <p class="cert-footer-text">
@@ -208,7 +210,7 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
         </p>
 
         <div class="cert-signatures">
-            <div class="cert-sign-line">Firma del Almacenista<br><small>Almacén Central SENA</small></div>
+            <div class="cert-sign-line">Firma del Almacenista<br><small><?= !empty($cert['ALMACENISTA_NOMBRE']) ? htmlspecialchars($cert['ALMACENISTA_NOMBRE'] . ' ' . $cert['ALMACENISTA_APELLIDO']) : 'Almacén Central SENA' ?></small></div>
             <div class="cert-sign-line">Firma del Instructor<br><small>Solicitante</small></div>
         </div>
     </div>

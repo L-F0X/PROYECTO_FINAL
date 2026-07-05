@@ -1,5 +1,6 @@
 <?php
 require_once '../conexion.php';
+require_once '../csrf.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -42,7 +43,7 @@ $prefilledItemId = isset($_GET['item']) ? intval($_GET['item']) : 0;
 if ($prefilledItemId > 0) {
     try {
         $stmtPrefill = $pdo->prepare("
-            SELECT mi.*, lr.LOTE_NOMBRE, c.CODIGO_UNSPSC
+            SELECT mi.*, lr.LOTE_NOMBRE, c.CODIGO_UNSPSC, c.NOMBRE_PRODUCTO AS UNSPSC_NOMBRE
             FROM matriz_item mi
             INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE
             LEFT JOIN codigo_unspsc c ON mi.ID_CODIGO_UNSPSC = c.ID_CODIGO
@@ -59,6 +60,11 @@ if ($prefilledItemId > 0) {
 // Procesar el formulario cuando se envía
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        $token = $_POST['csrf_token'] ?? '';
+        if (!verify_csrf_token($token)) {
+            throw new Exception("Token CSRF inválido. Recargue la página e intente de nuevo.");
+        }
+
         $nombreItem        = trim($_POST['nombre_item']);
         $codigoUnspsc      = trim($_POST['codigo_unspsc']);
         $denominacion      = trim($_POST['denominacion_tecnica']);
@@ -72,19 +78,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($idLote <= 0) {
             throw new Exception("Debe seleccionar un lote de destino para asociar la ficha técnica.");
         }
+        $stmtCheckLote = $pdo->prepare("SELECT ID_LOTE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+        $stmtCheckLote->execute([$idLote, $usuarioId]);
+        if (!$stmtCheckLote->fetchColumn()) {
+            throw new Exception("El lote seleccionado no existe o no le pertenece.");
+        }
+        if ($idMatrizItem > 0) {
+            $stmtCheckItem = $pdo->prepare("
+                SELECT mi.ID_MATRIZ_ITEM FROM matriz_item mi
+                INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE
+                WHERE mi.ID_MATRIZ_ITEM = ? AND lr.ID_SOLICITANTE = ?
+            ");
+            $stmtCheckItem->execute([$idMatrizItem, $usuarioId]);
+            if (!$stmtCheckItem->fetchColumn()) {
+                throw new Exception("El ítem seleccionado no existe o no le pertenece.");
+            }
+        }
+        if ($cantidad <= 0) {
+            throw new Exception("La cantidad debe ser un número entero mayor que cero.");
+        }
+        if ($codigoUnspsc === '') {
+            throw new Exception("Debe seleccionar un código UNSPSC del catálogo.");
+        }
 
-        // Validar / insertar código UNSPSC si no existe
-        $id_unspsc = 0;
+        // El código UNSPSC debe existir en el catálogo importado; ya no se crean códigos "al vuelo"
         $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
         $stmtCheckUnspsc->execute([$codigoUnspsc]);
         $found = $stmtCheckUnspsc->fetchColumn();
-        if ($found) {
-            $id_unspsc = intval($found);
-        } else {
-            $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?, ?, ?, ?)");
-            $stmtInsertUnspsc->execute(['SIN', 'ASIG', 'CL', $codigoUnspsc]);
-            $id_unspsc = $pdo->lastInsertId();
+        if (!$found) {
+            throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias.");
         }
+        $id_unspsc = intval($found);
 
         if ($idMatrizItem > 0) {
             // Caso A: Asociar a un ítem existente de la matriz
@@ -458,6 +482,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         <?= $mensaje ?>
 
         <form action="crear_ficha_tecnica.php" method="POST" id="form-ficha">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <div class="ficha-container">
 
                 <!-- ── Título ── -->
@@ -530,13 +555,24 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
 
                 <!-- ── CÓDIGO UNSPSC ── -->
-                <div class="ficha-row">
+                <?php
+                $prefilledUnspscCodigo = $prefilledItem['CODIGO_UNSPSC'] ?? '';
+                $prefilledUnspscNombre = $prefilledItem['UNSPSC_NOMBRE'] ?? '';
+                $prefilledUnspscDisplay = $prefilledUnspscCodigo !== ''
+                    ? $prefilledUnspscCodigo . ($prefilledUnspscNombre !== '' ? ' - ' . $prefilledUnspscNombre : '')
+                    : '';
+                ?>
+                <div class="ficha-row" style="position: relative;">
                     <div class="ficha-label">Código UNSPSC *</div>
-                    <div class="ficha-value">
-                        <input type="text" name="codigo_unspsc" id="codigo_unspsc"
-                               placeholder="Ej: 47131805" value="<?= htmlspecialchars($prefilledItem['CODIGO_UNSPSC'] ?? '') ?>" required>
+                    <div class="ficha-value" style="position: relative;">
+                        <input type="text" id="codigo_unspsc_busqueda" autocomplete="off"
+                               placeholder="Escriba el nombre o código del producto para buscar"
+                               value="<?= htmlspecialchars($prefilledUnspscDisplay) ?>" required>
+                        <input type="hidden" name="codigo_unspsc" id="codigo_unspsc" value="<?= htmlspecialchars($prefilledUnspscCodigo) ?>">
+                        <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                     </div>
                 </div>
+                <div id="unspsc_contexto" style="font-size:12px; color:#666; padding:0 12px 8px; text-align:right;"></div>
 
                 <!-- ── DENOMINACIÓN TÉCNICA DEL BIEN ── -->
                 <div class="ficha-section-header">Denominación Técnica del Bien</div>
@@ -649,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Si no hay item seleccionado, limpiar campos
                 document.getElementById('nombre_item').value = '';
                 document.getElementById('codigo_unspsc').value = '';
+                document.getElementById('codigo_unspsc_busqueda').value = '';
                 document.getElementById('denominacion_tecnica').value = '';
                 document.getElementById('unidad_medida').value = '';
                 document.getElementById('cantidad').value = '1';
@@ -659,10 +696,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const parts = fullName.split(' - ');
             const nombre = parts[0] ? parts[0].trim() : '';
             const denominacion = parts[1] ? parts[1].trim() : '';
-            
+            const unspscCodigo = selectedOpt.getAttribute('data-unspsc') || '';
+
             document.getElementById('nombre_item').value = nombre;
             document.getElementById('denominacion_tecnica').value = denominacion || nombre;
-            document.getElementById('codigo_unspsc').value = selectedOpt.getAttribute('data-unspsc') || '';
+            document.getElementById('codigo_unspsc').value = unspscCodigo;
+            document.getElementById('codigo_unspsc_busqueda').value = unspscCodigo;
             document.getElementById('unidad_medida').value = selectedOpt.getAttribute('data-unidad') || 'Unidad';
             document.getElementById('cantidad').value = selectedOpt.getAttribute('data-cantidad') || '1';
         });
@@ -672,6 +711,32 @@ document.addEventListener('DOMContentLoaded', function() {
             loteSelect.dispatchEvent(new Event('change'));
         }
     }
+});
+</script>
+<script src="../js/unspsc-autocomplete.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initUnspscAutocomplete({
+        inputSelector: '#codigo_unspsc_busqueda',
+        hiddenCodeSelector: '#codigo_unspsc',
+        resultsSelector: '#unspsc_resultados',
+        searchUrl: '../ajax/buscar_unspsc.php',
+        onSelect: function (item) {
+            const nombreItem = document.getElementById('nombre_item');
+            const denominacion = document.getElementById('denominacion_tecnica');
+            if (nombreItem && nombreItem.value.trim() === '') {
+                nombreItem.value = item.nombre;
+            }
+            if (denominacion && denominacion.value.trim() === '') {
+                denominacion.value = item.nombre;
+            }
+            const contexto = document.getElementById('unspsc_contexto');
+            if (contexto) {
+                const partes = [item.segmento_titulo, item.familia_titulo, item.clase_titulo].filter(Boolean);
+                contexto.textContent = partes.length ? partes.join(' > ') : '';
+            }
+        }
+    });
 });
 </script>
 </body>

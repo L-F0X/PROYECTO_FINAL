@@ -12,11 +12,12 @@ if (!isset($_SESSION['usuario_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $token = $_POST['csrf_token'] ?? '';
+    $usuarioId = intval($_SESSION['usuario_id']);
 
     if ($id > 0 && verify_csrf_token($token)) {
         try {
-            $stmt = $pdo->prepare("DELETE FROM lote_requerimiento WHERE ID_LOTE = ?");
-            $stmt->execute([$id]);
+            $stmt = $pdo->prepare("DELETE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+            $stmt->execute([$id, $usuarioId]);
         } catch (\PDOException $e) {
             error_log('Eliminar lote error: ' . $e->getMessage());
             // No mostrar detalles al usuario

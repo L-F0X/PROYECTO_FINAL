@@ -15,10 +15,11 @@ if (!isset($_GET['id'])) {
 }
 
 $id = intval($_GET['id']);
+$usuarioId = intval($_SESSION['usuario_id']);
 
-// Obtener datos actuales del lote
-$stmt = $pdo->prepare("SELECT * FROM lote_requerimiento WHERE ID_LOTE = ?");
-$stmt->execute([$id]);
+// Obtener datos actuales del lote (solo si pertenece al instructor autenticado)
+$stmt = $pdo->prepare("SELECT * FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+$stmt->execute([$id, $usuarioId]);
 $lote = $stmt->fetch();
 
 if (!$lote) {
@@ -45,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // El estado del trámite no se edita aquí: solo el coordinador puede
     // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
-    $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ESTADO_TRAMITE = 'Borrador'";
+    $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
     try {
-        $pdo->prepare($sql)->execute([$solicitante, $nombre, $id]);
+        $pdo->prepare($sql)->execute([$solicitante, $nombre, $id, $usuarioId]);
         header("Location: mis_lotes.php?msg=editado");
         exit;
     } catch (\PDOException $e) {
@@ -56,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$usuarioId = intval($_SESSION['usuario_id']);
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
