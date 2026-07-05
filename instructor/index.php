@@ -143,32 +143,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
     $id_lote = isset($_POST['id_lote']) ? intval($_POST['id_lote']) : 0;
     $id_ficha_tecnica = isset($_POST['id_ficha_tecnica']) && $_POST['id_ficha_tecnica'] !== '' ? intval($_POST['id_ficha_tecnica']) : 0;
-    
-    if ($id_lote > 0 && $id_ficha_tecnica > 0) {
+
+    // Verificar que el lote pertenezca al instructor autenticado
+    $stmtCheckLote = $pdo->prepare("SELECT ID_LOTE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+    $stmtCheckLote->execute([$id_lote, $usuarioId]);
+
+    if ($id_lote > 0 && $id_ficha_tecnica > 0 && $stmtCheckLote->fetchColumn()) {
         try {
             // Obtener los detalles de la ficha técnica seleccionada
             $stmtFicha = $pdo->prepare("SELECT * FROM ficha_tecnica WHERE ID_FICHA_TECNICA = ? LIMIT 1");
             $stmtFicha->execute([$id_ficha_tecnica]);
             $ficha = $stmtFicha->fetch();
-            
+
             if ($ficha) {
-                // Obtener o crear código UNSPSC
+                // El código UNSPSC debe existir ya en el catálogo (no se crean códigos "al vuelo");
+                // si la ficha no tiene uno asignado, se usa el marcador SIN_ASIGNAR ya existente.
                 $codigoUnspsc = trim($ficha['CODIGO_UNSPSC_FK'] ?: 'SIN_ASIGNAR');
                 $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
                 $stmtCheckUnspsc->execute([$codigoUnspsc]);
                 $id_unspsc = $stmtCheckUnspsc->fetchColumn();
                 if (!$id_unspsc) {
-                    $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?, ?, ?, ?)")
-                        ->execute(['SIN', 'ASIG', 'CL', $codigoUnspsc]);
-                    $id_unspsc = $pdo->lastInsertId();
+                    $stmtCheckUnspsc->execute(['SIN_ASIGNAR']);
+                    $id_unspsc = $stmtCheckUnspsc->fetchColumn();
                 }
-                
+
+                // Tasa de IVA por defecto (la de menor ID) ya que esta acción es de un solo clic, sin formulario propio
+                $id_iva_defecto = $pdo->query("SELECT ID_IVA FROM iva ORDER BY ID_IVA LIMIT 1")->fetchColumn();
+
                 // Insertar en matriz_item
-                $stmtInsert = $pdo->prepare("INSERT INTO matriz_item (ID_LOTE, ID_FICHA_TECNICA, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, ESTADO_ITEM) VALUES (?, ?, ?, 1, ?, ?, 1, 'Borrador')");
+                $stmtInsert = $pdo->prepare("INSERT INTO matriz_item (ID_LOTE, ID_FICHA_TECNICA, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, ESTADO_ITEM) VALUES (?, ?, ?, ?, ?, ?, 1, 'Borrador')");
                 $stmtInsert->execute([
                     $id_lote,
                     $id_ficha_tecnica,
                     $id_unspsc,
+                    $id_iva_defecto,
                     $ficha['NOMBRE_ITEM'],
                     $ficha['UNIDAD_MEDIDA'] ?: 'Unidad'
                 ]);
@@ -232,7 +240,7 @@ if ($msg === 'eliminado') {
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"></a>
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"><span>BICERGAM</span></a>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>

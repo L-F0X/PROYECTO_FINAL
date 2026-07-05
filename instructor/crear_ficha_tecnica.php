@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $idLote            = isset($_POST['id_lote']) && trim($_POST['id_lote']) !== '' ? intval($_POST['id_lote']) : 0;
         $cantidad          = isset($_POST['cantidad']) ? intval($_POST['cantidad']) : 1;
         $idMatrizItem      = isset($_POST['id_matriz_item']) && trim($_POST['id_matriz_item']) !== '' ? intval($_POST['id_matriz_item']) : 0;
+        $idIva             = isset($_POST['id_iva']) ? intval($_POST['id_iva']) : 0;
 
         if ($idLote <= 0) {
             throw new Exception("Debe seleccionar un lote de destino para asociar la ficha técnica.");
@@ -96,6 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($cantidad <= 0) {
             throw new Exception("La cantidad debe ser un número entero mayor que cero.");
+        }
+        if ($idMatrizItem <= 0) {
+            $stmtCheckIva = $pdo->prepare("SELECT ID_IVA FROM iva WHERE ID_IVA = ?");
+            $stmtCheckIva->execute([$idIva]);
+            if (!$stmtCheckIva->fetchColumn()) {
+                throw new Exception("Debe seleccionar una tasa de IVA válida.");
+            }
         }
         if ($codigoUnspsc === '') {
             throw new Exception("Debe seleccionar un código UNSPSC del catálogo.");
@@ -133,14 +141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } else {
             // Caso B: Crear un nuevo ítem en matriz y luego asociar la ficha técnica
-            // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null, ID_IVA = 1)
-            $sqlMatrizItem = "INSERT INTO matriz_item 
-                (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA) 
-                VALUES (?, ?, 1, ?, ?, ?, ?, 'Borrador', NULL)";
-            
+            // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null)
+            $sqlMatrizItem = "INSERT INTO matriz_item
+                (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'Borrador', NULL)";
+
             $stmtNewItem = $pdo->prepare($sqlMatrizItem);
             $stmtNewItem->execute([
-                $idLote, $id_unspsc, $nombreItem . " - " . $denominacion, $unidadMedida, $cantidad, $descripcion
+                $idLote, $id_unspsc, $idIva, $nombreItem . " - " . $denominacion, $unidadMedida, $cantidad, $descripcion
             ]);
             $idMatrizItem = $pdo->lastInsertId();
 
@@ -450,6 +458,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
@@ -593,6 +602,18 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 <div class="ficha-full-row" style="text-align:center">
                     <input type="number" name="cantidad" id="cantidad" min="1" value="<?= htmlspecialchars($prefilledItem['CANTIDAD_REGULAR'] ?? '1') ?>" required style="text-align:center">
                 </div>
+
+                <?php if (!$prefilledItem): ?>
+                <!-- ── TASA DE IVA (solo al crear un ítem nuevo) ── -->
+                <div class="ficha-section-header">Tasa de IVA</div>
+                <div class="ficha-full-row" style="text-align:center">
+                    <select name="id_iva" id="id_iva" required>
+                        <?php foreach ($ivas as $iva): ?>
+                            <option value="<?= htmlspecialchars($iva['ID_IVA']) ?>"><?= htmlspecialchars($iva['DESCRIPCION']) ?> (<?= htmlspecialchars(rtrim(rtrim(number_format($iva['PORCENTAJE'], 2), '0'), '.')) ?>%)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
 
                 <!-- ── DESCRIPCIÓN GENERAL ── -->
                 <div class="ficha-section-header">Descripción General</div>

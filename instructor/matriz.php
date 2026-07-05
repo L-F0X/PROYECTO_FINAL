@@ -103,6 +103,14 @@ try {
     error_log('Error cargando instructores: ' . $e->getMessage());
 }
 
+// Cargar tasas de IVA disponibles
+$ivas = [];
+try {
+    $ivas = $pdo->query("SELECT ID_IVA, PORCENTAJE, DESCRIPCION FROM iva ORDER BY PORCENTAJE")->fetchAll();
+} catch (Exception $e) {
+    error_log('Error cargando tasas de IVA: ' . $e->getMessage());
+}
+
 // Cargar necesidades / estrategias académicas para tomar la cantidad requerida desde la tabla de necesidades
 $needs = [];
 try {
@@ -201,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
     $rawUnspsc = isset($_POST['id_codigo_unspsc']) ? trim($_POST['id_codigo_unspsc']) : '';
     $id_unspsc = 0;
-    $id_iva = 1; // iva por defecto (por FK a tabla iva)
+    $id_iva = isset($_POST['id_iva']) ? intval($_POST['id_iva']) : 0;
     $id_necesidad = isset($_POST['id_necesidad']) && $_POST['id_necesidad'] !== '' ? intval($_POST['id_necesidad']) : 0;
     $id_ficha_tecnica = isset($_POST['id_ficha_tecnica']) && $_POST['id_ficha_tecnica'] !== '' ? intval($_POST['id_ficha_tecnica']) : null;
     $descripcion = trim($_POST['descripcion_bien']);
@@ -226,6 +234,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
     $transactionStarted = false;
     try {
+        $stmtCheckIva = $pdo->prepare("SELECT ID_IVA FROM iva WHERE ID_IVA = ?");
+        $stmtCheckIva->execute([$id_iva]);
+        if (!$stmtCheckIva->fetchColumn()) {
+            throw new Exception("Debe seleccionar una tasa de IVA válida.");
+        }
+
         $pdo->beginTransaction();
         $transactionStarted = true;
 
@@ -481,6 +495,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
@@ -541,7 +556,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <label for="unidad_medida">Unidad de Medida *:</label>
                     <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required />
                 </div>
-                <input type="hidden" id="id_iva" name="id_iva" value="1">
+                <div class="form-group">
+                    <label for="id_iva">Tasa de IVA *:</label>
+                    <select id="id_iva" name="id_iva" class="form-control" required>
+                        <?php foreach ($ivas as $iva): ?>
+                            <option value="<?= htmlspecialchars($iva['ID_IVA']) ?>"><?= htmlspecialchars($iva['DESCRIPCION']) ?> (<?= htmlspecialchars(rtrim(rtrim(number_format($iva['PORCENTAJE'], 2), '0'), '.')) ?>%)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
 
             <?php if ($ficha_tecnica_prefill): ?>
@@ -806,6 +828,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <th>Necesidad</th>
                 <th>U. Medida</th>
                 <th>Cantidad</th>
+                <th>IVA</th>
                 <th>Instructor Apoyo</th>
                 <th>Estado</th>
                 <th>Ficha Técnica</th>
@@ -815,7 +838,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <tbody>
             <?php if(empty($items)): ?>
                 <tr>
-                    <td colspan="10" style="text-align: center;">No se han agregado materiales a este requerimiento todavía.</td>
+                    <td colspan="11" style="text-align: center;">No se han agregado materiales a este requerimiento todavía.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach($items as $item): ?>
@@ -826,6 +849,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <td><?= htmlspecialchars($item['ID_NECESIDAD'] ? 'Necesidad #' . $item['ID_NECESIDAD'] : 'N/A') ?></td>
                         <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?? 'N/A') ?></td>
                         <td><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
+                        <td><?= $item['PORCENTAJE'] !== null ? htmlspecialchars(rtrim(rtrim(number_format($item['PORCENTAJE'], 2), '0'), '.')) . '%' : 'N/A' ?></td>
                         <td>
                             <?php 
                             if ($item['INSTRUCTOR_APOYO']) {

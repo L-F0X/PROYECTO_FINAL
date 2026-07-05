@@ -423,7 +423,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;"></a>
+            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA" style="max-height:48px; width:auto;"><span>BICERGAM</span></a>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>

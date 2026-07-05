@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -r ' *)",
+      "Bash(rm -f /c/xampp/htdocs/PROYECTO_FINAL/qaiva*.html /c/xampp/htdocs/PROYECTO_FINAL/qaiva*.txt)"
+    ]
+  }
+}

@@ -235,6 +235,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>

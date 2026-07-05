@@ -69,11 +69,13 @@ $conCatalogo = (int) $pdo->query("SELECT COUNT(*) FROM codigo_unspsc WHERE NOMBR
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
             <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
             <h4>Administración</h4>
             <a href="index.php" class="sidebar-link">Gestión Usuarios</a>
             <a href="importar_unspsc.php" class="sidebar-link sidebar-link--primary active">Importar UNSPSC</a>
+            <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
         </div>
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
