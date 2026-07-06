@@ -2,6 +2,7 @@
 // instructor/editar_ficha_tecnica.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -224,6 +225,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">

@@ -2,6 +2,7 @@
 // index.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 // Permite que los parciales incluidos (mis_lotes.php) verifiquen que no se acceden directamente
 define('ACCESO_VALIDO', true);
@@ -235,6 +236,8 @@ if ($msg === 'eliminado') {
             Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">

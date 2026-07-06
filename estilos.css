@@ -213,6 +213,39 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
+.header-bell-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.header-bell-link:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.header-bell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--alerta-rojo);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    padding: 0 3px;
+}
+
 .header-avatar {
     width: 46px;
     height: 46px;

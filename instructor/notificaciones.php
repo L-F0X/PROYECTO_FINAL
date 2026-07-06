@@ -1,5 +1,5 @@
 <?php
-// crear.php — Creación de Lote de Requerimiento (Insert CRUD)
+// instructor/notificaciones.php
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
@@ -16,31 +16,16 @@ if ($rol !== 'instructor') {
 }
 
 $usuarioId = intval($_SESSION['usuario_id']);
-$errorLote = '';
 
-// Procesar la creación de un nuevo lote si se envía por POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!verify_csrf_token($token)) {
-        die('Token CSRF inválido.');
-    }
-    $nombreLote = trim($_POST['lote_nombre'] ?? '');
-    if ($nombreLote !== '') {
-        try {
-            $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, 'Borrador', ?)");
-            $stmtInsert->execute([$usuarioId, $nombreLote, date('Y-m-d')]);
-            header("Location: ../index.php");
-            exit;
-        } catch (\PDOException $e) {
-            error_log('Error al crear lote: ' . $e->getMessage());
-            $errorLote = 'Error al crear el lote. Verifique que los datos sean correctos.';
-        }
-    } else {
-        $errorLote = 'El nombre del lote no puede estar vacío.';
-    }
-}
+asegurar_tabla_notificacion($pdo);
 
-// Foto de perfil
+$stmt = $pdo->prepare("SELECT * FROM notificacion WHERE ID_USUARIO = ? ORDER BY FECHA DESC");
+$stmt->execute([$usuarioId]);
+$notificaciones = $stmt->fetchAll();
+
+// Marcar todas como leídas al visitar la bandeja
+$pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA = 0")->execute([$usuarioId]);
+
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
@@ -55,8 +40,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Creación de lotes de requerimiento en BICERGAM.">
-    <title>Crear Nuevo Lote - BICERGAM</title>
+    <title>Notificaciones - BICERGAM</title>
     <link rel="stylesheet" href="../estilos.css">
 </head>
 <body>
@@ -64,7 +48,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <header class="dashboard-header">
     <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
         <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
     </div>
     <div class="header-user">
         <div class="header-user-text">
@@ -95,12 +79,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
         <div class="sidebar-group">
             <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
+            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="notificaciones.php" class="sidebar-link sidebar-link--primary active">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -110,32 +95,27 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </aside>
 
     <main class="dashboard-main">
-        <div class="dashboard-topbar">
-            <div>
-                <h2>Registrar Nuevo Lote</h2>
-                <p class="dashboard-subtitle">Complete el nombre del lote para iniciar un nuevo trámite de requerimiento.</p>
-            </div>
-        </div>
+        <div class="container fade-in" style="margin: 0; max-width: 100%;">
+            <h2>Notificaciones</h2>
+            <p>Avisos sobre tus lotes y certificados de existencia.</p>
 
-        <?php if ($errorLote): ?>
-            <div class="error-msg" style="margin-bottom: 20px;">
-                <?= htmlspecialchars($errorLote) ?>
+            <div class="panel-card" style="margin-top: 20px;">
+                <?php if (empty($notificaciones)): ?>
+                    <p style="text-align: center; color: #999; padding: 30px 0;">No tienes notificaciones todavía.</p>
+                <?php else: ?>
+                    <?php foreach ($notificaciones as $n): ?>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 14px 10px; border-bottom: 1px solid #eee; <?= !$n['LEIDA'] ? 'background: #f0fdf4;' : '' ?>">
+                            <div>
+                                <div><?= htmlspecialchars($n['MENSAJE']) ?></div>
+                                <div style="font-size: 12px; color: #888; margin-top: 4px;"><?= htmlspecialchars($n['FECHA']) ?></div>
+                            </div>
+                            <?php if ($n['ENLACE']): ?>
+                                <a href="<?= htmlspecialchars($n['ENLACE']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 12px; text-decoration: none; white-space: nowrap;">Ver</a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
-
-        <div class="panel-card">
-            <h3>Datos del Lote</h3>
-            <form method="POST" action="crear.php" style="margin-top: 15px;">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="lote_nombre" style="font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px;">Nombre del Lote:</label>
-                    <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" placeholder="Ej: LOTE REDES 2026" required style="border-radius: 7px; padding: 12px 14px; font-size: 15px;">
-                </div>
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <a href="../index.php" class="btn btn-secondary" style="border-radius: 7px; padding: 11px 22px;">Cancelar</a>
-                    <button type="submit" name="btn_crear_lote" class="btn btn-sena" style="border-radius: 7px; padding: 11px 22px;">Registrar Lote</button>
-                </div>
-            </form>
         </div>
     </main>
 </div>
