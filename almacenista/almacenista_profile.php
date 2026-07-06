@@ -436,6 +436,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
             <a href="index.php?tab=stock" class="sidebar-link">Vista de Stock</a>
             <a href="index.php?tab=entrada" class="sidebar-link">Registrar Entrada</a>
             <a href="index.php?tab=salida" class="sidebar-link">Registrar Salida</a>
+            <a href="historial_movimientos.php" class="sidebar-link">Historial de Movimientos</a>
         </div>
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>

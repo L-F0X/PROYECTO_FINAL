@@ -82,14 +82,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Rechazado', ?)");
                 $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), $justificacion]);
 
-$pdo->commit();
-$motivoCorto = mb_strlen($justificacion) > 150 ? mb_substr($justificacion, 0, 150) . '...' : $justificacion;
-crear_notificacion(
-    $pdo,
-    intval($lote['ID_SOLICITANTE']),
-    "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue rechazado. Motivo: " . $motivoCorto,
-    "../instructor/mis_lotes.php"
-);
+                $pdo->commit();
+
+                $motivoCorto = mb_strlen($justificacion) > 150 ? mb_substr($justificacion, 0, 150) . '...' : $justificacion;
+                crear_notificacion(
+                    $pdo,
+                    intval($lote['ID_SOLICITANTE']),
+                    "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue rechazado. Motivo: " . $motivoCorto,
+                    "../instructor/mis_lotes.php"
+                );
 
                 header("Location: revisar_lotes.php?msg=rechazado");
                 exit;

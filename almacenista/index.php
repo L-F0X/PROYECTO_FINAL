@@ -500,6 +500,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="index.php?tab=stock" class="sidebar-link <?= $tabActiva === 'stock' ? 'sidebar-link--primary' : '' ?>">Vista de Stock</a>
             <a href="index.php?tab=entrada" class="sidebar-link <?= $tabActiva === 'entrada' ? 'sidebar-link--primary' : '' ?>">Registrar Entrada</a>
             <a href="index.php?tab=salida" class="sidebar-link <?= $tabActiva === 'salida' ? 'sidebar-link--primary' : '' ?>">Registrar Salida</a>
+            <a href="historial_movimientos.php" class="sidebar-link">Historial de Movimientos</a>
         </div>
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>

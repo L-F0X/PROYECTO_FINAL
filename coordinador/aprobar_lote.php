@@ -76,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
 
-<<<<<<< HEAD
+            $pdo->commit();
+
             crear_notificacion(
                 $pdo,
                 intval($lote['ID_SOLICITANTE']),
@@ -89,15 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "El lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
                 "../almacenista/index.php?tab=instructor"
             );
-=======
-$pdo->commit();
-crear_notificacion(
-    $pdo,
-    intval($lote['ID_SOLICITANTE']),
-    "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado.",
-    "../instructor/mis_lotes.php"
-);
->>>>>>> b9848186c8b5d5069b36041739d7963d3da2fdf9
 
             header("Location: revisar_lotes.php?msg=aprobado");
             exit;
