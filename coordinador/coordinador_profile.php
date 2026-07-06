@@ -401,7 +401,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">

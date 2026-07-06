@@ -181,7 +181,7 @@ if ($msg === 'status_updated') {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Administrador</span></h1>
-            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Administrador)</span></div>
+            <div class="user-greeting">Administrador del Sistema: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Administrador)</span></div>
         </div>
     </div>
     <div class="header-right">
