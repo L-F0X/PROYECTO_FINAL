@@ -69,6 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado.",
                 "../instructor/mis_lotes.php"
             );
+            notificar_por_rol(
+                $pdo,
+                'Almacenista',
+                "El lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
+                "../almacenista/index.php?tab=instructor"
+            );
 
             header("Location: revisar_lotes.php?msg=aprobado");
             exit;
@@ -111,6 +117,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             Bienvenido: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">

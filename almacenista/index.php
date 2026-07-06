@@ -461,6 +461,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        </a>
         <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
@@ -488,6 +490,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
             <a href="index.php?tab=instructor" class="sidebar-link <?= $tabActiva === 'instructor' ? 'sidebar-link--primary' : '' ?>">Panel Instructor</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>

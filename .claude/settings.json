@@ -9,7 +9,9 @@
       "Bash(curl -s -c C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -b C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -X POST http://localhost/PROYECTO_FINAL/login.php -d email=qa_insnotif@example.com -d password=QaTest12345 -o /dev/null -w 'login http_code=%{http_code}\\\\n')",
       "Bash(curl -s -c C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -b C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt http://localhost/PROYECTO_FINAL/instructor/mis_lotes.php -o /c/xampp/htdocs/PROYECTO_FINAL/qan5.html)",
       "Bash(curl -s -c C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -b C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt http://localhost/PROYECTO_FINAL/instructor/notificaciones.php -o /c/xampp/htdocs/PROYECTO_FINAL/qan6.html -w 'http_code=%{http_code}\\\\n')",
-      "Bash(curl -s -c C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -b C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt http://localhost/PROYECTO_FINAL/instructor/mis_lotes.php -o /c/xampp/htdocs/PROYECTO_FINAL/qan7.html)"
+      "Bash(curl -s -c C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt -b C:/xampp/htdocs/PROYECTO_FINAL/qanotif_i.txt http://localhost/PROYECTO_FINAL/instructor/mis_lotes.php -o /c/xampp/htdocs/PROYECTO_FINAL/qan7.html)",
+      "Bash(php \"C:\\\\Users\\\\Luisf\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--xampp-htdocs-PROYECTO-FINAL\\\\b74b5ee0-c59b-4356-9a3d-3a1d6f83a08b\\\\scratchpad\\\\add_bell_roles.php\")",
+      "Bash(rm -f /c/xampp/htdocs/PROYECTO_FINAL/qapr*.html /c/xampp/htdocs/PROYECTO_FINAL/qapr*.txt)"
     ]
   }
 }

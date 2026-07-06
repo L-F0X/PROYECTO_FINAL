@@ -74,6 +74,14 @@ try {
             "Tu lote '" . $loteFila['LOTE_NOMBRE'] . "' $verbo.",
             "../instructor/mis_lotes.php"
         );
+        if ($accion === 'aprobar') {
+            notificar_por_rol(
+                $pdo,
+                'Almacenista',
+                "El lote '" . $loteFila['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
+                "../almacenista/index.php?tab=instructor"
+            );
+        }
 
         $procesados++;
     }

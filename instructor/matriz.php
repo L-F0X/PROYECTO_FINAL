@@ -423,9 +423,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtUpdateMatrizItem->execute([$id_ficha_tecnica, $id_matriz_item]);
         }
 
-        // Si la acción fue enviar, marcar el lote como Enviado
+        // Si la acción fue enviar, marcar el lote como Enviado y avisar a los coordinadores
         if ($submitAction === 'enviar') {
             $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Enviado' WHERE ID_LOTE = ?")->execute([$id_lote]);
+            notificar_por_rol(
+                $pdo,
+                'Coordinacion',
+                htmlspecialchars($_SESSION['usuario_nombre']) . " envió el lote '" . $loteInfo['LOTE_NOMBRE'] . "' para revisión.",
+                "../coordinador/revisar_lotes.php"
+            );
         }
 
         $pdo->commit();

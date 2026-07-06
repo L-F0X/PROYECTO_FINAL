@@ -112,6 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" id="password" name="password" class="form-control" autocomplete="current-password" required>
             </div>
 
+            <div style="text-align: right; margin-bottom: 15px;">
+                <a href="recuperar_password.php" style="font-size: 13px; color: var(--verde-sena);">¿Olvidaste tu contraseña?</a>
+            </div>
+
             <button type="submit" class="btn btn-sena btn-block">Ingresar al Sistema</button>
         </form>
     </section>

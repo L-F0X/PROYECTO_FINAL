@@ -2,6 +2,7 @@
 // almacenista/almacenista_profile.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -413,7 +414,19 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
             <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
         </div>
     </div>
-    <div class="header-right">
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">
+            🔔
+            <?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, $usuarioId); ?>
+            <?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        </a>
+        <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
+            <?php if ($photoPath): ?>
+                <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
+            <?php else: ?>
+                <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
+            <?php endif; ?>
+        </a>
         <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
     </div>
 </header>
@@ -433,6 +446,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
             <a href="index.php?tab=instructor" class="sidebar-link">Panel Instructor</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>

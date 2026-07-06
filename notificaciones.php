@@ -25,3 +25,11 @@ function contar_notificaciones_no_leidas(PDO $pdo, int $idUsuario): int {
     $stmt->execute([$idUsuario]);
     return (int) $stmt->fetchColumn();
 }
+
+function notificar_por_rol(PDO $pdo, string $nombreRol, string $mensaje, ?string $enlace = null): void {
+    $stmt = $pdo->prepare("SELECT u.ID_USUARIO FROM usuario u INNER JOIN rol r ON u.ID_ROL = r.ID_ROL WHERE LOWER(r.NOMBRE_ROL) = LOWER(?)");
+    $stmt->execute([$nombreRol]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $idUsuario) {
+        crear_notificacion($pdo, (int) $idUsuario, $mensaje, $enlace);
+    }
+}
