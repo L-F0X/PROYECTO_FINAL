@@ -121,7 +121,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>

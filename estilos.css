@@ -67,7 +67,9 @@ body {
 
 /* Header Institucional Rediseñado */
 .header-main {
-    background-color: var(--gris-cabecera);
+    background-color: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
     color: var(--blanco);
     padding: 14px 40px;
     display: flex;
@@ -153,10 +155,16 @@ body {
 }
 
 .sena-logo-img {
-    height: 45px;
+    height: 32px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    padding: 7px;
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .header-brand img {
@@ -1281,9 +1289,11 @@ table {
     justify-content: flex-end;
 }
 
-/* ── Dashboard Header (barra superior oscura) ── */
+/* ── Dashboard Header (barra superior con efecto vidrio) ── */
 .dashboard-header {
-    background-color: var(--gris-cabecera);
+    background-color: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
     color: var(--blanco);
     padding: 10px 28px;
     display: flex;
@@ -1305,10 +1315,16 @@ table {
 }
 
 .dashboard-header .header-brand img {
-    height: 36px;
+    height: 32px;
     width: auto;
     display: block;
-    filter: brightness(0) invert(1);
+    padding: 7px;
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .dashboard-header .header-user {

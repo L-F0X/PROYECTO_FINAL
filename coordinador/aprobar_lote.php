@@ -55,6 +55,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipoMensaje = 'error';
     } else {
         try {
+            $pdo->beginTransaction();
+
+            // Re-verificar el estado actual bajo bloqueo, por si otro proceso ya decidió el lote
+            $stmtLock = $pdo->prepare("SELECT ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ? FOR UPDATE");
+            $stmtLock->execute([$idLote]);
+            $estadoActual = $stmtLock->fetchColumn();
+
+            if ($estadoActual !== 'Enviado') {
+                $pdo->rollBack();
+                header('Location: revisar_lotes.php?msg=error');
+                exit;
+            }
+
             // Actualizar estado del lote a Aprobado
             $updateStmt = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Aprobado' WHERE ID_LOTE = ?");
             $updateStmt->execute([$idLote]);
@@ -63,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
 
+<<<<<<< HEAD
             crear_notificacion(
                 $pdo,
                 intval($lote['ID_SOLICITANTE']),
@@ -75,12 +89,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "El lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
                 "../almacenista/index.php?tab=instructor"
             );
+=======
+$pdo->commit();
+crear_notificacion(
+    $pdo,
+    intval($lote['ID_SOLICITANTE']),
+    "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado.",
+    "../instructor/mis_lotes.php"
+);
+>>>>>>> b9848186c8b5d5069b36041739d7963d3da2fdf9
 
             header("Location: revisar_lotes.php?msg=aprobado");
             exit;
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('Error aprobando lote: ' . $e->getMessage());
-            $mensaje = 'Error al aprobar el lote: ' . $e->getMessage();
+            $mensaje = 'Error al aprobar el lote. Intente de nuevo más tarde.';
             $tipoMensaje = 'error';
         }
     }
@@ -114,7 +140,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>

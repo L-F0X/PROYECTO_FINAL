@@ -41,9 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensaje = '✓ Tasa de IVA creada correctamente.';
             } elseif ($accion === 'editar') {
                 $idIva = intval($_POST['id_iva'] ?? 0);
-                $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ? WHERE ID_IVA = ?');
-                $stmt->execute([$porcentaje, $descripcion, $idIva]);
-                $mensaje = '✓ Tasa de IVA actualizada correctamente.';
+                $existe = $pdo->prepare('SELECT 1 FROM iva WHERE ID_IVA = ?');
+                $existe->execute([$idIva]);
+                if ($idIva <= 0 || !$existe->fetch()) {
+                    $error = 'No se encontró la tasa de IVA indicada.';
+                } else {
+                    $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ? WHERE ID_IVA = ?');
+                    $stmt->execute([$porcentaje, $descripcion, $idIva]);
+                    $mensaje = '✓ Tasa de IVA actualizada correctamente.';
+                }
             }
         } catch (Exception $e) {
             error_log('Error gestionando IVA: ' . $e->getMessage());
@@ -69,7 +75,7 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Administrador</span></h1>
-            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Administrador)</span></div>
+            <div class="user-greeting">Administrador del Sistema: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Administrador)</span></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">

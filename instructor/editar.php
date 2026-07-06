@@ -43,13 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $nombre = trim($_POST['lote_nombre']);
-    $solicitante = intval($_POST['id_solicitante']);
 
     // El estado del trámite no se edita aquí: solo el coordinador puede
     // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
-    $sql = "UPDATE lote_requerimiento SET ID_SOLICITANTE = ?, LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
+    // El solicitante tampoco se reasigna: un lote siempre pertenece a quien lo creó.
+    $sql = "UPDATE lote_requerimiento SET LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
     try {
-        $pdo->prepare($sql)->execute([$solicitante, $nombre, $id, $usuarioId]);
+        $pdo->prepare($sql)->execute([$nombre, $id, $usuarioId]);
         header("Location: mis_lotes.php?msg=editado");
         exit;
     } catch (\PDOException $e) {
@@ -85,7 +85,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -135,11 +135,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="form-group">
                     <label for="lote_nombre">Nombre del Lote:</label>
                     <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" value="<?= htmlspecialchars($lote['LOTE_NOMBRE']) ?>" required style="border-radius: 7px; padding: 10px 14px;">
-                </div>
-
-                <div class="form-group">
-                    <label for="id_solicitante">ID Instructor Solicitante:</label>
-                    <input type="number" id="id_solicitante" name="id_solicitante" class="form-control" value="<?= $lote['ID_SOLICITANTE'] ?>" required style="border-radius: 7px; padding: 10px 14px;">
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-top: 15px;">

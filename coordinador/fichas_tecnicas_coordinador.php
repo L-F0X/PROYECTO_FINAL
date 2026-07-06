@@ -77,7 +77,7 @@ $total = count($fichas);
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -175,7 +175,7 @@ $total = count($fichas);
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['ITEMS_COUNT']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars(substr($ficha['FECHA_EMISION'], 0, 19)) ?></td>
                                     <td style="padding: 12px;">
-                                        <a href="ver_ficha_tecnica.php?id=<?= $ficha['ID_FICHA_TECNICA'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                        <a href="ver_ficha_tecnica.php?id=<?= (int)$ficha['ID_FICHA_TECNICA'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -149,8 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     $id_ficha_tecnica = isset($_POST['id_ficha_tecnica']) && $_POST['id_ficha_tecnica'] !== '' ? intval($_POST['id_ficha_tecnica']) : null;
     
     try {
-        $stmtAsignar = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
-        $stmtAsignar->execute([$id_ficha_tecnica, $id_matriz_item]);
+        $stmtAsignar = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ? AND ID_LOTE = ?");
+        $stmtAsignar->execute([$id_ficha_tecnica, $id_matriz_item, $id_lote]);
         header("Location: matriz.php?lote=" . $id_lote);
         exit;
     } catch (Exception $e) {
@@ -398,11 +398,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             }
 
             $sqlInsertFicha = "INSERT INTO ficha_tecnica
-                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD, IMAGEN)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (ID_MATRIZ_ITEM, ID_CREADOR, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD, IMAGEN)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmtInsertF = $pdo->prepare($sqlInsertFicha);
             $stmtInsertF->execute([
                 $id_matriz_item,
+                $usuarioId,
                 $nombreItem,
                 $codUnspscStr,
                 $denominacion,
@@ -485,7 +486,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -874,7 +875,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <td><span class="badge badge-warning"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
                         <td>
                             <?php if ($item['ID_FICHA_TECNICA']): ?>
-                                <span style="color: green; font-weight: bold;">✓ Asignada (FT #<?= $item['ID_FICHA_TECNICA'] ?>)</span>
+                                <span style="color: green; font-weight: bold;">✓ Asignada (FT #<?= (int)$item['ID_FICHA_TECNICA'] ?>)</span>
                             <?php else: ?>
                                 <span style="color: #666; font-style: italic;">Sin Ficha</span>
                                 <div style="margin-top: 4px; margin-bottom: 4px;">

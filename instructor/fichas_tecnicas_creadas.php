@@ -23,6 +23,14 @@ if ($idLote === 0) {
     exit;
 }
 
+// Verificar que el lote referenciado pertenece al instructor autenticado
+$stmtLoteCheck = $pdo->prepare("SELECT 1 FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+$stmtLoteCheck->execute([$idLote, $usuarioId]);
+if (!$stmtLoteCheck->fetch()) {
+    header("Location: index.php");
+    exit;
+}
+
 // Foto de perfil
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -31,6 +39,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
         break;
     }
+}
+
+$msg = $_GET['msg'] ?? '';
+$messageText = '';
+if ($msg === 'sin_permiso') {
+    $messageText = '✗ No puede editar esta ficha técnica: fue creada por otro instructor.';
 }
 
 // Búsqueda
@@ -67,7 +81,7 @@ $total = count($fichas);
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -115,6 +129,12 @@ $total = count($fichas);
                 <p class="dashboard-subtitle">Selecciona una ficha técnica para asignarla a tu lote actual (#<?= $idLote ?>).</p>
             </div>
         </div>
+
+        <?php if (!empty($messageText)): ?>
+            <div class="profile-alert error" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
+                <?= htmlspecialchars($messageText) ?>
+            </div>
+        <?php endif; ?>
 
         <div class="panel-card">
             <!-- Barra de búsqueda -->

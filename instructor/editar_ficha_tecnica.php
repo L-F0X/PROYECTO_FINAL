@@ -15,6 +15,8 @@ if ($rol !== 'instructor') {
     exit;
 }
 
+$usuarioId = intval($_SESSION['usuario_id']);
+
 $idFicha = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($idFicha <= 0) {
     header('Location: fichas_tecnicas_creadas.php');
@@ -26,6 +28,13 @@ $stmtFicha->execute([$idFicha]);
 $ficha = $stmtFicha->fetch();
 if (!$ficha) {
     header('Location: fichas_tecnicas_creadas.php');
+    exit;
+}
+
+// Solo el instructor que creó la ficha puede editarla. Las fichas sin creador
+// registrado (creadas antes de esta restricción) siguen siendo editables por cualquiera.
+if ($ficha['ID_CREADOR'] !== null && intval($ficha['ID_CREADOR']) !== $usuarioId) {
+    header('Location: fichas_tecnicas_creadas.php?msg=sin_permiso');
     exit;
 }
 
@@ -78,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$usuarioId = intval($_SESSION['usuario_id']);
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
@@ -214,7 +222,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>

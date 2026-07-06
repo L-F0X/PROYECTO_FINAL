@@ -219,7 +219,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -355,7 +355,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="certificado_pdf.php?id=<?= $c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
+                                            <a href="certificado_pdf.php?id=<?= (int)$c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

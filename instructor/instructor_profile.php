@@ -58,22 +58,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         // Manejo de foto
         if (!empty($_FILES['photo']['name'])) {
             $file = $_FILES['photo'];
-            $allowedMime = [
-                'image/jpeg' => 'jpg',
-                'image/jpg' => 'jpg',
-                'image/pjpeg' => 'jpg',
-                'image/png' => 'png',
-                'image/x-png' => 'png',
-                'image/webp' => 'webp'
+            $allowedImageTypes = [
+                IMAGETYPE_JPEG => 'jpg',
+                IMAGETYPE_PNG  => 'png',
+                IMAGETYPE_WEBP => 'webp',
             ];
-            
-            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $fileMime = $file['type'];
-            
-            if ($file['error'] === UPLOAD_ERR_OK && (isset($allowedMime[$fileMime]) || in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']))) {
-                $ext = in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']) ? $fileExt : ($allowedMime[$fileMime] ?? 'jpg');
-                if ($ext === 'jpeg') $ext = 'jpg';
-                
+            $imageInfo = $file['error'] === UPLOAD_ERR_OK ? @getimagesize($file['tmp_name']) : false;
+
+            if ($imageInfo !== false && isset($allowedImageTypes[$imageInfo[2]])) {
+                $ext = $allowedImageTypes[$imageInfo[2]];
+
                 $dir = __DIR__ . '/../uploads/profiles';
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 $target = $dir . '/' . $usuarioId . '.' . $ext;
@@ -457,7 +451,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
+            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
             <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>

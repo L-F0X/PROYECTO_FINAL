@@ -72,7 +72,7 @@ $total = count($certificados);
     </div>
     <div class="header-user">
         <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
+            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
             <span class="header-user-role">(Coordinador)</span>
         </div>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
@@ -164,7 +164,7 @@ $total = count($certificados);
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></td>
                                     <td style="padding: 12px;"><?= !empty($cert['FECHA_EMISION']) ? htmlspecialchars(date('d/m/Y', strtotime($cert['FECHA_EMISION']))) : 'N/D' ?></td>
                                     <td style="padding: 12px;">
-                                        <a href="../instructor/certificado_pdf.php?id=<?= $cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
+                                        <a href="../instructor/certificado_pdf.php?id=<?= (int)$cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
