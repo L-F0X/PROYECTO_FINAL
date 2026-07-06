@@ -351,7 +351,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BICERGAM - Módulo de Almacén</title>
-    <link rel="stylesheet" href="../estilos.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../estilos.css?v=<?= filemtime(__DIR__ . '/../estilos.css') ?>">
     <style>
         /* Ajustes de Responsividad y Ancho Máximo para Almacenista (Evitar que se vea tan centrado y angosto) */
         .dashboard-page {
@@ -475,7 +475,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

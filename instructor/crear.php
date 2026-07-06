@@ -80,7 +80,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

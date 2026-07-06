@@ -58,7 +58,14 @@
       "Bash(curl -s -b /tmp/qa14.txt \"http://localhost/PROYECTO_FINAL/almacenista/index.php?tab=instructor\" -o /tmp/alm_instr.html)",
       "Bash(curl -s -b /tmp/qa14.txt \"http://localhost/PROYECTO_FINAL/almacenista/registrar_salida.php\" -o /tmp/alm_salida.html)",
       "Bash(curl -s -b /tmp/qa14.txt \"http://localhost/PROYECTO_FINAL/almacenista/index.php?tab=salida\" -o /tmp/alm_salida2.html)",
-      "Bash(rm -f /tmp/qa14_setup.php /tmp/qa14.txt /tmp/alm_stock.html /tmp/alm_instr.html /tmp/alm_salida.html /tmp/alm_salida2.html)"
+      "Bash(rm -f /tmp/qa14_setup.php /tmp/qa14.txt /tmp/alm_stock.html /tmp/alm_instr.html /tmp/alm_salida.html /tmp/alm_salida2.html)",
+      "Bash(rm -f /tmp/qa15.txt)",
+      "Bash(curl -s -c /tmp/qa15.txt -b /tmp/qa15.txt -X POST http://localhost/PROYECTO_FINAL/login.php -d \"email=qa_f15_alm@test.com&password=x\" -L -o /tmp/l15.html)",
+      "Bash(curl -s -b /tmp/qa15.txt \"http://localhost/PROYECTO_FINAL/almacenista/index.php?tab=stock\" -o /tmp/stock15.html)",
+      "Bash(rm -f /tmp/qa15_setup.php /tmp/qa15.txt /tmp/l15.html /tmp/stock15.html)",
+      "Bash(rm -f /tmp/qa16_setup.php /tmp/qa16.txt /tmp/l1.html /tmp/r1.html /tmp/r2.html)",
+      "Bash(sed -n '/<header class=\"header-main\">/,/<\\\\/header>/p' coordinador/index.php)",
+      "Bash(sed -n '/<header class=\"header-main\">/,/<\\\\/header>/p' Administrador/index.php)"
     ],
     "additionalDirectories": [
       "\\tmp"

@@ -655,15 +655,14 @@ body.iframe-mode .dashboard-main {
 }
 
 .btn-info {
-    background-color: #e0f2fe;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
+    background-color: #0284c7;
+    color: var(--blanco);
 }
 
 .btn-info:hover {
-    background-color: #bae6fd;
+    background-color: #0369a1;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.2);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3);
 }
 
 /* Tablas Modernas */

@@ -414,7 +414,6 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

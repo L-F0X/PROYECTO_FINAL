@@ -79,6 +79,7 @@ $total = count($movimientos);
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, $usuarioId); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -88,7 +89,6 @@ $total = count($movimientos);
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

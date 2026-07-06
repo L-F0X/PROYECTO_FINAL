@@ -245,7 +245,6 @@ if ($msg === 'eliminado') {
                 <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
@@ -388,7 +387,6 @@ if ($msg === 'eliminado') {
     </div>
     <div class="header-center">
         <span class="user-greeting"><?= $rolNombre === 'administrador' ? 'Administrador del Sistema:' : 'Coordinador de Compras:' ?> <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
-        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
     <div class="header-right">
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
