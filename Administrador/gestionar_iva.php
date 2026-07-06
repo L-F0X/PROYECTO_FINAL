@@ -40,9 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensaje = '✓ Tasa de IVA creada correctamente.';
             } elseif ($accion === 'editar') {
                 $idIva = intval($_POST['id_iva'] ?? 0);
-                $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ? WHERE ID_IVA = ?');
-                $stmt->execute([$porcentaje, $descripcion, $idIva]);
-                $mensaje = '✓ Tasa de IVA actualizada correctamente.';
+                $existe = $pdo->prepare('SELECT 1 FROM iva WHERE ID_IVA = ?');
+                $existe->execute([$idIva]);
+                if ($idIva <= 0 || !$existe->fetch()) {
+                    $error = 'No se encontró la tasa de IVA indicada.';
+                } else {
+                    $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ? WHERE ID_IVA = ?');
+                    $stmt->execute([$porcentaje, $descripcion, $idIva]);
+                    $mensaje = '✓ Tasa de IVA actualizada correctamente.';
+                }
             }
         } catch (Exception $e) {
             error_log('Error gestionando IVA: ' . $e->getMessage());

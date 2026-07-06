@@ -23,7 +23,7 @@ if (!defined('ACCESO_VALIDO')) {
             <select name="id_ficha_tecnica" class="form-control-modern" required>
                 <option value="">— Seleccione un elemento —</option>
                 <?php foreach ($itemsInventario as $i): ?>
-                    <option value="<?= $i['ID_FICHA_TECNICA'] ?>">
+                    <option value="<?= (int)$i['ID_FICHA_TECNICA'] ?>">
                         <?= htmlspecialchars($i['NOMBRE_ITEM']) ?> (Stock actual: <?= $i['CANTIDAD'] ?>) - [<?= htmlspecialchars($i['CODIGO_UNSPSC_FK'] ?: 'Sin Código') ?>]
                     </option>
                 <?php endforeach; ?>

@@ -172,7 +172,7 @@ $total = count($fichas);
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($ficha['ITEMS_COUNT']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars(substr($ficha['FECHA_EMISION'], 0, 19)) ?></td>
                                     <td style="padding: 12px;">
-                                        <a href="ver_ficha_tecnica.php?id=<?= $ficha['ID_FICHA_TECNICA'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
+                                        <a href="ver_ficha_tecnica.php?id=<?= (int)$ficha['ID_FICHA_TECNICA'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

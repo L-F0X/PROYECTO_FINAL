@@ -30,7 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password   = trim($_POST['password'] ?? '');
     $estado     = trim($_POST['estado'] ?? 'Activo');
 
-    if ($idRol > 0 && $documento !== '' && $nombre !== '' && $apellido !== '' && $email !== '' && $password !== '') {
+    if ($idRol <= 0 || $documento === '' || $nombre === '' || $apellido === '' || $email === '' || $password === '') {
+        $error = '✗ Todos los campos son obligatorios.';
+    } elseif (strlen($password) < 8) {
+        $error = '✗ La contraseña debe tener al menos 8 caracteres.';
+    } else {
         try {
             // Verificar si el documento o correo ya están registrados
             $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM usuario WHERE DOCUMENTO = ? OR EMAIL = ?");
@@ -59,8 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log('Error creando usuario: ' . $e->getMessage());
             $error = '✗ Error interno al procesar el registro.';
         }
-    } else {
-        $error = '✗ Todos los campos son obligatorios.';
     }
 }
 
@@ -223,7 +225,7 @@ try {
                             <select id="id_rol" name="id_rol" required>
                                 <option value="">Seleccione un rol...</option>
                                 <?php foreach ($roles as $r): ?>
-                                    <option value="<?= $r['ID_ROL'] ?>"><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
+                                    <option value="<?= (int)$r['ID_ROL'] ?>"><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -245,7 +247,7 @@ try {
 
                         <div class="profile-field">
                             <label for="password">Contraseña inicial</label>
-                            <input type="password" id="password" name="password" required autocomplete="new-password">
+                            <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
                         </div>
 
                         <div class="profile-field">

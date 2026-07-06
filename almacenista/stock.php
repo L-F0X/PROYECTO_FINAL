@@ -100,7 +100,7 @@ if (!defined('ACCESO_VALIDO')) {
                                     <form action="index.php" method="POST" onsubmit="return confirm('¿Seguro que desea eliminar este artículo del stock?');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                         <input type="hidden" name="action" value="delete_item">
-                                        <input type="hidden" name="id_ficha_tecnica" value="<?= $item['ID_FICHA_TECNICA'] ?>">
+                                        <input type="hidden" name="id_ficha_tecnica" value="<?= (int)$item['ID_FICHA_TECNICA'] ?>">
                                         <button type="submit" class="btn-action-small" style="background: #fee2e2; color: #b91c1c;">Eliminar</button>
                                     </form>
                                 </div>

@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         try {
             // Prevenir desactivarse a sí mismo
             if ($idUsuario === intval($_SESSION['usuario_id'])) {
-                header("Location: index.php?msg=self_deactivate_error&type=error");
+                header("Location: index.php?msg=self_deactivate_error");
                 exit;
             }
             
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             exit;
         } catch (Exception $e) {
             error_log('Error al cambiar estado de usuario: ' . $e->getMessage());
-            header("Location: index.php?msg=error&type=error");
+            header("Location: index.php?msg=error");
             exit;
         }
     }
@@ -150,18 +150,20 @@ try {
 }
 
 $msg = $_GET['msg'] ?? '';
-$msgType = $_GET['type'] ?? 'success';
 $messageText = '';
+$msgType = 'success';
 if ($msg === 'status_updated') {
     $messageText = '✓ Estado del usuario actualizado correctamente.';
 } elseif ($msg === 'self_deactivate_error') {
     $messageText = '✗ No puedes desactivar tu propia cuenta de administrador.';
+    $msgType = 'error';
 } elseif ($msg === 'user_created') {
     $messageText = '✓ Usuario creado correctamente.';
 } elseif ($msg === 'user_updated') {
     $messageText = '✓ Usuario editado correctamente.';
 } elseif ($msg === 'error') {
     $messageText = '✗ Ocurrió un error al procesar la solicitud.';
+    $msgType = 'error';
 }
 ?>
 <!DOCTYPE html>
@@ -285,7 +287,7 @@ if ($msg === 'status_updated') {
                         <select name="rol" id="rol" class="search-input" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                             <option value="">— Todos —</option>
                             <?php foreach ($roles as $r): ?>
-                                <option value="<?= $r['ID_ROL'] ?>" <?= $filtroRol == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
+                                <option value="<?= (int)$r['ID_ROL'] ?>" <?= $filtroRol == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -326,13 +328,13 @@ if ($msg === 'status_updated') {
                                     </td>
                                     <td>
                                         <div style="display: flex; gap: 8px;">
-                                            <a href="editar_usuario.php?id=<?= $usr['ID_USUARIO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Editar</a>
+                                            <a href="editar_usuario.php?id=<?= (int)$usr['ID_USUARIO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Editar</a>
 
                                             <!-- Formulario para activar/desactivar -->
                                             <form action="index.php" method="POST" style="margin: 0; display: inline;">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                                 <input type="hidden" name="accion" value="toggle_estado">
-                                                <input type="hidden" name="id_usuario" value="<?= $usr['ID_USUARIO'] ?>">
+                                                <input type="hidden" name="id_usuario" value="<?= (int)$usr['ID_USUARIO'] ?>">
                                                 <input type="hidden" name="nuevo_estado" value="<?= $usr['ESTADO'] === 'Activo' ? 'Inactivo' : 'Activo' ?>">
 
                                                 <?php if ($usr['ID_USUARIO'] === intval($_SESSION['usuario_id'])): ?>

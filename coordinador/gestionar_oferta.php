@@ -65,7 +65,7 @@ $stmtItem = $pdo->prepare("
 $stmtItem->execute([$idMatrizItem]);
 $item = $stmtItem->fetch();
 
-if (!$item || $item['ESTADO_TRAMITE'] === 'Borrador') {
+if (!$item || $item['ESTADO_TRAMITE'] !== 'Enviado') {
     header('Location: revisar_lotes.php?msg=error');
     exit;
 }

@@ -15,6 +15,14 @@ if (!isset($_SESSION['usuario_id'])) {
 $rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
 $usuarioId = intval($_SESSION['usuario_id'] ?? 0);
 
+// Esta página solo está pensada para instructores, coordinadores y administradores
+// (quienes pueden previsualizar el panel de instructor desde su propio menú).
+// Cualquier otro rol (p. ej. almacenista) no debe ver el listado global de lotes.
+if (!in_array($rolNombre, ['instructor', 'coordinador', 'coordinacion', 'administrador'], true)) {
+    header("Location: ../index.php");
+    exit;
+}
+
 // Foto de perfil para el instructor
 $photoPath = null;
 if ($rolNombre === 'instructor') {

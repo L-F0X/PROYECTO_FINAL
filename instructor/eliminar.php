@@ -9,6 +9,12 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+$rol = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+if ($rol !== 'instructor') {
+    header("Location: ../index.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $token = $_POST['csrf_token'] ?? '';

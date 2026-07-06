@@ -23,7 +23,7 @@ if (!defined('ACCESO_VALIDO')) {
             <select name="id_ficha_tecnica" class="form-control-modern" required>
                 <option value="">— Seleccione un elemento —</option>
                 <?php foreach ($itemsInventario as $i): ?>
-                    <option value="<?= $i['ID_FICHA_TECNICA'] ?>" <?= $i['CANTIDAD'] == 0 ? 'disabled style="color: #cbd5e1;"' : '' ?>>
+                    <option value="<?= (int)$i['ID_FICHA_TECNICA'] ?>" <?= $i['CANTIDAD'] == 0 ? 'disabled style="color: #cbd5e1;"' : '' ?>>
                         <?= htmlspecialchars($i['NOMBRE_ITEM']) ?> (Disponible: <?= $i['CANTIDAD'] ?>)
                     </option>
                 <?php endforeach; ?>

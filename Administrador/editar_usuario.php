@@ -51,7 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password   = trim($_POST['password'] ?? '');
     $estado     = trim($_POST['estado'] ?? 'Activo');
 
-    if ($idRol > 0 && $documento !== '' && $nombre !== '' && $apellido !== '' && $email !== '') {
+    if ($idRol <= 0 || $documento === '' || $nombre === '' || $apellido === '' || $email === '') {
+        $error = '✗ Todos los campos son obligatorios.';
+    } elseif ($password !== '' && strlen($password) < 8) {
+        $error = '✗ La contraseña debe tener al menos 8 caracteres.';
+    } else {
         try {
             // Verificar si el documento o correo ya están registrados por otro usuario
             $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM usuario WHERE (DOCUMENTO = ? OR EMAIL = ?) AND ID_USUARIO <> ?");
@@ -93,8 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log('Error editando usuario: ' . $e->getMessage());
             $error = '✗ Error interno al procesar la actualización.';
         }
-    } else {
-        $error = '✗ Todos los campos excepto la contraseña son obligatorios.';
     }
 }
 
@@ -257,7 +259,7 @@ try {
                             <select id="id_rol" name="id_rol" required>
                                 <option value="">Seleccione un rol...</option>
                                 <?php foreach ($roles as $r): ?>
-                                    <option value="<?= $r['ID_ROL'] ?>" <?= $user['ID_ROL'] == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
+                                    <option value="<?= (int)$r['ID_ROL'] ?>" <?= $user['ID_ROL'] == $r['ID_ROL'] ? 'selected' : '' ?>><?= htmlspecialchars($r['NOMBRE_ROL']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -279,7 +281,7 @@ try {
 
                         <div class="profile-field">
                             <label for="password">Contraseña (opcional)</label>
-                            <input type="password" id="password" name="password" placeholder="Nueva contraseña..." autocomplete="new-password">
+                            <input type="password" id="password" name="password" placeholder="Nueva contraseña..." minlength="8" autocomplete="new-password">
                         </div>
 
                         <div class="profile-field">

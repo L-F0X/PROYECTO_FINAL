@@ -35,7 +35,7 @@ if (!defined('ACCESO_VALIDO')) {
 <?php else: ?>
     <?php foreach ($lotesInstructores as $lote): ?>
         <div class="lote-card" style="margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; background: #ffffff;">
-            <div class="lote-header" onclick="toggleLoteDetalle(<?= $lote['ID_LOTE'] ?>)" style="padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; cursor: pointer; transition: background 0.2s;">
+            <div class="lote-header" onclick="toggleLoteDetalle(<?= (int)$lote['ID_LOTE'] ?>)" style="padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; cursor: pointer; transition: background 0.2s;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <span style="font-weight: 700; font-size: 1.15rem; color: #0f172a;">Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></span>
                     <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.85rem; color: #64748b;">
@@ -57,7 +57,7 @@ if (!defined('ACCESO_VALIDO')) {
                 </div>
             </div>
             
-            <div class="lote-body" id="lote-body-<?= $lote['ID_LOTE'] ?>" style="background: #ffffff; padding-left: 24px; padding-right: 24px;">
+            <div class="lote-body" id="lote-body-<?= (int)$lote['ID_LOTE'] ?>" style="background: #ffffff; padding-left: 24px; padding-right: 24px;">
                 <h4 style="margin-top: 0; margin-bottom: 12px; color: var(--gris-oscuro);">Ítems del Requerimiento:</h4>
                 
                 <?php
@@ -121,12 +121,12 @@ if (!defined('ACCESO_VALIDO')) {
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <?php if ($lote['NUMERO_CERTIFICADO']): ?>
-                            <a href="../instructor/certificado_pdf.php?id=<?= $lote['ID_CERTIFICADO'] ?>" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
+                            <a href="../instructor/certificado_pdf.php?id=<?= (int)$lote['ID_CERTIFICADO'] ?>" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
                         <?php elseif ($lote['ESTADO_TRAMITE'] === 'Aprobado'): ?>
                             <form action="index.php?tab=instructor" method="POST" style="margin: 0;">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                 <input type="hidden" name="action" value="emitir_certificado">
-                                <input type="hidden" name="id_lote" value="<?= $lote['ID_LOTE'] ?>">
+                                <input type="hidden" name="id_lote" value="<?= (int)$lote['ID_LOTE'] ?>">
                                 <button type="submit" class="btn btn-sena" style="padding: 10px 20px; font-size: 0.9rem;">Emitir Certificado de Existencia</button>
                             </form>
                         <?php else: ?>

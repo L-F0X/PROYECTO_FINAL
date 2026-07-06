@@ -79,7 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $successMsg = "Artículo '$nombre' agregado exitosamente al inventario.";
                     $tabActiva = 'stock';
                 } catch (Exception $e) {
-                    $errorMsg = "Error al guardar el artículo: " . $e->getMessage();
+                    error_log('Error al guardar el artículo: ' . $e->getMessage());
+                    $errorMsg = "Error al guardar el artículo. Intente de nuevo más tarde.";
                 }
             }
         }
@@ -115,7 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $successMsg = "Artículo actualizado correctamente.";
                     $tabActiva = 'stock';
                 } catch (Exception $e) {
-                    $errorMsg = "Error al actualizar: " . $e->getMessage();
+                    error_log('Error al actualizar artículo: ' . $e->getMessage());
+                    $errorMsg = "Error al actualizar el artículo. Intente de nuevo más tarde.";
                 }
             }
         }
@@ -161,7 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $tabActiva = 'stock';
             } catch (Exception $e) {
                 $pdo->rollBack();
-                $errorMsg = "Error al registrar la entrada: " . $e->getMessage();
+                error_log('Error al registrar la entrada: ' . $e->getMessage());
+                $errorMsg = "Error al registrar la entrada. Intente de nuevo más tarde.";
                 $tabActiva = 'entrada';
             }
         }
@@ -178,36 +181,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tabActiva = 'salida';
         } else {
             try {
-                // Verificar stock actual primero
-                $stmtCheck = $pdo->prepare("SELECT CANTIDAD, NOMBRE_ITEM FROM ficha_tecnica WHERE ID_FICHA_TECNICA = ?");
+                $pdo->beginTransaction();
+
+                // Bloquear la fila y verificar stock actual dentro de la transacción
+                $stmtCheck = $pdo->prepare("SELECT CANTIDAD, NOMBRE_ITEM FROM ficha_tecnica WHERE ID_FICHA_TECNICA = ? FOR UPDATE");
                 $stmtCheck->execute([$id_ficha]);
                 $item = $stmtCheck->fetch();
 
                 if (!$item) {
+                    $pdo->rollBack();
                     $errorMsg = "El artículo seleccionado no existe.";
                     $tabActiva = 'salida';
                 } elseif ($item['CANTIDAD'] < $cantidad_salida) {
+                    $pdo->rollBack();
                     $errorMsg = "Stock insuficiente para realizar esta salida. Stock actual de '{$item['NOMBRE_ITEM']}': {$item['CANTIDAD']} unidades.";
                     $tabActiva = 'salida';
                 } else {
-                    $pdo->beginTransaction();
-                    // Actualizar cantidad
-                    $stmt = $pdo->prepare("UPDATE ficha_tecnica SET CANTIDAD = CANTIDAD - ? WHERE ID_FICHA_TECNICA = ?");
-                    $stmt->execute([$cantidad_salida, $id_ficha]);
+                    // Guarda adicional en el UPDATE para evitar stock negativo ante condiciones de carrera
+                    $stmt = $pdo->prepare("UPDATE ficha_tecnica SET CANTIDAD = CANTIDAD - ? WHERE ID_FICHA_TECNICA = ? AND CANTIDAD >= ?");
+                    $stmt->execute([$cantidad_salida, $id_ficha, $cantidad_salida]);
 
-                    // Registrar auditoría
-                    $stmtAudit = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, 'Salida Inventario', ?)");
-                    $stmtAudit->execute([$usuarioId, "Salida de $cantidad_salida unidades del item ID: $id_ficha. Motivo: $comentario"]);
+                    if ($stmt->rowCount() === 0) {
+                        $pdo->rollBack();
+                        $errorMsg = "Stock insuficiente para realizar esta salida. Intente de nuevo.";
+                        $tabActiva = 'salida';
+                    } else {
+                        // Registrar auditoría
+                        $stmtAudit = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, 'Salida Inventario', ?)");
+                        $stmtAudit->execute([$usuarioId, "Salida de $cantidad_salida unidades del item ID: $id_ficha. Motivo: $comentario"]);
 
-                    $pdo->commit();
-                    $successMsg = "Salida de mercancía registrada con éxito.";
-                    $tabActiva = 'stock';
+                        $pdo->commit();
+                        $successMsg = "Salida de mercancía registrada con éxito.";
+                        $tabActiva = 'stock';
+                    }
                 }
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                $errorMsg = "Error al registrar la salida: " . $e->getMessage();
+                error_log('Error al registrar la salida: ' . $e->getMessage());
+                $errorMsg = "Error al registrar la salida. Intente de nuevo más tarde.";
                 $tabActiva = 'salida';
             }
         }
@@ -238,7 +251,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 $tabActiva = 'instructor';
             } catch (Exception $e) {
-                $errorMsg = "Error al emitir el certificado: " . $e->getMessage();
+                error_log('Error al emitir el certificado: ' . $e->getMessage());
+                $errorMsg = "Error al emitir el certificado. Intente de nuevo más tarde.";
                 $tabActiva = 'instructor';
             }
         }

@@ -1,6 +1,9 @@
 <?php
 // almacenista/dashboard_stats.php
 // Componente de métricas rápidas de inventario
+if (!defined('ACCESO_VALIDO')) {
+    exit('Acceso denegado');
+}
 
 $stats = [
     'total' => 0,

@@ -2,8 +2,8 @@
 // instructor/certificado_pdf.php
 // Vista de detalle + exportación a PDF (impresión del navegador) del
 // certificado de existencia, incluyendo el listado de materiales del lote.
-// Accesible por cualquier rol autenticado (instructor, almacenista, coordinador),
-// igual que exportar_docx.php: solo se exige sesión activa, sin restringir rol.
+// Accesible por almacenista/coordinador/administrador para cualquier lote;
+// un instructor solo puede ver los certificados de sus propios lotes.
 require_once '../conexion.php';
 
 if (!isset($_SESSION['usuario_id'])) {
@@ -16,6 +16,9 @@ $idCertificado = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($idCertificado === 0) {
     die('Certificado no válido.');
 }
+
+$rolNombreCheck = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
+$usuarioIdCheck = intval($_SESSION['usuario_id']);
 
 $stmtCert = $pdo->prepare("
     SELECT ce.*, lr.LOTE_NOMBRE, lr.FECHA_CREACION, lr.ID_SOLICITANTE, u.NOMBRE, u.APELLIDO, u.EMAIL,
@@ -32,6 +35,12 @@ $cert = $stmtCert->fetch();
 
 if (!$cert) {
     die('Certificado no encontrado.');
+}
+
+// Un instructor solo puede ver certificados de lotes que él mismo solicitó;
+// almacenista/coordinador/administrador pueden ver cualquiera (lo necesitan para su labor).
+if ($rolNombreCheck === 'instructor' && intval($cert['ID_SOLICITANTE']) !== $usuarioIdCheck) {
+    die('No tiene permiso para ver este certificado.');
 }
 
 // Materiales (ítems) del lote: esto es lo que realmente certifica la existencia.

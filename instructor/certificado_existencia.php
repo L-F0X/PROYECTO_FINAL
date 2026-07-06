@@ -352,7 +352,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="certificado_pdf.php?id=<?= $c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
+                                            <a href="certificado_pdf.php?id=<?= (int)$c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

@@ -57,22 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         // Manejo de foto
         if (!empty($_FILES['photo']['name'])) {
             $file = $_FILES['photo'];
-            $allowedMime = [
-                'image/jpeg' => 'jpg',
-                'image/jpg' => 'jpg',
-                'image/pjpeg' => 'jpg',
-                'image/png' => 'png',
-                'image/x-png' => 'png',
-                'image/webp' => 'webp'
+            $allowedImageTypes = [
+                IMAGETYPE_JPEG => 'jpg',
+                IMAGETYPE_PNG  => 'png',
+                IMAGETYPE_WEBP => 'webp',
             ];
-            
-            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $fileMime = $file['type'];
-            
-            if ($file['error'] === UPLOAD_ERR_OK && (isset($allowedMime[$fileMime]) || in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']))) {
-                $ext = in_array($fileExt, ['jpg', 'jpeg', 'png', 'webp']) ? $fileExt : ($allowedMime[$fileMime] ?? 'jpg');
-                if ($ext === 'jpeg') $ext = 'jpg';
-                
+            $imageInfo = $file['error'] === UPLOAD_ERR_OK ? @getimagesize($file['tmp_name']) : false;
+
+            if ($imageInfo !== false && isset($allowedImageTypes[$imageInfo[2]])) {
+                $ext = $allowedImageTypes[$imageInfo[2]];
+
                 $dir = __DIR__ . '/../uploads/profiles';
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 $target = $dir . '/' . $usuarioId . '.' . $ext;

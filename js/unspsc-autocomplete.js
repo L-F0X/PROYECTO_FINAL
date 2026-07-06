@@ -28,7 +28,10 @@ function initUnspscAutocomplete(options) {
             row.style.cursor = 'pointer';
             row.style.borderBottom = '1px solid #eee';
             row.style.fontSize = '13px';
-            row.innerHTML = '<strong>' + item.codigo + '</strong> — ' + item.nombre;
+            const codigoEl = document.createElement('strong');
+            codigoEl.textContent = item.codigo;
+            row.appendChild(codigoEl);
+            row.appendChild(document.createTextNode(' — ' + item.nombre));
             row.addEventListener('mousedown', function (e) {
                 e.preventDefault();
                 input.value = item.codigo + ' - ' + item.nombre;

@@ -60,6 +60,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tipoMensaje = 'error';
         } else {
             try {
+                $pdo->beginTransaction();
+
+                // Re-verificar el estado actual bajo bloqueo, por si otro proceso ya decidió el lote
+                $stmtLock = $pdo->prepare("SELECT ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ? FOR UPDATE");
+                $stmtLock->execute([$idLote]);
+                $estadoActual = $stmtLock->fetchColumn();
+
+                if ($estadoActual !== 'Enviado') {
+                    $pdo->rollBack();
+                    header('Location: revisar_lotes.php?msg=error');
+                    exit;
+                }
+
                 // Actualizar estado del lote a Rechazado
                 $updateStmt = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Rechazado' WHERE ID_LOTE = ?");
                 $updateStmt->execute([$idLote]);
@@ -68,11 +81,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Rechazado', ?)");
                 $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), $justificacion]);
 
+                $pdo->commit();
+
                 header("Location: revisar_lotes.php?msg=rechazado");
                 exit;
             } catch (Exception $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
                 error_log('Error rechazando lote: ' . $e->getMessage());
-                $mensaje = 'Error al rechazar el lote: ' . $e->getMessage();
+                $mensaje = 'Error al rechazar el lote. Intente de nuevo más tarde.';
                 $tipoMensaje = 'error';
             }
         }

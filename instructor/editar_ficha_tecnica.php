@@ -14,6 +14,8 @@ if ($rol !== 'instructor') {
     exit;
 }
 
+$usuarioId = intval($_SESSION['usuario_id']);
+
 $idFicha = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($idFicha <= 0) {
     header('Location: fichas_tecnicas_creadas.php');
@@ -25,6 +27,13 @@ $stmtFicha->execute([$idFicha]);
 $ficha = $stmtFicha->fetch();
 if (!$ficha) {
     header('Location: fichas_tecnicas_creadas.php');
+    exit;
+}
+
+// Solo el instructor que creó la ficha puede editarla. Las fichas sin creador
+// registrado (creadas antes de esta restricción) siguen siendo editables por cualquiera.
+if ($ficha['ID_CREADOR'] !== null && intval($ficha['ID_CREADOR']) !== $usuarioId) {
+    header('Location: fichas_tecnicas_creadas.php?msg=sin_permiso');
     exit;
 }
 
@@ -77,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$usuarioId = intval($_SESSION['usuario_id']);
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;

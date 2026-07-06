@@ -161,7 +161,7 @@ $total = count($certificados);
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></td>
                                     <td style="padding: 12px;"><?= !empty($cert['FECHA_EMISION']) ? htmlspecialchars(date('d/m/Y', strtotime($cert['FECHA_EMISION']))) : 'N/D' ?></td>
                                     <td style="padding: 12px;">
-                                        <a href="../instructor/certificado_pdf.php?id=<?= $cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
+                                        <a href="../instructor/certificado_pdf.php?id=<?= (int)$cert['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

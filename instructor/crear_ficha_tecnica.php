@@ -122,11 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Caso A: Asociar a un ítem existente de la matriz
             // 1. Insertar en tabla ficha_tecnica
             $sqlInsert = "INSERT INTO ficha_tecnica
-                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                (ID_MATRIZ_ITEM, ID_CREADOR, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmtInsert = $pdo->prepare($sqlInsert);
             $stmtInsert->execute([
-                $idMatrizItem, $nombreItem, $codigoUnspsc,
+                $idMatrizItem, $usuarioId, $nombreItem, $codigoUnspsc,
                 $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
             ]);
             $lastFichaId = $pdo->lastInsertId();
@@ -154,11 +154,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // 2. Insertar en tabla ficha_tecnica
             $sqlInsert = "INSERT INTO ficha_tecnica
-                (ID_MATRIZ_ITEM, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                (ID_MATRIZ_ITEM, ID_CREADOR, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmtInsert = $pdo->prepare($sqlInsert);
             $stmtInsert->execute([
-                $idMatrizItem, $nombreItem, $codigoUnspsc,
+                $idMatrizItem, $usuarioId, $nombreItem, $codigoUnspsc,
                 $denominacion, $unidadMedida, $descripcion, $comentarios, $cantidad
             ]);
             $lastFichaId = $pdo->lastInsertId();
