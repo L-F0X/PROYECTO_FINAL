@@ -203,16 +203,16 @@ $isIframe = isset($_GET['iframe']) ? true : false;
 </head>
 <body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
 
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
-            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
+            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
         </div>
+    </div>
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -222,6 +222,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
         </a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

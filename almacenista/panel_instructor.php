@@ -53,7 +53,7 @@ if (!defined('ACCESO_VALIDO')) {
                     <?php else: ?>
                         <span class="badge badge-danger">Sin Certificado</span>
                     <?php endif; ?>
-                    <button class="btn-action-small" style="background: #e2e8f0; color: #334155; margin-left: 5px;">Detalles</button>
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; margin-left: 5px;">Detalles</button>
                 </div>
             </div>
             
@@ -86,7 +86,7 @@ if (!defined('ACCESO_VALIDO')) {
                                     <th style="padding: 10px; text-align: left;">Código UNSPSC</th>
                                     <th style="padding: 10px; text-align: center;">Cantidad</th>
                                     <th style="padding: 10px; text-align: center;">U. Medida</th>
-                                    <th style="padding: 10px; text-align: left;">Ficha Técnica</th>
+                                    <th style="padding: 10px; text-align: left;">Notas Técnicas</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -96,7 +96,7 @@ if (!defined('ACCESO_VALIDO')) {
                                         <td style="padding: 10px;"><code style="font-size: 0.8rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;"><?= htmlspecialchars($itemL['CODIGO_UNSPSC'] ?: 'Sin Asignar') ?></code></td>
                                         <td style="padding: 10px; text-align: center; font-weight: bold;"><?= htmlspecialchars($itemL['CANTIDAD_REGULAR']) ?></td>
                                         <td style="padding: 10px; text-align: center;"><?= htmlspecialchars($itemL['UNIDAD_MEDIDA'] ?: 'Unidad') ?></td>
-                                        <td style="padding: 10px; font-size: 0.85rem; color: #64748b;"><?= htmlspecialchars($itemL['FICHA_TECNICA'] ?: 'Ninguna') ?></td>
+                                        <td style="padding: 10px; font-size: 0.85rem; color: #64748b;"><?= htmlspecialchars($itemL['NOTAS_TECNICAS'] ?: 'Ninguna') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -121,7 +121,7 @@ if (!defined('ACCESO_VALIDO')) {
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <?php if ($lote['NUMERO_CERTIFICADO']): ?>
-                            <a href="../instructor/certificado_pdf.php?id=<?= (int)$lote['ID_CERTIFICADO'] ?>" class="btn-action-small" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
+                            <a href="../instructor/certificado_pdf.php?id=<?= (int)$lote['ID_CERTIFICADO'] ?>" class="btn btn-info" style="padding: 6px 12px; font-size: 0.8rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">🖨 Ver / Exportar PDF</a>
                         <?php elseif ($lote['ESTADO_TRAMITE'] === 'Aprobado'): ?>
                             <form action="index.php?tab=instructor" method="POST" style="margin: 0;">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">

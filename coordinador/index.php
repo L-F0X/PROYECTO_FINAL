@@ -86,15 +86,15 @@ try {
 </head>
 <body>
 
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA">
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
-            <span class="header-user-role">(Coordinador)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
+            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
         </div>
+    </div>
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -104,6 +104,7 @@ try {
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
@@ -145,38 +146,29 @@ try {
         </div>
 
         <!-- Fila de Tarjetas de Métricas -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px;">
-            
-            <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #7c3aed;">
-                <div>
-                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Instructores</span>
-                    <h3 style="font-size: 2.2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $totalInstructores ?></h3>
-                </div>
-                <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Instructores registrados</p>
+        <div class="stats-container">
+            <div class="stat-card" style="border-left-color: #7c3aed;">
+                <span class="stat-label">Instructores</span>
+                <strong class="stat-value"><?= $totalInstructores ?></strong>
+                <p class="stat-hint">Instructores registrados</p>
             </div>
 
-            <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid #0284c7;">
-                <div>
-                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Lotes Enviados</span>
-                    <h3 style="font-size: 2.2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $lotesEnviados ?></h3>
-                </div>
-                <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">En espera de revisión</p>
+            <div class="stat-card" style="border-left-color: #0284c7;">
+                <span class="stat-label">Lotes Enviados</span>
+                <strong class="stat-value"><?= $lotesEnviados ?></strong>
+                <p class="stat-hint">En espera de revisión</p>
             </div>
 
-            <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid var(--verde-sena);">
-                <div>
-                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Decisiones Tomadas</span>
-                    <h3 style="font-size: 2.2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $decisionesTomadas ?></h3>
-                </div>
-                <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Aprobados y rechazados</p>
+            <div class="stat-card" style="border-left-color: #39A900;">
+                <span class="stat-label">Decisiones Tomadas</span>
+                <strong class="stat-value"><?= $decisionesTomadas ?></strong>
+                <p class="stat-hint">Aprobados y rechazados</p>
             </div>
 
-            <div class="metric-card" style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; border-left: 5px solid var(--alerta-rojo);">
-                <div>
-                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Decisiones por Tomar</span>
-                    <h3 style="font-size: 2.2rem; margin: 10px 0 0; font-weight: 800; color: var(--texto-oscuro);"><?= $decisionesPorTomar ?></h3>
-                </div>
-                <p style="margin: 8px 0 0; font-size: 0.8rem; color: #94a3b8;">Pendientes de resolver</p>
+            <div class="stat-card" style="border-left-color: #ef4444;">
+                <span class="stat-label">Decisiones por Tomar</span>
+                <strong class="stat-value"><?= $decisionesPorTomar ?></strong>
+                <p class="stat-hint">Pendientes de resolver</p>
             </div>
         </div>
 

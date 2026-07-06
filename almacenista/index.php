@@ -413,15 +413,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         .badge-danger { background: #fee2e2; color: #991b1b; }
         .badge-info { background: #e0f2fe; color: #075985; }
 
-        .btn-action-small {
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            border-radius: 6px;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-
         /* Formularios modernos */
         .modern-form {
             display: grid;
@@ -484,7 +475,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
-        <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

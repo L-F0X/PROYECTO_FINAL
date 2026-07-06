@@ -63,7 +63,7 @@ $conCatalogo = (int) $pdo->query("SELECT COUNT(*) FROM codigo_unspsc WHERE NOMBR
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?></a>
-        <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = 'Token CSRF inválido.';
         $tipoMensaje = 'error';
     } else {
+        $accion = $_POST['accion'] ?? 'crear';
         $nit = trim($_POST['nit'] ?? '');
         $razonSocial = trim($_POST['razon_social'] ?? '');
         $email = trim($_POST['email'] ?? '');
@@ -34,6 +35,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $mensaje = 'El correo electrónico no tiene un formato válido.';
             $tipoMensaje = 'error';
+        } elseif ($accion === 'editar') {
+            $idProveedor = intval($_POST['id_proveedor'] ?? 0);
+            try {
+                $existe = $pdo->prepare('SELECT 1 FROM proveedor WHERE ID_PROVEEDOR = ?');
+                $existe->execute([$idProveedor]);
+                if ($idProveedor <= 0 || !$existe->fetch()) {
+                    $mensaje = 'No se encontró el proveedor indicado.';
+                    $tipoMensaje = 'error';
+                } else {
+                    $stmt = $pdo->prepare('UPDATE proveedor SET NIT = ?, RAZON_SOCIAL = ?, EMAIL = ? WHERE ID_PROVEEDOR = ?');
+                    $stmt->execute([$nit, $razonSocial, $email, $idProveedor]);
+                    $mensaje = '✓ Proveedor actualizado correctamente.';
+                }
+            } catch (PDOException $e) {
+                error_log('Error editando proveedor: ' . $e->getMessage());
+                $mensaje = $e->getCode() === '23000'
+                    ? 'Ya existe otro proveedor con ese NIT.'
+                    : 'No se pudo actualizar el proveedor. Contacte al administrador.';
+                $tipoMensaje = 'error';
+            }
         } else {
             try {
                 $stmt = $pdo->prepare('INSERT INTO proveedor (NIT, RAZON_SOCIAL, EMAIL) VALUES (?, ?, ?)');
@@ -86,16 +107,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </head>
 <body>
 
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Coordinador de Compras: <strong><?= $usuarioNombre ?></strong>
-            <span class="header-user-role">(Coordinador)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
+            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
         </div>
+    </div>
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -105,6 +126,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="header-avatar"><?= strtoupper(substr($usuarioNombre, 0, 1)) ?></div>
             <?php endif; ?>
         </a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
@@ -149,6 +171,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <h3>Nuevo Proveedor</h3>
                 <form method="POST" action="proveedores.php">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                    <input type="hidden" name="accion" value="crear">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="nit">NIT *</label>
@@ -180,23 +203,41 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th>NIT</th>
                             <th>Razón Social</th>
                             <th>Correo</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($proveedores)): ?>
-                            <tr><td colspan="4" style="text-align:center; padding: 20px; color:#999;">No hay proveedores registrados.</td></tr>
+                            <tr><td colspan="5" style="text-align:center; padding: 20px; color:#999;">No hay proveedores registrados.</td></tr>
                         <?php else: ?>
                             <?php foreach ($proveedores as $p): ?>
+                                <?php $formId = 'form-prov-' . $p['ID_PROVEEDOR']; ?>
                                 <tr>
                                     <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
-                                    <td><?= htmlspecialchars($p['NIT']) ?></td>
-                                    <td><?= htmlspecialchars($p['RAZON_SOCIAL']) ?></td>
-                                    <td><?= htmlspecialchars($p['EMAIL']) ?></td>
+                                    <td>
+                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="razon_social" form="<?= $formId ?>" value="<?= htmlspecialchars($p['RAZON_SOCIAL']) ?>" class="form-control" required>
+                                    </td>
+                                    <td>
+                                        <input type="email" name="email" form="<?= $formId ?>" value="<?= htmlspecialchars($p['EMAIL']) ?>" class="form-control" required>
+                                    </td>
+                                    <td>
+                                        <button type="submit" form="<?= $formId ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Guardar</button>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
+                <?php foreach ($proveedores as $p): ?>
+                    <form id="form-prov-<?= htmlspecialchars($p['ID_PROVEEDOR']) ?>" method="POST" action="proveedores.php<?= $busqueda !== '' ? '?q=' . urlencode($busqueda) : '' ?>" style="display:none;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                        <input type="hidden" name="accion" value="editar">
+                        <input type="hidden" name="id_proveedor" value="<?= htmlspecialchars($p['ID_PROVEEDOR']) ?>">
+                    </form>
+                <?php endforeach; ?>
             </div>
         </div>
     </main>

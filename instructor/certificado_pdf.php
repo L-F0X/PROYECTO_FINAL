@@ -147,14 +147,12 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 </head>
 <body>
 
-<header class="dashboard-header no-print">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;">
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Bienvenido: <strong><?= $usuarioNombre ?></strong>
-            <span class="header-user-role">(<?= $rolNombre ?>)</span>
+<header class="header-main no-print">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM</h1>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(<?= $rolNombre ?>)</span></div>
         </div>
     </div>
 </header>

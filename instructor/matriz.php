@@ -50,6 +50,21 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $usuarioId = intval($_SESSION['usuario_id']);
 
+// Migración: renombrar la columna de texto libre matriz_item.FICHA_TECNICA a NOTAS_TECNICAS
+// para no confundirla con la tabla ficha_tecnica (el catálogo real de fichas técnicas).
+function matriz_columna_existe(PDO $pdo, string $tabla, string $columna): bool {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+    $stmt->execute([$tabla, $columna]);
+    return (bool) $stmt->fetchColumn();
+}
+if (matriz_columna_existe($pdo, 'matriz_item', 'FICHA_TECNICA') && !matriz_columna_existe($pdo, 'matriz_item', 'NOTAS_TECNICAS')) {
+    $pdo->exec("ALTER TABLE matriz_item CHANGE COLUMN FICHA_TECNICA NOTAS_TECNICAS TEXT DEFAULT NULL");
+}
+// Migración aditiva: registrar quién creó cada ficha técnica, para restringir su edición
+if (!matriz_columna_existe($pdo, 'ficha_tecnica', 'ID_CREADOR')) {
+    $pdo->exec("ALTER TABLE ficha_tecnica ADD COLUMN ID_CREADOR INT DEFAULT NULL");
+}
+
 // Capturar el ID del lote para ver sus ítems específicos
 $id_lote = isset($_GET['lote']) ? intval($_GET['lote']) : 0;
 
@@ -96,8 +111,8 @@ try {
     $stmtRole = $pdo->query("SELECT ID_ROL FROM rol WHERE LOWER(NOMBRE_ROL) = 'instructor' LIMIT 1");
     $roleId = $stmtRole->fetchColumn();
     if ($roleId) {
-        $stmtIns = $pdo->prepare("SELECT ID_USUARIO, NOMBRE, APELLIDO FROM usuario WHERE ID_ROL = ? ORDER BY NOMBRE, APELLIDO");
-        $stmtIns->execute([$roleId]);
+        $stmtIns = $pdo->prepare("SELECT ID_USUARIO, NOMBRE, APELLIDO FROM usuario WHERE ID_ROL = ? AND ID_USUARIO != ? ORDER BY NOMBRE, APELLIDO");
+        $stmtIns->execute([$roleId, $usuarioId]);
         $instructors = $stmtIns->fetchAll();
     }
 } catch (Exception $e) {
@@ -228,6 +243,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     
     $ficha = trim($_POST['ficha_tecnica'] ?? '');
     $instructor_apoyo = isset($_POST['instructor_apoyo']) && $_POST['instructor_apoyo'] !== '' ? intval($_POST['instructor_apoyo']) : null;
+    if ($instructor_apoyo === $usuarioId) {
+        die('No puedes seleccionarte a ti mismo como instructor de apoyo.');
+    }
 
     // Acción del botón: guardar borrador o enviar solicitud
     $submitAction = $_POST['submit_action'] ?? 'guardar';
@@ -283,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
 
         // 2. Insertar el ítem en matriz_item (con ID_NECESIDAD y ID_FICHA_TECNICA como NULL temporalmente)
-        $sqlInsert = "INSERT INTO matriz_item (ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA) 
+        $sqlInsert = "INSERT INTO matriz_item (ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, NOTAS_TECNICAS, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA)
                       VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
         $pdo->prepare($sqlInsert)->execute([
             $id_lote, 
@@ -479,16 +497,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </head>
 <body>
 
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="index.php" class="btn-inicio-nav">Inicio</a>
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
-            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
+            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
         </div>
+    </div>
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -498,6 +516,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
         </a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
@@ -872,7 +891,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             }
                             ?>
                         </td>
-                        <td><span class="badge badge-warning"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
+                        <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
                         <td>
                             <?php if ($item['ID_FICHA_TECNICA']): ?>
                                 <span style="color: green; font-weight: bold;">✓ Asignada (FT #<?= (int)$item['ID_FICHA_TECNICA'] ?>)</span>

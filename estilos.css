@@ -279,7 +279,6 @@ body {
 }
 
 /* iframe mode to hide header & sidebar inside embedded pages */
-body.iframe-mode .dashboard-header,
 body.iframe-mode .dashboard-sidebar,
 body.iframe-mode header {
     display: none !important;
@@ -655,6 +654,18 @@ body.iframe-mode .dashboard-main {
     box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
 }
 
+.btn-info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.btn-info:hover {
+    background-color: #bae6fd;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.2);
+}
+
 /* Tablas Modernas */
 table {
     width: 100%;
@@ -871,7 +882,6 @@ table {
     .metric-card,
     .dashboard-sidebar,
     .dashboard-topbar,
-    .dashboard-header,
     .header-main,
     .hud-status .hud-dot,
     .btn::after {
@@ -1140,6 +1150,32 @@ table {
     margin: 0;
 }
 
+/* Píldoras de estado (lotes/ítems) usadas en tablas de consulta */
+.badge-estado {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.badge-borrador {
+    background: #e2e8f0;
+    color: #475569;
+}
+.badge-pendiente,
+.badge-enviado {
+    background: #fef3c7;
+    color: #92400e;
+}
+.badge-aprobado {
+    background: #d4edda;
+    color: #155724;
+}
+.badge-rechazado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
 .stat-card--dark {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     color: #ffffff;
@@ -1289,86 +1325,6 @@ table {
     justify-content: flex-end;
 }
 
-/* ── Dashboard Header (barra superior con efecto vidrio) ── */
-.dashboard-header {
-    background-color: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
-    color: var(--blanco);
-    padding: 10px 28px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    border-bottom: 4px solid var(--verde-sena);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.dashboard-header .header-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.dashboard-header .header-brand img {
-    height: 32px;
-    width: auto;
-    display: block;
-    padding: 7px;
-    background: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-}
-
-.dashboard-header .header-user {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.dashboard-header .header-user-text {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.93rem;
-    color: rgba(255,255,255,0.9);
-}
-
-.dashboard-header .header-user-role {
-    font-size: 0.83rem;
-    color: rgba(255,255,255,0.6);
-}
-
-.dashboard-header .header-avatar-link {
-    display: inline-flex;
-    border-radius: 50%;
-    overflow: hidden;
-    text-decoration: none;
-}
-
-.dashboard-header .header-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: #f1f5f9;
-    color: var(--gris-oscuro);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1rem;
-    border: 2px solid rgba(255,255,255,0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
 /* Responsividad */
 @media (max-width: 1100px) {
     .dashboard-page {
@@ -1466,17 +1422,6 @@ table {
     .sidebar-link {
         font-size: 0.8rem;
         padding: 8px 10px;
-    }
-    .dashboard-header {
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
-        text-align: center;
-    }
-    .dashboard-header .header-user {
-        flex-direction: row;
-        justify-content: center;
-        width: 100%;
     }
 }
 
@@ -1583,25 +1528,6 @@ table {
     .login-hero h2,
     .login-form-header h2 {
         font-size: 1.75rem;
-    }
-
-    .dashboard-header {
-        padding: 10px 16px;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .dashboard-header .header-brand {
-        flex: 1;
-    }
-    .dashboard-header .header-user {
-        flex: 1;
-        justify-content: flex-end;
-        gap: 8px;
-    }
-    .dashboard-header .header-user-text {
-        font-size: 0.85rem;
     }
 }
 
@@ -1781,7 +1707,7 @@ table {
    panel, se oculta la navegación y solo queda el contenido a exportar. El
    usuario usa el diálogo de impresión del navegador y elige "Guardar como PDF". */
 @media print {
-    .dashboard-header,
+    .header-main,
     .dashboard-sidebar,
     .actions-bar,
     .no-print {

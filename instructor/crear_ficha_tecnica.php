@@ -17,6 +17,16 @@ if ($rol !== 'instructor') {
 $usuarioId = intval($_SESSION['usuario_id']);
 $mensaje = "";
 
+// Migración aditiva: registrar quién creó cada ficha técnica, para restringir su edición
+function ficha_columna_existe(PDO $pdo, string $tabla, string $columna): bool {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+    $stmt->execute([$tabla, $columna]);
+    return (bool) $stmt->fetchColumn();
+}
+if (!ficha_columna_existe($pdo, 'ficha_tecnica', 'ID_CREADOR')) {
+    $pdo->exec("ALTER TABLE ficha_tecnica ADD COLUMN ID_CREADOR INT DEFAULT NULL");
+}
+
 // Cargar items de la matriz disponibles (del instructor) para asociar la ficha
 $stmtItems = $pdo->prepare("
     SELECT mi.ID_MATRIZ_ITEM, mi.DESCRIPCION_BIEN, lr.LOTE_NOMBRE, mi.ID_LOTE, mi.UNIDAD_MEDIDA, mi.CANTIDAD_REGULAR, c.CODIGO_UNSPSC
@@ -144,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Caso B: Crear un nuevo ítem en matriz y luego asociar la ficha técnica
             // 1. Insertar nuevo registro en matriz_item (con ID_FICHA_TECNICA temporalmente null)
             $sqlMatrizItem = "INSERT INTO matriz_item
-                (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, FICHA_TECNICA, ESTADO_ITEM, ID_FICHA_TECNICA)
+                (ID_LOTE, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, NOTAS_TECNICAS, ESTADO_ITEM, ID_FICHA_TECNICA)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'Borrador', NULL)";
 
             $stmtNewItem = $pdo->prepare($sqlMatrizItem);
@@ -435,16 +445,16 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </style>
 </head>
 <body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
-<header class="dashboard-header">
-    <div class="header-brand" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA">
-        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
-    </div>
-    <div class="header-user">
-        <div class="header-user-text">
-            Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong>
-            <span class="header-user-role">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span>
+<header class="header-main">
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
+        <div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
+            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
         </div>
+    </div>
+    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="../index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
@@ -454,6 +464,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 <div class="header-avatar"><?= strtoupper(substr($_SESSION['usuario_nombre'], 0, 1)) ?></div>
             <?php endif; ?>
         </a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 
@@ -624,7 +635,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                     <div class="ficha-desc-text">
                         <textarea name="descripcion_general" id="descripcion_general"
                                   placeholder="Tipo de elemento: ...&#10;Tecnología: ...&#10;Presentación: ..."
-                                  required><?= htmlspecialchars($prefilledItem['FICHA_TECNICA'] ?? '') ?></textarea>
+                                  required><?= htmlspecialchars($prefilledItem['NOTAS_TECNICAS'] ?? '') ?></textarea>
                     </div>
                     <div class="ficha-desc-img">
                         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5">

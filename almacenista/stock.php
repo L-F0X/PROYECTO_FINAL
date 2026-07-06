@@ -94,14 +94,14 @@ if (!defined('ACCESO_VALIDO')) {
                             <td><span class="badge <?= $badgeClass ?>"><?= $estadoTxt ?></span></td>
                             <td style="text-align: center;">
                                 <div style="display: flex; gap: 5px; justify-content: center;">
-                                    <button class="btn-action-small" style="background: #e0f2fe; color: #0369a1;"
+                                    <button class="btn btn-info" style="padding: 6px 12px; font-size: 0.8rem;"
                                             onclick="cargarDatosEdicion(<?= htmlspecialchars(json_encode($item)) ?>)">Editar</button>
 
                                     <form action="index.php" method="POST" onsubmit="return confirm('¿Seguro que desea eliminar este artículo del stock?');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                         <input type="hidden" name="action" value="delete_item">
                                         <input type="hidden" name="id_ficha_tecnica" value="<?= (int)$item['ID_FICHA_TECNICA'] ?>">
-                                        <button type="submit" class="btn-action-small" style="background: #fee2e2; color: #b91c1c;">Eliminar</button>
+                                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;">Eliminar</button>
                                     </form>
                                 </div>
                             </td>

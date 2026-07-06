@@ -46,7 +46,7 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔</a>
-        <a href="../logout.php" class="btn btn-logout">Cerrar Sesión</a>
+        <a href="../logout.php" class="btn-logout">Cerrar Sesión</a>
     </div>
 </header>
 

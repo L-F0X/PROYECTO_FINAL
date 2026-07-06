@@ -41,7 +41,7 @@ if (!defined('ACCESO_VALIDO')) {
         </div>
 
         <div class="form-full-width" style="text-align: right; margin-top: 10px;">
-            <button type="submit" class="btn btn-secondary" style="padding: 12px 30px; background-color: #ef4444; border-color: #ef4444; color: #ffffff;">Procesar Salida de Inventario</button>
+            <button type="submit" class="btn btn-danger" style="padding: 12px 30px;">Procesar Salida de Inventario</button>
         </div>
     </form>
 </div>
