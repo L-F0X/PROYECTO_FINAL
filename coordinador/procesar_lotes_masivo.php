@@ -2,6 +2,7 @@
 // coordinador/procesar_lotes_masivo.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -50,21 +51,30 @@ $justificacionFinal = $accion === 'aprobar' ? 'Lote aprobado por coordinador (ac
 try {
     $pdo->beginTransaction();
 
-    $stmtCheck = $pdo->prepare("SELECT ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ? FOR UPDATE");
+    $stmtCheck = $pdo->prepare("SELECT ESTADO_TRAMITE, LOTE_NOMBRE, ID_SOLICITANTE FROM lote_requerimiento WHERE ID_LOTE = ? FOR UPDATE");
     $stmtUpdate = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = ? WHERE ID_LOTE = ?");
     $stmtAudit = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, ?, ?)");
 
     foreach ($lotesIds as $idLote) {
         $stmtCheck->execute([$idLote]);
-        $estadoActual = $stmtCheck->fetchColumn();
+        $loteFila = $stmtCheck->fetch();
 
-        if ($estadoActual !== 'Enviado') {
+        if (!$loteFila || $loteFila['ESTADO_TRAMITE'] !== 'Enviado') {
             $omitidos++;
             continue;
         }
 
         $stmtUpdate->execute([$estadoNuevo, $idLote]);
         $stmtAudit->execute([$idLote, $idCoordinador, $estadoNuevo, $justificacionFinal]);
+
+        $verbo = $accion === 'aprobar' ? 'fue aprobado' : 'fue rechazado';
+        crear_notificacion(
+            $pdo,
+            intval($loteFila['ID_SOLICITANTE']),
+            "Tu lote '" . $loteFila['LOTE_NOMBRE'] . "' $verbo.",
+            "../instructor/mis_lotes.php"
+        );
+
         $procesados++;
     }
 

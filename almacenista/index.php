@@ -2,6 +2,7 @@
 // almacenista/index.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 // Definir constante de acceso seguro para archivos incluidos
 define('ACCESO_VALIDO', true);
@@ -218,9 +219,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $id_lote = intval($_POST['id_lote'] ?? 0);
         if ($id_lote > 0) {
             try {
-                $stmtLoteCheck = $pdo->prepare("SELECT ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ?");
+                $stmtLoteCheck = $pdo->prepare("SELECT ESTADO_TRAMITE, LOTE_NOMBRE, ID_SOLICITANTE FROM lote_requerimiento WHERE ID_LOTE = ?");
                 $stmtLoteCheck->execute([$id_lote]);
-                $estadoLote = $stmtLoteCheck->fetchColumn();
+                $loteCert = $stmtLoteCheck->fetch();
+                $estadoLote = $loteCert ? $loteCert['ESTADO_TRAMITE'] : null;
 
                 $stmtCertCheck = $pdo->prepare("SELECT NUMERO_CERTIFICADO FROM certificado_existencia WHERE ID_LOTE = ?");
                 $stmtCertCheck->execute([$id_lote]);
@@ -233,6 +235,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $numCertificado = "CERT-" . str_pad($id_lote, 6, "0", STR_PAD_LEFT) . "-" . time();
                     $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?, ?)");
                     $stmtInsert->execute([$id_lote, $numCertificado, $usuarioId]);
+
+                    crear_notificacion(
+                        $pdo,
+                        intval($loteCert['ID_SOLICITANTE']),
+                        "Se emitió el certificado de existencia de tu lote '" . $loteCert['LOTE_NOMBRE'] . "': $numCertificado",
+                        "../instructor/certificado_existencia.php"
+                    );
 
                     $successMsg = "Certificado de existencia emitido exitosamente: $numCertificado";
                 }

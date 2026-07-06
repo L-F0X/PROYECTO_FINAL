@@ -1,6 +1,7 @@
 <?php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../notificaciones.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -61,6 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Registrar la decisión en la tabla de auditoría
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
+
+            crear_notificacion(
+                $pdo,
+                intval($lote['ID_SOLICITANTE']),
+                "Tu lote '" . $lote['LOTE_NOMBRE'] . "' fue aprobado.",
+                "../instructor/mis_lotes.php"
+            );
 
             header("Location: revisar_lotes.php?msg=aprobado");
             exit;
