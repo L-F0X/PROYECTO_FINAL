@@ -48,6 +48,12 @@ $omitidos = 0;
 $estadoNuevo = $accion === 'aprobar' ? 'Aprobado' : 'Rechazado';
 $justificacionFinal = $accion === 'aprobar' ? 'Lote aprobado por coordinador (acción masiva)' : $justificacion;
 
+// Las notificaciones se acumulan aquí y se envían recién después del commit:
+// crear_notificacion/notificar_por_rol pueden ejecutar un CREATE TABLE (para
+// asegurar que la tabla de notificaciones exista), y ese DDL haría un commit
+// implícito de esta transacción si se llamara mientras sigue abierta.
+$notificacionesPendientes = [];
+
 try {
     $pdo->beginTransaction();
 
@@ -68,19 +74,19 @@ try {
         $stmtAudit->execute([$idLote, $idCoordinador, $estadoNuevo, $justificacionFinal]);
 
         $verbo = $accion === 'aprobar' ? 'fue aprobado' : 'fue rechazado';
-        crear_notificacion(
-            $pdo,
-            intval($loteFila['ID_SOLICITANTE']),
-            "Tu lote '" . $loteFila['LOTE_NOMBRE'] . "' $verbo.",
-            "../instructor/mis_lotes.php"
-        );
+        $notificacionesPendientes[] = [
+            'tipo' => 'usuario',
+            'id_usuario' => intval($loteFila['ID_SOLICITANTE']),
+            'mensaje' => "Tu lote '" . $loteFila['LOTE_NOMBRE'] . "' $verbo.",
+            'enlace' => "../instructor/mis_lotes.php",
+        ];
         if ($accion === 'aprobar') {
-            notificar_por_rol(
-                $pdo,
-                'Almacenista',
-                "El lote '" . $loteFila['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
-                "../almacenista/index.php?tab=instructor"
-            );
+            $notificacionesPendientes[] = [
+                'tipo' => 'rol',
+                'rol' => 'Almacenista',
+                'mensaje' => "El lote '" . $loteFila['LOTE_NOMBRE'] . "' fue aprobado y ya puede certificarse.",
+                'enlace' => "../almacenista/index.php?tab=instructor",
+            ];
         }
 
         $procesados++;
@@ -94,6 +100,14 @@ try {
     error_log('Error en procesamiento masivo de lotes: ' . $e->getMessage());
     header('Location: revisar_lotes.php?msg=error');
     exit;
+}
+
+foreach ($notificacionesPendientes as $n) {
+    if ($n['tipo'] === 'usuario') {
+        crear_notificacion($pdo, $n['id_usuario'], $n['mensaje'], $n['enlace']);
+    } else {
+        notificar_por_rol($pdo, $n['rol'], $n['mensaje'], $n['enlace']);
+    }
 }
 
 $msg = $accion === 'aprobar' ? 'masivo_aprobado' : 'masivo_rechazado';

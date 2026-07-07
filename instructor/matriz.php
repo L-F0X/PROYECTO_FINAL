@@ -442,9 +442,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtUpdateMatrizItem->execute([$id_ficha_tecnica, $id_matriz_item]);
         }
 
-        // Si la acción fue enviar, marcar el lote como Enviado y avisar a los coordinadores
+        // Si la acción fue enviar, marcar el lote como Enviado
         if ($submitAction === 'enviar') {
             $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Enviado' WHERE ID_LOTE = ?")->execute([$id_lote]);
+        }
+
+        $pdo->commit();
+
+        // Avisar a los coordinadores después del commit: notificar_por_rol crea la
+        // tabla de notificaciones si hace falta, y ese CREATE TABLE haría un commit
+        // implícito de la transacción si se llamara mientras sigue abierta.
+        if ($submitAction === 'enviar') {
             notificar_por_rol(
                 $pdo,
                 'Coordinacion',
@@ -453,7 +461,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             );
         }
 
-        $pdo->commit();
         $msgParam = $submitAction === 'enviar' ? '&msg=enviado' : '&msg=guardado';
         header("Location: matriz.php?lote=" . urlencode($id_lote) . $msgParam);
         exit;
@@ -507,7 +514,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -866,7 +873,17 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <tbody>
             <?php if(empty($items)): ?>
                 <tr>
-                    <td colspan="11" style="text-align: center;">No se han agregado materiales a este requerimiento todavía.</td>
+                    <td colspan="11">
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                <line x1="8" y1="11" x2="14" y2="11"/>
+                            </svg>
+                            <p>No se han agregado materiales a este requerimiento todavía.</p>
+                            <span>Agrega el primer material con el formulario de arriba.</span>
+                        </div>
+                    </td>
                 </tr>
             <?php else: ?>
                 <?php foreach($items as $item): ?>
@@ -916,11 +933,11 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         </td>
                         <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
                         <td>
-                            <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" onsubmit="return confirm('¿Quitar este ítem del lote?');">
+                            <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>">
                                 <input type="hidden" name="accion" value="eliminar_item">
                                 <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                <button type="submit" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px; border: none; background: var(--alerta-rojo); color: white; border-radius: 4px;">Quitar</button>
+                                <button type="submit" class="btn btn-danger js-confirm-submit" style="padding: 4px 10px; font-size: 11px; border: none; background: var(--alerta-rojo); color: white; border-radius: 4px;" data-confirm-title="Quitar ítem" data-confirm-message="¿Quitar este ítem del lote?" data-confirm-label="Quitar">Quitar</button>
                             </form>
                         </td>
                         <?php endif; ?>

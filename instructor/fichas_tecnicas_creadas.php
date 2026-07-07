@@ -50,16 +50,19 @@ if ($msg === 'sin_permiso') {
 // Búsqueda
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 
-// Consulta de fichas técnicas
-$sql = "SELECT * FROM ficha_tecnica";
-$params = [];
+// Consulta de fichas técnicas: solo las que pertenecen a ítems de este lote
+// (una ficha "pertenece" al lote del ítem de matriz al que está asociada).
+$sql = "SELECT ft.* FROM ficha_tecnica ft
+        INNER JOIN matriz_item mi ON ft.ID_MATRIZ_ITEM = mi.ID_MATRIZ_ITEM
+        WHERE mi.ID_LOTE = ?";
+$params = [$idLote];
 if ($busqueda !== '') {
-    $sql .= " WHERE NOMBRE_ITEM LIKE ? OR CODIGO_UNSPSC_FK LIKE ? OR DENOMINACION_TECNICA_BIEN LIKE ?";
+    $sql .= " AND (ft.NOMBRE_ITEM LIKE ? OR ft.CODIGO_UNSPSC_FK LIKE ? OR ft.DENOMINACION_TECNICA_BIEN LIKE ?)";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
-$sql .= " ORDER BY ID_FICHA_TECNICA DESC";
+$sql .= " ORDER BY ft.ID_FICHA_TECNICA DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $fichas = $stmt->fetchAll();
@@ -84,7 +87,7 @@ $total = count($fichas);
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -125,8 +128,8 @@ $total = count($fichas);
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
-                <h2>Catálogo de Fichas Técnicas Creadas</h2>
-                <p class="dashboard-subtitle">Selecciona una ficha técnica para asignarla a tu lote actual (#<?= $idLote ?>).</p>
+                <h2>Fichas Técnicas del Lote #<?= $idLote ?></h2>
+                <p class="dashboard-subtitle">Fichas técnicas creadas para los ítems de este lote.</p>
             </div>
         </div>
 
@@ -178,7 +181,17 @@ $total = count($fichas);
                     <tbody>
                         <?php if (empty($fichas)): ?>
                             <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">No hay fichas técnicas registradas.</td>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>Este lote todavía no tiene fichas técnicas creadas.</p>
+                                        <span>Crea una ficha técnica para un ítem de este lote y aparecerá aquí.</span>
+                                    </div>
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($fichas as $f): ?>

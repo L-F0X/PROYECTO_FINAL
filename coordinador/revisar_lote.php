@@ -124,7 +124,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -212,7 +212,17 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <tbody>
                         <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="6" style="padding: 20px; text-align: center; color: #999;">No hay items registrados en este lote.</td>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>No hay ítems registrados en este lote.</p>
+                                        <span>Los ítems que agregue el instructor aparecerán aquí.</span>
+                                    </div>
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($items as $item):
@@ -244,12 +254,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                                 <?php foreach ($ofertas as $of): ?>
                                                     <li style="margin-bottom:4px; display:flex; justify-content:space-between; gap:8px;">
                                                         <span><strong><?= htmlspecialchars($of['proveedor']) ?></strong>: $<?= number_format($of['valor']) ?> u. ($<?= number_format($of['total']) ?> total)</span>
-                                                        <form method="POST" action="gestionar_oferta.php" style="display:inline;" onsubmit="return confirm('¿Quitar esta oferta?');">
+                                                        <form method="POST" action="gestionar_oferta.php" style="display:inline;">
                                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                                             <input type="hidden" name="accion" value="quitar">
                                                             <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
                                                             <input type="hidden" name="id_cotizacion" value="<?= htmlspecialchars($of['id_cotizacion']) ?>">
-                                                            <button type="submit" style="color:#dc3545; background:none; border:none; cursor:pointer; font-size:12px; text-decoration:underline; padding:0;">Quitar</button>
+                                                            <button type="submit" class="js-confirm-submit" style="color:#dc3545; background:none; border:none; cursor:pointer; font-size:12px; text-decoration:underline; padding:0;" data-confirm-title="Quitar oferta" data-confirm-message="¿Quitar esta oferta?" data-confirm-label="Quitar">Quitar</button>
                                                         </form>
                                                     </li>
                                                 <?php endforeach; ?>

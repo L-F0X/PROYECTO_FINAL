@@ -91,7 +91,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -174,7 +174,17 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <tbody>
                         <?php if (empty($lotes)): ?>
                             <tr>
-                                <td colspan="6" style="padding: 20px; text-align: center; color: #999;">Este instructor no ha creado lotes.</td>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>Este instructor no ha creado lotes.</p>
+                                        <span>Los lotes que cree aparecerán aquí.</span>
+                                    </div>
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($lotes as $lote): ?>

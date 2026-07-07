@@ -157,12 +157,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         }
 
         /* ── Tabla ── */
-        .lotes-table-wrap {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #e5e5e5;
-            box-shadow: 0 2px 10px rgba(0,0,0,.05);
-        }
         .lotes-table {
             width: 100%;
 
@@ -198,16 +192,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         }
         .lotes-table .td-nombre { font-weight: 500; }
         .lotes-table .td-solicitante { color: #555; font-size: 13px; }
-
-        /* ── Empty state ── */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #aaa;
-        }
-        .empty-state svg { margin-bottom: 16px; opacity: 0.4; }
-        .empty-state p { font-size: 15px; margin: 0; }
-        .empty-state span { font-size: 13px; color: #bbb; }
     </style>
 </head>
 <body class="<?= $isIframe ? 'iframe-mode' : '' ?>">
@@ -222,7 +206,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="../index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -314,55 +298,53 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
 
                 <!-- ── Tabla ── -->
-                <div class="lotes-table-wrap">
-                    <table class="lotes-table">
-                        <thead>
+                <table class="lotes-table">
+                    <thead>
+                        <tr>
+                            <th>ID Certificado</th>
+                            <th>Número de Certificado</th>
+                            <th>ID Lote</th>
+                            <th>Nombre del Lote</th>
+                            <th>Estado del Lote</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($certificados)): ?>
                             <tr>
-                                <th>ID Certificado</th>
-                                <th>Número de Certificado</th>
-                                <th>ID Lote</th>
-                                <th>Nombre del Lote</th>
-                                <th>Estado del Lote</th>
-                                <th>Acciones</th>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
+                                             viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>No se encontraron certificados</p>
+                                        <span>Intenta con otro término o limpia la búsqueda</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($certificados)): ?>
+                        <?php else: ?>
+                            <?php foreach ($certificados as $c): ?>
                                 <tr>
-                                    <td colspan="6">
-                                        <div class="empty-state">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
-                                                 viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                                <circle cx="11" cy="11" r="8"/>
-                                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                                <line x1="8" y1="11" x2="14" y2="11"/>
-                                            </svg>
-                                            <p>No se encontraron certificados</p>
-                                            <span>Intenta con otro término o limpia la búsqueda</span>
-                                        </div>
+                                    <td class="td-id">#<?= htmlspecialchars($c['ID_CERTIFICADO']) ?></td>
+                                    <td class="td-nombre"><strong><?= htmlspecialchars($c['NUMERO_CERTIFICADO']) ?></strong></td>
+                                    <td>#<?= htmlspecialchars($c['ID_LOTE']) ?></td>
+                                    <td class="td-solicitante"><?= htmlspecialchars($c['LOTE_NOMBRE']) ?></td>
+                                    <td>
+                                        <span class="badge-estado badge-<?= htmlspecialchars(strtolower($c['ESTADO_TRAMITE'])) ?>">
+                                            <?= htmlspecialchars($c['ESTADO_TRAMITE']) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="certificado_pdf.php?id=<?= (int)$c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                     </td>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($certificados as $c): ?>
-                                    <tr>
-                                        <td class="td-id">#<?= htmlspecialchars($c['ID_CERTIFICADO']) ?></td>
-                                        <td class="td-nombre"><strong><?= htmlspecialchars($c['NUMERO_CERTIFICADO']) ?></strong></td>
-                                        <td>#<?= htmlspecialchars($c['ID_LOTE']) ?></td>
-                                        <td class="td-solicitante"><?= htmlspecialchars($c['LOTE_NOMBRE']) ?></td>
-                                        <td>
-                                            <span class="badge-estado badge-<?= htmlspecialchars(strtolower($c['ESTADO_TRAMITE'])) ?>">
-                                                <?= htmlspecialchars($c['ESTADO_TRAMITE']) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="certificado_pdf.php?id=<?= (int)$c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
 
         </div><!-- /.panel-card -->

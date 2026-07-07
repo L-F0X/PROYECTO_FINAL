@@ -236,7 +236,7 @@ if ($msg === 'eliminado') {
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -454,7 +454,17 @@ if ($msg === 'eliminado') {
         <tbody>
             <?php if(empty($lotes)): ?>
                 <tr>
-                    <td colspan="6" style="text-align: center;">No hay lotes de requerimiento registrados o que coincidan con el filtro.</td>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                <line x1="8" y1="11" x2="14" y2="11"/>
+                            </svg>
+                            <p>No hay lotes de requerimiento registrados o que coincidan con el filtro.</p>
+                            <span>Intenta con otro filtro o crea un nuevo lote.</span>
+                        </div>
+                    </td>
                 </tr>
             <?php else: ?>
                 <?php foreach($lotes as $lote): ?>
@@ -471,7 +481,7 @@ if ($msg === 'eliminado') {
                                     <form action="eliminar.php" method="POST" style="display:inline; margin:0;">
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                        <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;">Eliminar</button>
+                                        <button type="submit" class="btn btn-danger btn-eliminar" style="padding: 5px 10px; font-size: 12px;">Eliminar</button>
                                     </form>
                         </td>
                     </tr>

@@ -158,12 +158,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         }
 
         /* ── Tabla ── */
-        .lotes-table-wrap {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #e5e5e5;
-            box-shadow: 0 2px 10px rgba(0,0,0,.05);
-        }
         .lotes-table {
             width: 100%;
 
@@ -213,7 +207,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="../index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="instructor_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -305,59 +299,57 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 </div>
 
                 <!-- ── Tabla ── -->
-                <div class="lotes-table-wrap">
-                    <table class="lotes-table">
-                        <thead>
+                <table class="lotes-table">
+                    <thead>
+                        <tr>
+                            <th>ID Ítem</th>
+                            <th>Lote</th>
+                            <th>Descripción del Bien</th>
+                            <th>U. Medida</th>
+                            <th>Cantidad</th>
+                            <th>Estado Ítem</th>
+                            <th>Instructor Apoyo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($items)): ?>
                             <tr>
-                                <th>ID Ítem</th>
-                                <th>Lote</th>
-                                <th>Descripción del Bien</th>
-                                <th>U. Medida</th>
-                                <th>Cantidad</th>
-                                <th>Estado Ítem</th>
-                                <th>Instructor Apoyo</th>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
+                                             viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>No se encontraron ítems</p>
+                                        <span>Intenta con otro término o limpia la búsqueda</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($items)): ?>
+                        <?php else: ?>
+                            <?php foreach ($items as $item): ?>
+                                <?php
+                                    $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
+                                    if ($apoyo === '') $apoyo = '—';
+                                ?>
                                 <tr>
-                                    <td colspan="7">
-                                        <div class="empty-state">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
-                                                 viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                                <circle cx="11" cy="11" r="8"/>
-                                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                                <line x1="8" y1="11" x2="14" y2="11"/>
-                                            </svg>
-                                            <p>No se encontraron ítems</p>
-                                            <span>Intenta con otro término o limpia la búsqueda</span>
-                                        </div>
+                                    <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                    <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
+                                    <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
+                                    <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>
+                                    <td><strong><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></strong></td>
+                                    <td>
+                                        <span class="badge-estado badge-<?= htmlspecialchars(strtolower($item['ESTADO_ITEM'])) ?>">
+                                            <?= htmlspecialchars($item['ESTADO_ITEM']) ?>
+                                        </span>
                                     </td>
+                                    <td class="td-solicitante"><?= htmlspecialchars($apoyo) ?></td>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($items as $item): ?>
-                                    <?php
-                                        $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
-                                        if ($apoyo === '') $apoyo = '—';
-                                    ?>
-                                    <tr>
-                                        <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
-                                        <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
-                                        <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
-                                        <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>
-                                        <td><strong><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></strong></td>
-                                        <td>
-                                            <span class="badge-estado badge-<?= htmlspecialchars(strtolower($item['ESTADO_ITEM'])) ?>">
-                                                <?= htmlspecialchars($item['ESTADO_ITEM']) ?>
-                                            </span>
-                                        </td>
-                                        <td class="td-solicitante"><?= htmlspecialchars($apoyo) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
 
         </div><!-- /.panel-card -->

@@ -186,7 +186,7 @@ if ($msg === 'status_updated') {
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔<?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?></a>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?></a>
     </div>
 </header>
 
@@ -313,7 +313,17 @@ if ($msg === 'status_updated') {
                     <tbody>
                         <?php if (empty($usuarios)): ?>
                             <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron usuarios.</td>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>No se encontraron usuarios.</p>
+                                        <span>Intenta con otro término de búsqueda.</span>
+                                    </div>
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($usuarios as $usr): ?>
@@ -373,7 +383,17 @@ if ($msg === 'status_updated') {
                 <tbody>
                     <?php if (empty($logsActividad)): ?>
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 20px;">No hay registros de actividad recientes.</td>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                        <line x1="8" y1="11" x2="14" y2="11"/>
+                                    </svg>
+                                    <p>No hay registros de actividad recientes.</p>
+                                    <span>Las acciones del sistema aparecerán aquí.</span>
+                                </div>
+                            </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($logsActividad as $log): ?>

@@ -50,7 +50,7 @@ function initUnspscAutocomplete(options) {
         hidden.value = '';
         const q = input.value.trim();
         clearTimeout(debounceTimer);
-        if (q.length < 2) {
+        if (q.length < 1) {
             hideResults();
             return;
         }

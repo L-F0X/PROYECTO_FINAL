@@ -89,20 +89,23 @@ document.addEventListener("DOMContentLoaded", () => {
         banner.remove();
     });
 
-    // 1. Confirmación de eliminación con modal estilizado (no bloqueante).
-    //    Delegado en document: los resultados de búsqueda en vivo reemplazan
-    //    el HTML por fetch, así que los botones nuevos no tendrían listener
-    //    propio si se enlazara directamente sobre cada nodo.
+    // 1. Confirmación de acciones con modal estilizado (no bloqueante), en vez
+    //    del confirm() nativo del navegador. Delegado en document: los
+    //    resultados de búsqueda en vivo reemplazan el HTML por fetch, así que
+    //    los botones nuevos no tendrían listener propio si se enlazara
+    //    directamente sobre cada nodo.
+    //    - .btn-eliminar: caso original (eliminar lote), con textos por defecto.
+    //    - .js-confirm-submit: genérico, personalizable vía data-confirm-*.
     document.addEventListener("click", (e) => {
-        const boton = e.target.closest(".btn-eliminar");
+        const boton = e.target.closest(".btn-eliminar, .js-confirm-submit");
         if (!boton) return;
         e.preventDefault();
         const form = boton.closest("form");
         confirmAction({
-            title: "Eliminar lote",
-            message: "¿Está seguro de que desea eliminar este lote de requerimiento? Esta acción no se puede deshacer.",
-            confirmLabel: "Eliminar",
-            danger: true
+            title: boton.dataset.confirmTitle || "Eliminar lote",
+            message: boton.dataset.confirmMessage || "¿Está seguro de que desea eliminar este lote de requerimiento? Esta acción no se puede deshacer.",
+            confirmLabel: boton.dataset.confirmLabel || "Eliminar",
+            danger: boton.dataset.confirmDanger !== "false"
         }).then(confirmado => {
             if (confirmado && form) {
                 form.submit();

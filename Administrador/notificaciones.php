@@ -45,7 +45,7 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">🔔</a>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"></a>
     </div>
 </header>
 

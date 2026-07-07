@@ -67,17 +67,17 @@ body {
 
 /* Header Institucional Rediseñado */
 .header-main {
-    background-color: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    background: linear-gradient(180deg, rgba(20, 28, 48, 0.94) 0%, rgba(15, 23, 42, 0.9) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     color: var(--blanco);
-    padding: 14px 40px;
+    padding: 16px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
-    border-bottom: 4px solid var(--verde-sena);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    gap: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 0 rgba(57, 169, 0, 0.55), 0 10px 30px -12px rgba(0, 0, 0, 0.5);
     animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -93,10 +93,11 @@ body {
 }
 
 .header-title {
-    font-size: 1.45rem;
+    font-size: 1.3rem;
     font-weight: 800;
-    margin: 0;
-    letter-spacing: -0.5px;
+    margin: 0 0 3px;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
 }
 
 .header-title .accent-color {
@@ -110,18 +111,30 @@ body {
     font-size: 0.95rem;
 }
 
+.user-greeting {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.87rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
 .user-greeting strong {
     color: #ffffff;
+    font-weight: 600;
 }
 
 .role-badge {
-    background-color: var(--verde-sena-light);
-    color: var(--verde-sena);
-    padding: 4px 12px;
+    background-color: rgba(57, 169, 0, 0.16);
+    color: #86e08a;
+    padding: 3px 10px;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    border: 1px solid rgba(57, 169, 0, 0.2);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    border: 1px solid rgba(57, 169, 0, 0.3);
 }
 
 .btn-logout {
@@ -218,7 +231,7 @@ body {
 .header-avatar-link:hover .header-avatar,
 .header-avatar:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .header-bell-link {
@@ -231,32 +244,43 @@ body {
     border-radius: 50%;
     font-size: 20px;
     text-decoration: none;
-    transition: background 0.2s;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .header-bell-link:hover {
-    background: rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.header-bell-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .header-bell-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: -3px;
+    right: -3px;
     background: var(--alerta-rojo);
     color: #fff;
     border-radius: 50%;
     font-size: 10px;
     font-weight: 700;
-    min-width: 16px;
-    height: 16px;
-    line-height: 16px;
+    min-width: 17px;
+    height: 17px;
+    line-height: 17px;
     text-align: center;
     padding: 0 3px;
+    border: 2px solid #1e293b;
 }
 
 .header-avatar {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: #f1f5f9;
     color: var(--gris-oscuro);
@@ -264,7 +288,8 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    border: 2px solid rgba(255,255,255,0.25);
+    border: 2px solid rgba(255,255,255,0.35);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -524,6 +549,8 @@ body.iframe-mode .dashboard-main {
     border-radius: 14px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.04);
     border: 1px solid var(--border-color);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .role-banner {
@@ -721,15 +748,14 @@ tr:hover {
     background-color: var(--gris-claro);
 }
 
-/* Contención de tablas: SIEMPRE activa (no solo en móvil).
-   Una tabla ancha (muchas columnas, selects largos, etc.) puede necesitar
-   más espacio del que su tarjeta tiene incluso en escritorio; sin esto,
-   la tabla "revienta" el ancho de toda la página y descuadra el header. */
+/* Contención de tablas: el scroll horizontal para tablas anchas se maneja
+   en la tarjeta contenedora (.panel-card/.container), no en la tabla misma.
+   Poner "display: block" directamente en <table> (como se hacía antes) rompe
+   el layout interno de <thead>/<tr>: la fila se estira al 100% del ancho
+   pero las celdas headers solo ocupan su contenido, dejando un bloque vacío
+   con el fondo oscuro de la fila más allá de la última columna real. */
 table {
-    display: block;
-    overflow-x: auto;
     max-width: 100%;
-    -webkit-overflow-scrolling: touch;
 }
 
 /* En pantallas angostas además compactamos filas a una sola línea,
@@ -1071,6 +1097,8 @@ table {
     border: 1px solid var(--border-color);
     transition: box-shadow 0.25s ease, transform 0.25s ease;
     animation: cardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .panel-card:hover {
@@ -1173,6 +1201,29 @@ table {
 .badge-rechazado {
     background: #f8d7da;
     color: #721c24;
+}
+
+/* Estado vacío para tablas de resultados (ícono + mensaje + sugerencia),
+   usado cuando una tabla no tiene filas en vez de dejar el encabezado
+   con espacios desproporcionados y un mensaje suelto. */
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #94a3b8;
+}
+.empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.4;
+}
+.empty-state p {
+    font-size: 15px;
+    margin: 0 0 4px;
+    font-weight: 600;
+    color: #64748b;
+}
+.empty-state span {
+    font-size: 13px;
+    color: #b0b8c1;
 }
 
 .stat-card--dark {
