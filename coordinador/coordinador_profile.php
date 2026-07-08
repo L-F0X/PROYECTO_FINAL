@@ -43,6 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nombre === '' || $apellido === '' || $email === '') {
             $message = '✗ Todos los campos de perfil son obligatorios.';
             $messageType = 'error';
+        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $nombre)) {
+            $message = '✗ El nombre solo debe contener letras y espacios.';
+            $messageType = 'error';
+        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $apellido)) {
+            $message = '✗ El apellido solo debe contener letras y espacios.';
+            $messageType = 'error';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $message = '✗ El correo electrónico no tiene un formato válido.';
             $messageType = 'error';
@@ -501,13 +507,15 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
                     <div class="profile-field">
                         <label for="p-nombre">Nombre</label>
                         <input type="text" id="p-nombre" name="nombre"
-                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required maxlength="100">
+                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required maxlength="100"
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field">
                         <label for="p-apellido">Apellido</label>
                         <input type="text" id="p-apellido" name="apellido"
-                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required maxlength="100">
+                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required maxlength="100"
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field full-col">

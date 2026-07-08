@@ -34,7 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf_token($_POST['csrf_tok
         $apellido = trim($_POST['apellido'] ?? '');
         $email    = trim($_POST['email']    ?? '');
 
-        if ($nombre !== '' && $apellido !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if ($nombre !== '' && $apellido !== '' && !preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $nombre)) {
+            $message = '✗ El nombre solo debe contener letras y espacios.';
+            $messageType = 'error';
+        } elseif ($nombre !== '' && $apellido !== '' && !preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $apellido)) {
+            $message = '✗ El apellido solo debe contener letras y espacios.';
+            $messageType = 'error';
+        } elseif ($nombre !== '' && $apellido !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $message = '✗ El correo electrónico no tiene un formato válido.';
             $messageType = 'error';
         } elseif ($nombre !== '' && $apellido !== '' && $email !== '') {
@@ -535,13 +541,15 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                     <div class="profile-field">
                         <label for="p-nombre">Nombre</label>
                         <input type="text" id="p-nombre" name="nombre"
-                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field">
                         <label for="p-apellido">Apellido</label>
                         <input type="text" id="p-apellido" name="apellido"
-                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field full-col">

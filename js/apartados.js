@@ -150,6 +150,39 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Evitar la inserción de caracteres erróneos en campos de nombre, apellido y contacto (solo letras y espacios)
+    const nombreApellidoInputs = document.querySelectorAll('input[pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\\s]+"], input[pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\\s]*"], #p-nombre, #p-apellido, #nombre, #apellido, #contacto, input[name="contacto"]');
+    nombreApellidoInputs.forEach(input => {
+        input.addEventListener("input", function() {
+            const regex = /[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g;
+            if (regex.test(this.value)) {
+                this.value = this.value.replace(regex, '');
+            }
+        });
+    });
+
+    // Evitar la inserción de caracteres erróneos en Unidad de Medida (solo letras y espacios)
+    const unidadMedidaInputs = document.querySelectorAll('#unidad_medida, #modal-unidad');
+    unidadMedidaInputs.forEach(input => {
+        input.addEventListener("input", function() {
+            const regex = /[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g;
+            if (regex.test(this.value)) {
+                this.value = this.value.replace(regex, '');
+            }
+        });
+    });
+
+    // Evitar la inserción de caracteres erróneos en Código UNSPSC, NIT y Teléfono (solo números)
+    const unspscInputs = document.querySelectorAll('#id_codigo_unspsc_busqueda, #codigo_unspsc_busqueda, #nit, input[name="nit"], #telefono, input[name="telefono"]');
+    unspscInputs.forEach(input => {
+        input.addEventListener("input", function() {
+            const regex = /[^0-9]/g;
+            if (regex.test(this.value)) {
+                this.value = this.value.replace(regex, '');
+            }
+        });
+    });
+
     // 4. Búsqueda en vivo sin recargar la página: cualquier formulario
     //    #form-busqueda + contenedor #resultados-busqueda hace fetch de la
     //    misma URL, extrae el fragmento actualizado y lo reemplaza en el DOM,

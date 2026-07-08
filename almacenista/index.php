@@ -593,7 +593,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
             <div style="margin-bottom:15px;">
                 <label style="font-weight:600; display:block; margin-bottom:5px;">Unidad de Medida</label>
-                <input type="text" name="unidad_medida" id="modal-unidad" class="form-control-modern" placeholder="Ej. unidad, caja, rollo" required>
+                <input type="text" name="unidad_medida" id="modal-unidad" class="form-control-modern" placeholder="Ej. unidad, caja, rollo" required
+                       pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
             </div>
 
             <div style="margin-bottom:15px;" id="modal-cantidad-container">

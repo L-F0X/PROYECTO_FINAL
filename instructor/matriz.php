@@ -601,15 +601,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="form-group" style="position: relative;">
                     <label for="id_codigo_unspsc_busqueda">Código UNSPSC (opcional):</label>
                     <input type="text" id="id_codigo_unspsc_busqueda" class="form-control" autocomplete="off"
-                           placeholder="Escriba el nombre o código del producto para buscar"
+                           placeholder="Escriba el código del producto para buscar"
                            value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>"
-                           <?= $ficha_tecnica_prefill ? 'disabled' : '' ?> />
+                           <?= $ficha_tecnica_prefill ? 'disabled' : '' ?> 
+                           pattern="[0-9]*" title="Solo se permiten números" />
                     <input type="hidden" id="id_codigo_unspsc" name="id_codigo_unspsc" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />
                     <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                 </div>
                 <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
-                    <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required maxlength="50" />
+                    <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required maxlength="50" pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios" />
                 </div>
                 <div class="form-group">
                     <label>Tasa de IVA:</label>

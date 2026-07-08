@@ -304,8 +304,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="ficha-label">Código UNSPSC *</div>
                     <div class="ficha-value" style="position: relative;">
                         <input type="text" id="codigo_unspsc_busqueda" autocomplete="off"
-                               placeholder="Escriba el nombre o código del producto para buscar"
-                               value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>" required>
+                               placeholder="Escriba el código del producto para buscar"
+                               value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>" required
+                               pattern="[0-9]*" title="Solo se permiten números">
                         <input type="hidden" name="codigo_unspsc" id="codigo_unspsc" value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>">
                         <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                     </div>
@@ -319,7 +320,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
                 <div class="ficha-section-header">Unidad de Medida</div>
                 <div class="ficha-full-row" style="text-align:center">
-                    <input type="text" name="unidad_medida" id="unidad_medida" value="<?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>" required maxlength="50" style="text-align:center">
+                    <input type="text" name="unidad_medida" id="unidad_medida" value="<?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>" required maxlength="50" style="text-align:center"
+                           pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                 </div>
 
                 <div class="ficha-section-header">Cantidad</div>

@@ -54,6 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($idRol <= 0 || $documento === '' || $nombre === '' || $apellido === '' || $email === '') {
         $error = '✗ Todos los campos son obligatorios.';
+    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $nombre)) {
+        $error = '✗ El nombre solo debe contener letras y espacios.';
+    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $apellido)) {
+        $error = '✗ El apellido solo debe contener letras y espacios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = '✗ El correo electrónico no tiene un formato válido.';
     } elseif (strlen($documento) > 20) {
@@ -276,12 +280,14 @@ try {
 
                         <div class="profile-field">
                             <label for="nombre">Nombres</label>
-                            <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required maxlength="100" autocomplete="off">
+                            <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required maxlength="100" autocomplete="off"
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                         </div>
 
                         <div class="profile-field">
                             <label for="apellido">Apellidos</label>
-                            <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required maxlength="100" autocomplete="off">
+                            <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required maxlength="100" autocomplete="off"
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
                         </div>
 
                         <div class="profile-field full-col">

@@ -48,6 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nit === '' || $razonSocial === '') {
             $mensaje = 'NIT y Razón Social son obligatorios.';
             $tipoMensaje = 'error';
+        } elseif (!preg_match('/^[0-9]+$/', $nit)) {
+            $mensaje = 'El NIT solo debe contener números.';
+            $tipoMensaje = 'error';
+        } elseif ($telefono !== '' && !preg_match('/^[0-9]+$/', $telefono)) {
+            $mensaje = 'El teléfono solo debe contener números.';
+            $tipoMensaje = 'error';
+        } elseif ($contacto !== '' && !preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $contacto)) {
+            $mensaje = 'La persona de contacto solo debe contener letras y espacios.';
+            $tipoMensaje = 'error';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $mensaje = 'El correo electrónico no tiene un formato válido.';
             $tipoMensaje = 'error';
@@ -210,7 +219,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="nit">NIT *</label>
-                            <input type="text" id="nit" name="nit" class="form-control" required maxlength="20">
+                            <input type="text" id="nit" name="nit" class="form-control" required maxlength="20"
+                                   pattern="[0-9]+" title="Solo se permiten números">
                         </div>
                         <div class="form-group">
                             <label for="razon_social">Razón Social *</label>
@@ -222,11 +232,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         </div>
                         <div class="form-group">
                             <label for="telefono">Teléfono</label>
-                            <input type="tel" id="telefono" name="telefono" class="form-control" maxlength="20">
+                            <input type="tel" id="telefono" name="telefono" class="form-control" maxlength="20"
+                                   pattern="[0-9]*" title="Solo se permiten números">
                         </div>
                         <div class="form-group">
                             <label for="contacto">Persona de Contacto</label>
-                            <input type="text" id="contacto" name="contacto" class="form-control" maxlength="100">
+                            <input type="text" id="contacto" name="contacto" class="form-control" maxlength="100"
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]*" title="Solo se permiten letras y espacios">
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sena" style="margin-top: 15px;">Registrar Proveedor</button>
@@ -272,7 +284,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 <tr>
                                     <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
                                     <td>
-                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required maxlength="20">
+                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required maxlength="20"
+                                               pattern="[0-9]+" title="Solo se permiten números">
                                     </td>
                                     <td>
                                         <input type="text" name="razon_social" form="<?= $formId ?>" value="<?= htmlspecialchars($p['RAZON_SOCIAL']) ?>" class="form-control" required maxlength="150">
@@ -281,10 +294,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                         <input type="email" name="email" form="<?= $formId ?>" value="<?= htmlspecialchars($p['EMAIL']) ?>" class="form-control" required maxlength="100">
                                     </td>
                                     <td>
-                                        <input type="tel" name="telefono" form="<?= $formId ?>" value="<?= htmlspecialchars($p['TELEFONO'] ?? '') ?>" class="form-control" maxlength="20">
+                                        <input type="tel" name="telefono" form="<?= $formId ?>" value="<?= htmlspecialchars($p['TELEFONO'] ?? '') ?>" class="form-control" maxlength="20"
+                                               pattern="[0-9]*" title="Solo se permiten números">
                                     </td>
                                     <td>
-                                        <input type="text" name="contacto" form="<?= $formId ?>" value="<?= htmlspecialchars($p['CONTACTO'] ?? '') ?>" class="form-control" maxlength="100">
+                                        <input type="text" name="contacto" form="<?= $formId ?>" value="<?= htmlspecialchars($p['CONTACTO'] ?? '') ?>" class="form-control" maxlength="100"
+                                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]*" title="Solo se permiten letras y espacios">
                                     </td>
                                     <td>
                                         <button type="submit" form="<?= $formId ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Guardar</button>
