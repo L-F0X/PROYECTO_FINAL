@@ -72,63 +72,10 @@ if (!$item || $item['ESTADO_TRAMITE'] !== 'Enviado') {
 $idLote = intval($item['ID_LOTE']);
 
 if ($accion === 'agregar') {
-    $idProveedor = isset($_POST['id_proveedor']) ? intval($_POST['id_proveedor']) : 0;
-    $valorUnitario = isset($_POST['valor_unitario']) ? intval($_POST['valor_unitario']) : 0;
-    $marcaOfrecida = trim($_POST['marca_ofrecida'] ?? '');
-    $firmaProponente = trim($_POST['firma_proponente'] ?? '');
-
-    if ($idProveedor <= 0) {
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('Debe seleccionar un proveedor.'));
-        exit;
-    }
-    if ($valorUnitario <= 0) {
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('El valor unitario debe ser un número entero mayor que cero.'));
-        exit;
-    }
-
-    $stmtProv = $pdo->prepare("SELECT ID_PROVEEDOR FROM proveedor WHERE ID_PROVEEDOR = ?");
-    $stmtProv->execute([$idProveedor]);
-    if (!$stmtProv->fetchColumn()) {
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('El proveedor seleccionado no existe.'));
-        exit;
-    }
-
-    $slotLibre = null;
-    foreach (['OFERTA_1', 'OFERTA_2', 'OFERTA_3'] as $slot) {
-        if (empty($item[$slot])) {
-            $slotLibre = $slot;
-            break;
-        }
-    }
-    if ($slotLibre === null) {
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('Este ítem ya tiene las 3 ofertas máximas registradas.'));
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-
-        $stmtInsert = $pdo->prepare("
-            INSERT INTO cotizacion (ID_MATRIZ_ITEM, ID_PROVEEDOR, ID_IVA, VALOR_UNITARIO, VALOR_TOTAL, MARCA_OFRECIDA, FIRMA_PROPONENTE)
-            VALUES (?, ?, ?, ?, 0, ?, ?)
-        ");
-        $stmtInsert->execute([$idMatrizItem, $idProveedor, $item['ID_IVA'], $valorUnitario, $marcaOfrecida ?: null, $firmaProponente ?: null]);
-        $idCotizacion = $pdo->lastInsertId();
-
-        $pdo->prepare("UPDATE matriz_item SET $slotLibre = ? WHERE ID_MATRIZ_ITEM = ?")->execute([$idCotizacion, $idMatrizItem]);
-        recalcular_promedios_item($pdo, $idMatrizItem);
-
-        $pdo->commit();
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_agregada");
-        exit;
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        error_log('Error agregando oferta: ' . $e->getMessage());
-        header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('No se pudo registrar la oferta.'));
-        exit;
-    }
+    // El coordinador solo aprueba/revisa lotes; registrar ofertas y proveedores
+    // es responsabilidad del almacenista (ver Fase 39/43).
+    header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('El coordinador ya no registra ofertas. Esa gestión corresponde al almacenista.'));
+    exit;
 } elseif ($accion === 'quitar') {
     $idCotizacion = isset($_POST['id_cotizacion']) ? intval($_POST['id_cotizacion']) : 0;
 

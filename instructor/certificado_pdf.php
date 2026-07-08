@@ -56,6 +56,15 @@ $materiales = $stmtItems->fetchAll();
 
 $rolNombre = htmlspecialchars($_SESSION['rol_nombre'] ?? 'Usuario');
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+
+// Firma digital: solo el primer nombre y primer apellido, no el nombre completo
+function firma_nombre_corto(?string $nombre, ?string $apellido): string {
+    $primerNombre = trim(explode(' ', trim((string)$nombre))[0] ?? '');
+    $primerApellido = trim(explode(' ', trim((string)$apellido))[0] ?? '');
+    return trim($primerNombre . ' ' . $primerApellido);
+}
+$firmaAlmacenista = firma_nombre_corto($cert['ALMACENISTA_NOMBRE'] ?? null, $cert['ALMACENISTA_APELLIDO'] ?? null);
+$firmaInstructor = firma_nombre_corto($cert['NOMBRE'] ?? null, $cert['APELLIDO'] ?? null);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -131,10 +140,19 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
             gap: 30px;
             margin-top: 50px;
         }
-        .cert-sign-line {
+        .cert-sign-block {
             flex: 1;
-            border-top: 1px solid #334155;
             text-align: center;
+        }
+        .cert-sign-digital {
+            font-family: 'Segoe Script', 'Brush Script MT', 'Lucida Handwriting', cursive;
+            font-size: 1.7rem;
+            color: #00324D;
+            min-height: 2.2rem;
+            line-height: 2.2rem;
+        }
+        .cert-sign-line {
+            border-top: 1px solid #334155;
             padding-top: 8px;
             font-size: 0.85rem;
             color: #475569;
@@ -180,8 +198,9 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 
         <p class="cert-footer-text">
             El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado
-            la revisión técnica del requerimiento correspondiente al lote institucional indicado, y que
-            los siguientes materiales se encuentran actualmente en existencia física dentro del almacén:
+            la revisión y consolidación del requerimiento correspondiente al lote institucional indicado,
+            y que los siguientes materiales no se encuentran actualmente en existencia dentro del almacén,
+            por lo cual se remite el presente certificado para dar trámite a su proceso de adquisición y compra:
         </p>
 
         <table class="cert-table">
@@ -212,13 +231,19 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
         </table>
 
         <p class="cert-footer-text">
-            Se confirma la validación de saldos y existencias físicas del inventario de materiales
+            Se autoriza dar inicio al proceso de adquisición de los materiales aquí listados
             para la consolidación de la oferta académica actual.
         </p>
 
         <div class="cert-signatures">
-            <div class="cert-sign-line">Firma del Almacenista<br><small><?= !empty($cert['ALMACENISTA_NOMBRE']) ? htmlspecialchars($cert['ALMACENISTA_NOMBRE'] . ' ' . $cert['ALMACENISTA_APELLIDO']) : 'Almacén Central SENA' ?></small></div>
-            <div class="cert-sign-line">Firma del Instructor<br><small>Solicitante</small></div>
+            <div class="cert-sign-block">
+                <div class="cert-sign-digital"><?= $firmaAlmacenista !== '' ? htmlspecialchars($firmaAlmacenista) : 'Almacén Central SENA' ?></div>
+                <div class="cert-sign-line">Firma del Almacenista</div>
+            </div>
+            <div class="cert-sign-block">
+                <div class="cert-sign-digital"><?= $firmaInstructor !== '' ? htmlspecialchars($firmaInstructor) : 'Solicitante' ?></div>
+                <div class="cert-sign-line">Firma del Instructor</div>
+            </div>
         </div>
     </div>
 </div>

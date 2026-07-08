@@ -38,6 +38,13 @@ function enviar_correo(string $destinatarioEmail, string $asunto, string $cuerpo
         $mail->setFrom($config['from_email'], $config['from_name']);
         $mail->addAddress($destinatarioEmail);
 
+        // Logo institucional embebido (CID) para que se vea en el correo sin depender
+        // de que el cliente de correo cargue imágenes remotas desde localhost.
+        $logoPath = __DIR__ . '/imagenes/sena-logo.png';
+        if (file_exists($logoPath)) {
+            $mail->addEmbeddedImage($logoPath, 'sena-logo');
+        }
+
         $mail->isHTML(true);
         $mail->Subject = $asunto;
         $mail->Body    = $cuerpoHtml;

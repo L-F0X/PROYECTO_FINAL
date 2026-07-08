@@ -62,12 +62,6 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
             <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
             <a href="notificaciones.php" class="sidebar-link sidebar-link--primary active">Notificaciones</a>
         </div>
-        <div class="sidebar-group">
-            <h4>Módulos del Sistema</h4>
-            <a href="../instructor/index.php" class="sidebar-link">Panel Instructor</a>
-            <a href="../coordinador/index.php" class="sidebar-link">Panel Coordinador</a>
-            <a href="../almacenista/index.php" class="sidebar-link">Panel Almacenista</a>
-        </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>

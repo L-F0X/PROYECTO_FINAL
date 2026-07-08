@@ -14,14 +14,16 @@ $stats = [
 ];
 
 try {
-    // Total, óptimo, crítico, agotado
+    // Total, óptimo, crítico, agotado — solo stock físico propio del almacén
+    // (ID_MATRIZ_ITEM NULL); las fichas creadas por un instructor son solicitudes, no inventario real.
     $stmtStats = $pdo->query("
-        SELECT 
+        SELECT
             COUNT(*) as total,
             SUM(CASE WHEN CANTIDAD > 5 THEN 1 ELSE 0 END) as optimo,
             SUM(CASE WHEN CANTIDAD > 0 AND CANTIDAD <= 5 THEN 1 ELSE 0 END) as critico,
             SUM(CASE WHEN CANTIDAD = 0 THEN 1 ELSE 0 END) as agotado
         FROM ficha_tecnica
+        WHERE ID_MATRIZ_ITEM IS NULL
     ");
     $dbStats = $stmtStats->fetch();
     if ($dbStats) {

@@ -54,14 +54,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($idRol <= 0 || $documento === '' || $nombre === '' || $apellido === '' || $email === '') {
         $error = '✗ Todos los campos son obligatorios.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = '✗ El correo electrónico no tiene un formato válido.';
+    } elseif (strlen($documento) > 20) {
+        $error = '✗ El documento no puede tener más de 20 caracteres.';
+    } elseif (strlen($nombre) > 100 || strlen($apellido) > 100) {
+        $error = '✗ El nombre y el apellido no pueden tener más de 100 caracteres.';
+    } elseif (strlen($email) > 100) {
+        $error = '✗ El correo electrónico no puede tener más de 100 caracteres.';
     } elseif ($password !== '' && strlen($password) < 8) {
         $error = '✗ La contraseña debe tener al menos 8 caracteres.';
     } else {
         try {
+            // Verificar que el rol seleccionado exista
+            $stmtRolCheck = $pdo->prepare("SELECT 1 FROM rol WHERE ID_ROL = ?");
+            $stmtRolCheck->execute([$idRol]);
+
             // Verificar si el documento o correo ya están registrados por otro usuario
             $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM usuario WHERE (DOCUMENTO = ? OR EMAIL = ?) AND ID_USUARIO <> ?");
             $stmtCheck->execute([$documento, $email, $idUsuario]);
-            if ($stmtCheck->fetchColumn() > 0) {
+
+            if (!$stmtRolCheck->fetchColumn()) {
+                $error = '✗ El rol seleccionado no es válido.';
+            } elseif ($stmtCheck->fetchColumn() > 0) {
                 $error = '✗ El documento o correo electrónico ya están registrados por otro usuario.';
             } else {
                 if ($password !== '') {
@@ -222,12 +237,6 @@ try {
             <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
             <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
         </div>
-        <div class="sidebar-group">
-            <h4>Módulos del Sistema</h4>
-            <a href="../instructor/index.php" class="sidebar-link">Panel Instructor</a>
-            <a href="../coordinador/index.php" class="sidebar-link">Panel Coordinador</a>
-            <a href="../almacenista/index.php" class="sidebar-link">Panel Almacenista</a>
-        </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
@@ -252,7 +261,7 @@ try {
                     <div class="profile-grid">
                         <div class="profile-field">
                             <label for="documento">Documento de Identidad</label>
-                            <input type="text" id="documento" name="documento" value="<?= htmlspecialchars($user['DOCUMENTO']) ?>" required autocomplete="off">
+                            <input type="text" id="documento" name="documento" value="<?= htmlspecialchars($user['DOCUMENTO']) ?>" required maxlength="20" autocomplete="off">
                         </div>
 
                         <div class="profile-field">
@@ -267,17 +276,17 @@ try {
 
                         <div class="profile-field">
                             <label for="nombre">Nombres</label>
-                            <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required autocomplete="off">
+                            <input type="text" id="nombre" name="nombre" value="<?= htmlspecialchars($user['NOMBRE']) ?>" required maxlength="100" autocomplete="off">
                         </div>
 
                         <div class="profile-field">
                             <label for="apellido">Apellidos</label>
-                            <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required autocomplete="off">
+                            <input type="text" id="apellido" name="apellido" value="<?= htmlspecialchars($user['APELLIDO']) ?>" required maxlength="100" autocomplete="off">
                         </div>
 
                         <div class="profile-field full-col">
                             <label for="email">Correo electrónico</label>
-                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['EMAIL']) ?>" required autocomplete="off">
+                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['EMAIL']) ?>" required maxlength="100" autocomplete="off">
                         </div>
 
                         <div class="profile-field">

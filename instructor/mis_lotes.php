@@ -52,6 +52,12 @@ if ($msg === 'editado') {
     $messageText = '✗ Este lote ya no se puede editar: solo los lotes en Borrador son editables.';
 } elseif ($msg === 'reabierto') {
     $messageText = '✓ Lote regresado a Borrador. Ya puedes corregirlo y reenviarlo.';
+} elseif ($msg === 'eliminado') {
+    $messageText = '✓ Lote eliminado correctamente.';
+} elseif ($msg === 'con_dependencias') {
+    $messageText = '✗ No se pudo eliminar el lote: todavía tiene ítems, certificados u otros registros asociados.';
+} elseif ($msg === 'noop') {
+    $messageText = '✗ El lote no existe o ya fue eliminado.';
 }
 
 $stmt = $pdo->prepare($sql);
@@ -101,10 +107,6 @@ $total = count($lotes);
             <a href="mis_lotes.php" class="sidebar-link sidebar-link--primary active">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
@@ -124,8 +126,8 @@ $total = count($lotes);
             </div>
         </div>
 
-        <?php if (!empty($messageText)): ?>
-            <div class="profile-alert <?= $msg === 'no_editable' ? 'error' : 'success' ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; <?= $msg === 'no_editable' ? 'background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;' : 'background: #eff8f1; color: #270; border: 1px solid #d4ebd5;' ?>">
+        <?php if (!empty($messageText)): $esError = str_starts_with($messageText, '✗'); ?>
+            <div class="profile-alert <?= $esError ? 'error' : 'success' ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; <?= $esError ? 'background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;' : 'background: #eff8f1; color: #270; border: 1px solid #d4ebd5;' ?>">
                 <?= htmlspecialchars($messageText) ?>
             </div>
         <?php endif; ?>

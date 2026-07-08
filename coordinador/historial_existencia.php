@@ -100,7 +100,6 @@ $total = count($certificados);
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
-            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link sidebar-link--primary active">Certificados Existencia</a>
         </div>

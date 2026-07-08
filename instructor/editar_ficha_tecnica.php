@@ -68,6 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nombreItem === '' || $denominacion === '' || $unidadMedida === '') {
             throw new Exception("Nombre del ítem, denominación técnica y unidad de medida son obligatorios.");
         }
+        if (strlen($nombreItem) > 150) {
+            throw new Exception("El nombre del ítem no puede tener más de 150 caracteres.");
+        }
+        if (strlen($unidadMedida) > 50) {
+            throw new Exception("La unidad de medida no puede tener más de 50 caracteres.");
+        }
         if ($cantidad <= 0) {
             throw new Exception("La cantidad debe ser un número entero mayor que cero.");
         }
@@ -92,6 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmtFicha->execute([$idFicha]);
         $ficha = $stmtFicha->fetch();
+    } catch (PDOException $e) {
+        error_log('Error actualizando ficha técnica: ' . $e->getMessage());
+        $mensaje = "<div class='alert error'>✗ No se pudo actualizar la ficha técnica. Intente de nuevo más tarde.</div>";
     } catch (Exception $e) {
         $mensaje = "<div class='alert error'>✗ Error al guardar: " . htmlspecialchars($e->getMessage()) . "</div>";
     }
@@ -258,10 +267,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
@@ -291,7 +296,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="ficha-row">
                     <div class="ficha-label">Nombre del Ítem *</div>
                     <div class="ficha-value">
-                        <input type="text" name="nombre_item" id="nombre_item" value="<?= htmlspecialchars($ficha['NOMBRE_ITEM']) ?>" required>
+                        <input type="text" name="nombre_item" id="nombre_item" value="<?= htmlspecialchars($ficha['NOMBRE_ITEM']) ?>" required maxlength="150">
                     </div>
                 </div>
 
@@ -314,7 +319,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
                 <div class="ficha-section-header">Unidad de Medida</div>
                 <div class="ficha-full-row" style="text-align:center">
-                    <input type="text" name="unidad_medida" id="unidad_medida" value="<?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>" required style="text-align:center">
+                    <input type="text" name="unidad_medida" id="unidad_medida" value="<?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>" required maxlength="50" style="text-align:center">
                 </div>
 
                 <div class="ficha-section-header">Cantidad</div>

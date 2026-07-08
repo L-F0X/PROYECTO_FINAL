@@ -15,6 +15,8 @@ if ($rol !== 'instructor') {
     exit;
 }
 
+$resultado = 'noop';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $token = $_POST['csrf_token'] ?? '';
@@ -24,13 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("DELETE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
             $stmt->execute([$id, $usuarioId]);
+            $resultado = $stmt->rowCount() > 0 ? 'eliminado' : 'noop';
         } catch (\PDOException $e) {
             error_log('Eliminar lote error: ' . $e->getMessage());
-            // No mostrar detalles al usuario
+            // Violación de FK: el lote todavía tiene ítems, certificados u otros
+            // registros asociados. No se muestra el detalle técnico al usuario.
+            $resultado = 'con_dependencias';
         }
     }
 }
 
-header("Location: ../index.php?msg=eliminado");
+header("Location: mis_lotes.php?msg=" . $resultado);
 exit;
 ?>

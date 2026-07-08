@@ -112,10 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $errorMsg = "El código UNSPSC seleccionado no existe en el catálogo.";
             } else {
                 try {
-                    $stmt = $pdo->prepare("UPDATE ficha_tecnica SET NOMBRE_ITEM = ?, CODIGO_UNSPSC_FK = ?, UNIDAD_MEDIDA = ?, CANTIDAD = ?, DESCRIPCION_GENERAL = ?, COMENTARIOS = ? WHERE ID_FICHA_TECNICA = ?");
+                    // Solo se edita stock físico propio del almacén (ID_MATRIZ_ITEM NULL);
+                    // una ficha técnica creada por un instructor es una solicitud, no un artículo de stock.
+                    $stmt = $pdo->prepare("UPDATE ficha_tecnica SET NOMBRE_ITEM = ?, CODIGO_UNSPSC_FK = ?, UNIDAD_MEDIDA = ?, CANTIDAD = ?, DESCRIPCION_GENERAL = ?, COMENTARIOS = ? WHERE ID_FICHA_TECNICA = ? AND ID_MATRIZ_ITEM IS NULL");
                     $stmt->execute([$nombre, $codigo_unspsc, $unidad, $cantidad, $descripcion, $comentarios, $id_ficha]);
-                    $successMsg = "Artículo actualizado correctamente.";
-                    $tabActiva = 'stock';
+                    if ($stmt->rowCount() === 0) {
+                        $errorMsg = "El artículo no existe o no es un artículo de stock editable.";
+                    } else {
+                        $successMsg = "Artículo actualizado correctamente.";
+                        $tabActiva = 'stock';
+                    }
                 } catch (Exception $e) {
                     error_log('Error al actualizar artículo: ' . $e->getMessage());
                     $errorMsg = "Error al actualizar el artículo. Intente de nuevo más tarde.";
@@ -151,17 +157,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             try {
                 $pdo->beginTransaction();
-                // Actualizar cantidad
-                $stmt = $pdo->prepare("UPDATE ficha_tecnica SET CANTIDAD = CANTIDAD + ? WHERE ID_FICHA_TECNICA = ?");
+                // Solo se recibe mercancía sobre stock físico propio del almacén (ID_MATRIZ_ITEM NULL);
+                // una ficha técnica creada por un instructor es una solicitud, no un artículo de stock.
+                $stmt = $pdo->prepare("UPDATE ficha_tecnica SET CANTIDAD = CANTIDAD + ? WHERE ID_FICHA_TECNICA = ? AND ID_MATRIZ_ITEM IS NULL");
                 $stmt->execute([$cantidad_entrada, $id_ficha]);
 
-                // Registrar auditoría local
-                $stmtAudit = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, 'Entrada Inventario', ?)");
-                $stmtAudit->execute([$usuarioId, "Entrada de $cantidad_entrada unidades al item ID: $id_ficha. Detalle: $comentario"]);
+                if ($stmt->rowCount() === 0) {
+                    $pdo->rollBack();
+                    $errorMsg = "El artículo no existe o no es un artículo de stock válido.";
+                    $tabActiva = 'entrada';
+                } else {
+                    // Registrar auditoría local
+                    $stmtAudit = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, 'Entrada Inventario', ?)");
+                    $stmtAudit->execute([$usuarioId, "Entrada de $cantidad_entrada unidades al item ID: $id_ficha. Detalle: $comentario"]);
 
-                $pdo->commit();
-                $successMsg = "Entrada de mercancía registrada con éxito.";
-                $tabActiva = 'stock';
+                    $pdo->commit();
+                    $successMsg = "Entrada de mercancía registrada con éxito.";
+                    $tabActiva = 'stock';
+                }
             } catch (Exception $e) {
                 $pdo->rollBack();
                 error_log('Error al registrar la entrada: ' . $e->getMessage());
@@ -184,14 +197,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $pdo->beginTransaction();
 
-                // Bloquear la fila y verificar stock actual dentro de la transacción
-                $stmtCheck = $pdo->prepare("SELECT CANTIDAD, NOMBRE_ITEM FROM ficha_tecnica WHERE ID_FICHA_TECNICA = ? FOR UPDATE");
+                // Bloquear la fila y verificar stock actual dentro de la transacción.
+                // Solo se despacha stock físico propio del almacén (ID_MATRIZ_ITEM NULL);
+                // una ficha técnica creada por un instructor es una solicitud, no un artículo de stock.
+                $stmtCheck = $pdo->prepare("SELECT CANTIDAD, NOMBRE_ITEM FROM ficha_tecnica WHERE ID_FICHA_TECNICA = ? AND ID_MATRIZ_ITEM IS NULL FOR UPDATE");
                 $stmtCheck->execute([$id_ficha]);
                 $item = $stmtCheck->fetch();
 
                 if (!$item) {
                     $pdo->rollBack();
-                    $errorMsg = "El artículo seleccionado no existe.";
+                    $errorMsg = "El artículo seleccionado no existe o no es un artículo de stock válido.";
                     $tabActiva = 'salida';
                 } elseif ($item['CANTIDAD'] < $cantidad_salida) {
                     $pdo->rollBack();
@@ -284,7 +299,10 @@ $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
 
 try {
-    $sql = "SELECT ID_FICHA_TECNICA, NOMBRE_ITEM, CODIGO_UNSPSC_FK, UNIDAD_MEDIDA, CANTIDAD, DESCRIPCION_GENERAL, COMENTARIOS FROM ficha_tecnica WHERE 1=1";
+    // Solo se cuenta como stock físico lo que el almacenista agregó/recibió directamente
+    // (ID_MATRIZ_ITEM NULL). Las filas creadas por un instructor (ID_MATRIZ_ITEM no nulo)
+    // son solicitudes, no inventario real, y se consultan aparte en el Panel Instructor.
+    $sql = "SELECT ID_FICHA_TECNICA, NOMBRE_ITEM, CODIGO_UNSPSC_FK, UNIDAD_MEDIDA, CANTIDAD, DESCRIPCION_GENERAL, COMENTARIOS FROM ficha_tecnica WHERE ID_MATRIZ_ITEM IS NULL";
     $params = [];
     if ($busqueda !== '') {
         $sql .= " AND (NOMBRE_ITEM LIKE ? OR CODIGO_UNSPSC_FK LIKE ?)";
@@ -495,6 +513,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
             <a href="index.php?tab=instructor" class="sidebar-link <?= $tabActiva === 'instructor' ? 'sidebar-link--primary' : '' ?>">Panel Instructor</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">

@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../iva_helper.php';
 
 // Permite que los parciales incluidos (mis_lotes.php) verifiquen que no se acceden directamente
 define('ACCESO_VALIDO', true);
@@ -176,8 +177,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                     $id_unspsc = $stmtCheckUnspsc->fetchColumn();
                 }
 
-                // Tasa de IVA por defecto (la de menor ID) ya que esta acción es de un solo clic, sin formulario propio
-                $id_iva_defecto = $pdo->query("SELECT ID_IVA FROM iva ORDER BY ID_IVA LIMIT 1")->fetchColumn();
+                // Tasa de IVA vigente ya que esta acción es de un solo clic, sin formulario propio
+                $ivaVigenteDefecto = obtener_iva_vigente($pdo);
+                $id_iva_defecto = $ivaVigenteDefecto ? intval($ivaVigenteDefecto['ID_IVA']) : null;
 
                 // Insertar en matriz_item
                 $stmtInsert = $pdo->prepare("INSERT INTO matriz_item (ID_LOTE, ID_FICHA_TECNICA, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, ESTADO_ITEM) VALUES (?, ?, ?, ?, ?, ?, 1, 'Borrador')");
@@ -256,10 +258,6 @@ if ($msg === 'eliminado') {
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
-        </div>
-        <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
@@ -372,7 +370,6 @@ if ($msg === 'eliminado') {
             <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
                 <a href="mis_lotes.php" class="btn btn-sena">Ver Mis Lotes</a>
                 <a href="crear.php" class="btn btn-secondary">+ Crear Nuevo Lote</a>
-                <a href="crear_ficha_tecnica.php" class="btn btn-secondary">Ficha Técnica</a>
                 <a href="matriz_consulta.php" class="btn btn-secondary">Consulta de Ítems</a>
                 <a href="certificado_existencia.php" class="btn btn-secondary">Certificados Existencia</a>
             </div>

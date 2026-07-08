@@ -25,13 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $usuarioFila = $stmt->fetch();
 
-        if ($usuarioFila) {
+        if ($usuarioFila && !tiene_solicitud_reset_reciente($pdo, intval($usuarioFila['ID_USUARIO']))) {
             $token = generar_token_reset($pdo, intval($usuarioFila['ID_USUARIO']));
             $baseUrl = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']);
             $enlace = rtrim($baseUrl, '/') . '/restablecer_password.php?token=' . $token;
 
             $cuerpoHtml = '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">'
-                . '<h2 style="color: #39A900;">BICERGAM</h2>'
+                . '<div style="text-align: center; margin-bottom: 10px;"><img src="cid:sena-logo" alt="SENA" style="height: 60px;"></div>'
+                . '<h2 style="color: #39A900; text-align: center;">BICERGAM</h2>'
                 . '<p>Hola ' . htmlspecialchars($usuarioFila['NOMBRE']) . ',</p>'
                 . '<p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para continuar (válido por 1 hora, un solo uso):</p>'
                 . '<p><a href="' . htmlspecialchars($enlace) . '" style="background: #39A900; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">Restablecer contraseña</a></p>'
@@ -46,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $enlaceGenerado = $enlace;
             }
         }
+        // Nota: si ya hay una solicitud reciente (cooldown), no se genera ni
+        // reenvía un nuevo enlace, pero el mensaje mostrado es el mismo de
+        // siempre — así no se revela si la cuenta existe ni si hay cooldown activo.
 
         // Mensaje genérico: no confirmamos ni negamos si el correo existe.
         $mensaje = 'Si el correo electrónico está registrado, se envió un enlace de restablecimiento a esa dirección.';

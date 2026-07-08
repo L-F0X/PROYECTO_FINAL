@@ -25,7 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
         die('Token CSRF inválido.');
     }
     $nombreLote = trim($_POST['lote_nombre'] ?? '');
-    if ($nombreLote !== '') {
+    if ($nombreLote === '') {
+        $errorLote = 'El nombre del lote no puede estar vacío.';
+    } elseif (strlen($nombreLote) > 100) {
+        $errorLote = 'El nombre del lote no puede tener más de 100 caracteres.';
+    } else {
         try {
             $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, 'Borrador', ?)");
             $stmtInsert->execute([$usuarioId, $nombreLote, date('Y-m-d')]);
@@ -35,8 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
             error_log('Error al crear lote: ' . $e->getMessage());
             $errorLote = 'Error al crear el lote. Verifique que los datos sean correctos.';
         }
-    } else {
-        $errorLote = 'El nombre del lote no puede estar vacío.';
     }
 }
 
@@ -94,10 +96,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
@@ -129,7 +127,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label for="lote_nombre" style="font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px;">Nombre del Lote:</label>
-                    <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" placeholder="Ej: LOTE REDES 2026" required style="border-radius: 7px; padding: 12px 14px; font-size: 15px;">
+                    <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" placeholder="Ej: LOTE REDES 2026" required maxlength="100" style="border-radius: 7px; padding: 12px 14px; font-size: 15px;">
                 </div>
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <a href="../index.php" class="btn btn-secondary" style="border-radius: 7px; padding: 11px 22px;">Cancelar</a>

@@ -38,6 +38,12 @@ if (empty($lotesIds)) {
     header('Location: revisar_lotes.php?msg=sinseleccion');
     exit;
 }
+if (count($lotesIds) > 200) {
+    // Límite defensivo: evita una transacción excesivamente larga con muchos
+    // bloqueos FOR UPDATE simultáneos si llega una solicitud manipulada.
+    header('Location: revisar_lotes.php?msg=error');
+    exit;
+}
 if ($accion === 'rechazar' && $justificacion === '') {
     header('Location: revisar_lotes.php?msg=faltajustificacion');
     exit;

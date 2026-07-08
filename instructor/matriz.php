@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../iva_helper.php';
 
 function build_need_label(array $need): string {
     $segments = [];
@@ -119,12 +120,12 @@ try {
     error_log('Error cargando instructores: ' . $e->getMessage());
 }
 
-// Cargar tasas de IVA disponibles
-$ivas = [];
+// Tasa de IVA vigente (aplicada automáticamente, ya no se selecciona manualmente)
+$ivaVigente = null;
 try {
-    $ivas = $pdo->query("SELECT ID_IVA, PORCENTAJE, DESCRIPCION FROM iva ORDER BY PORCENTAJE")->fetchAll();
+    $ivaVigente = obtener_iva_vigente($pdo);
 } catch (Exception $e) {
-    error_log('Error cargando tasas de IVA: ' . $e->getMessage());
+    error_log('Error cargando tasa de IVA vigente: ' . $e->getMessage());
 }
 
 // Cargar necesidades / estrategias académicas para tomar la cantidad requerida desde la tabla de necesidades
@@ -205,6 +206,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $pdo->commit();
         header("Location: matriz.php?lote=" . $id_lote . "&msg=item_eliminado");
         exit;
+    } catch (PDOException $e) {
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Error eliminando ítem de matriz: ' . $e->getMessage());
+        die('No se pudo quitar el ítem. Intente de nuevo más tarde.');
     } catch (Exception $e) {
         if ($transactionStarted && $pdo->inTransaction()) {
             $pdo->rollBack();
@@ -225,7 +232,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
     $rawUnspsc = isset($_POST['id_codigo_unspsc']) ? trim($_POST['id_codigo_unspsc']) : '';
     $id_unspsc = 0;
-    $id_iva = isset($_POST['id_iva']) ? intval($_POST['id_iva']) : 0;
     $id_necesidad = isset($_POST['id_necesidad']) && $_POST['id_necesidad'] !== '' ? intval($_POST['id_necesidad']) : 0;
     $id_ficha_tecnica = isset($_POST['id_ficha_tecnica']) && $_POST['id_ficha_tecnica'] !== '' ? intval($_POST['id_ficha_tecnica']) : null;
     $descripcion = trim($_POST['descripcion_bien']);
@@ -253,11 +259,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
     $transactionStarted = false;
     try {
-        $stmtCheckIva = $pdo->prepare("SELECT ID_IVA FROM iva WHERE ID_IVA = ?");
-        $stmtCheckIva->execute([$id_iva]);
-        if (!$stmtCheckIva->fetchColumn()) {
-            throw new Exception("Debe seleccionar una tasa de IVA válida.");
+        if (strlen($unidad_medida) > 50) {
+            throw new Exception("La unidad de medida no puede tener más de 50 caracteres.");
         }
+
+        $ivaVigenteActual = obtener_iva_vigente($pdo);
+        if (!$ivaVigenteActual) {
+            throw new Exception("No hay una tasa de IVA vigente configurada. Contacte al administrador.");
+        }
+        $id_iva = intval($ivaVigenteActual['ID_IVA']);
 
         $pdo->beginTransaction();
         $transactionStarted = true;
@@ -369,21 +379,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
         // 4. Crear automáticamente la ficha técnica si no está asociada
         if (empty($id_ficha_tecnica)) {
-            // Procesar archivo de imagen si se subió uno
+            // Procesar archivo de imagen si se subió uno. Se valida el contenido
+            // real (getimagesize), no solo la extensión del nombre del archivo:
+            // un archivo cualquiera renombrado a ".jpg" pasaría un chequeo por
+            // extensión pero no es realmente una imagen.
             $imagenPath = null;
             if (isset($_FILES['imagen_referencia']) && $_FILES['imagen_referencia']['error'] === UPLOAD_ERR_OK) {
                 $fileTmpPath = $_FILES['imagen_referencia']['tmp_name'];
-                $fileName = $_FILES['imagen_referencia']['name'];
-                $fileNameCmps = explode(".", $fileName);
-                $fileExtension = strtolower(end($fileNameCmps));
 
-                $allowedfileExtensions = array('jpg', 'jpeg', 'png', 'gif', 'webp');
-                if (in_array($fileExtension, $allowedfileExtensions)) {
+                $allowedImageTypes = [
+                    IMAGETYPE_JPEG => 'jpg',
+                    IMAGETYPE_PNG  => 'png',
+                    IMAGETYPE_GIF  => 'gif',
+                    IMAGETYPE_WEBP => 'webp',
+                ];
+                $imageInfo = @getimagesize($fileTmpPath);
+
+                if ($imageInfo !== false && isset($allowedImageTypes[$imageInfo[2]])) {
+                    $ext = $allowedImageTypes[$imageInfo[2]];
                     $uploadFileDir = '../uploads/fichas/';
                     if (!file_exists($uploadFileDir)) {
-                        mkdir($uploadFileDir, 0777, true);
+                        mkdir($uploadFileDir, 0755, true);
                     }
-                    $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+                    $newFileName = bin2hex(random_bytes(16)) . '.' . $ext;
                     $dest_path = $uploadFileDir . $newFileName;
 
                     if (move_uploaded_file($fileTmpPath, $dest_path)) {
@@ -464,12 +482,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $msgParam = $submitAction === 'enviar' ? '&msg=enviado' : '&msg=guardado';
         header("Location: matriz.php?lote=" . urlencode($id_lote) . $msgParam);
         exit;
+    } catch (PDOException $e) {
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Error guardando ítem/necesidad: ' . $e->getMessage());
+        die('No se pudo guardar el ítem. Intente de nuevo más tarde.');
     } catch (Exception $e) {
         if ($transactionStarted && $pdo->inTransaction()) {
             $pdo->rollBack();
         }
         error_log('Error guardando ítem/necesidad: ' . $e->getMessage());
-        die('Error al agregar el ítem. Contacte al administrador. Detalles: ' . htmlspecialchars($e->getMessage()));
+        die('Error al agregar el ítem: ' . htmlspecialchars($e->getMessage()));
     }
 }
 
@@ -537,10 +561,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
@@ -589,15 +609,15 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 </div>
                 <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
-                    <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required />
+                    <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required maxlength="50" />
                 </div>
                 <div class="form-group">
-                    <label for="id_iva">Tasa de IVA *:</label>
-                    <select id="id_iva" name="id_iva" class="form-control" required>
-                        <?php foreach ($ivas as $iva): ?>
-                            <option value="<?= htmlspecialchars($iva['ID_IVA']) ?>"><?= htmlspecialchars($iva['DESCRIPCION']) ?> (<?= htmlspecialchars(rtrim(rtrim(number_format($iva['PORCENTAJE'], 2), '0'), '.')) ?>%)</option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label>Tasa de IVA:</label>
+                    <?php if ($ivaVigente): ?>
+                        <input type="text" class="form-control" disabled value="<?= htmlspecialchars($ivaVigente['DESCRIPCION']) ?> (<?= htmlspecialchars(rtrim(rtrim(number_format($ivaVigente['PORCENTAJE'], 2), '0'), '.')) ?>%) — aplicada automáticamente">
+                    <?php else: ?>
+                        <input type="text" class="form-control" disabled value="Sin tasa de IVA vigente configurada" style="color:#de3a3a;">
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -913,9 +933,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 <span style="color: green; font-weight: bold;">✓ Asignada (FT #<?= (int)$item['ID_FICHA_TECNICA'] ?>)</span>
                             <?php else: ?>
                                 <span style="color: #666; font-style: italic;">Sin Ficha</span>
-                                <div style="margin-top: 4px; margin-bottom: 4px;">
-                                    <a href="crear_ficha_tecnica.php?item=<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>" class="btn btn-sena" style="padding: 3px 8px; font-size: 11px; text-decoration: none; display: inline-block; width: auto; background-color: #39A900; color: white; border-radius: 4px;">Crear Ficha Técnica</a>
-                                </div>
                             <?php endif; ?>
                             <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" style="margin-top: 5px;">
                                 <input type="hidden" name="accion" value="asignar_ficha">

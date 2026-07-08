@@ -54,7 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtUser = $pdo->prepare("SELECT NOMBRE, APELLIDO FROM usuario WHERE ID_USUARIO = ?");
             $stmtUser->execute([$idUsuario]);
             $usrData = $stmtUser->fetch();
-            
+
+            if (!$usrData) {
+                header("Location: index.php?msg=error");
+                exit;
+            }
+
             $stmtUpdate = $pdo->prepare("UPDATE usuario SET ESTADO = ? WHERE ID_USUARIO = ?");
             $stmtUpdate->execute([$nuevoEstado, $idUsuario]);
             
@@ -202,13 +207,6 @@ if ($msg === 'status_updated') {
             <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
             <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
         </div>
-        <div class="sidebar-group">
-            <h4>Módulos del Sistema</h4>
-            <!-- Respetando rutas del index.php hacia los otros roles -->
-            <a href="../instructor/index.php" class="sidebar-link">Panel Instructor</a>
-            <a href="../coordinador/index.php" class="sidebar-link">Panel Coordinador</a>
-            <a href="../almacenista/index.php" class="sidebar-link">Panel Almacenista</a>
-        </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
@@ -264,9 +262,6 @@ if ($msg === 'status_updated') {
             <p class="dashboard-subtitle">Navega rápidamente a las principales secciones de administración.</p>
             <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
                 <a href="crear_usuario.php" class="btn btn-sena">+ Crear Nuevo Usuario</a>
-                <a href="../coordinador/index.php" class="btn btn-secondary">Panel Coordinador</a>
-                <a href="../almacenista/index.php" class="btn btn-secondary">Panel Almacenista</a>
-                <a href="../instructor/index.php" class="btn btn-secondary">Panel Instructor</a>
             </div>
         </div>
 

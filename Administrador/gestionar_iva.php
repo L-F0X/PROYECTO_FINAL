@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../iva_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: ../login.php");
@@ -28,16 +29,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = $_POST['accion'] ?? '';
     $porcentaje = isset($_POST['porcentaje']) ? trim($_POST['porcentaje']) : '';
     $descripcion = trim($_POST['descripcion'] ?? '');
+    $fechaVigencia = trim($_POST['fecha_vigencia'] ?? '');
 
     if (!is_numeric($porcentaje) || $porcentaje < 0 || $porcentaje > 100) {
         $error = 'El porcentaje debe ser un número entre 0 y 100.';
     } elseif ($descripcion === '') {
         $error = 'La descripción es obligatoria.';
+    } elseif ($fechaVigencia === '' || !DateTime::createFromFormat('Y-m-d', $fechaVigencia)) {
+        $error = 'La fecha de vigencia es obligatoria y debe ser válida.';
     } else {
         try {
+            asegurar_columna_vigencia_iva($pdo);
             if ($accion === 'crear') {
-                $stmt = $pdo->prepare('INSERT INTO iva (PORCENTAJE, DESCRIPCION) VALUES (?, ?)');
-                $stmt->execute([$porcentaje, $descripcion]);
+                $stmt = $pdo->prepare('INSERT INTO iva (PORCENTAJE, DESCRIPCION, FECHA_VIGENCIA) VALUES (?, ?, ?)');
+                $stmt->execute([$porcentaje, $descripcion, $fechaVigencia]);
                 $mensaje = '✓ Tasa de IVA creada correctamente.';
             } elseif ($accion === 'editar') {
                 $idIva = intval($_POST['id_iva'] ?? 0);
@@ -46,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($idIva <= 0 || !$existe->fetch()) {
                     $error = 'No se encontró la tasa de IVA indicada.';
                 } else {
-                    $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ? WHERE ID_IVA = ?');
-                    $stmt->execute([$porcentaje, $descripcion, $idIva]);
+                    $stmt = $pdo->prepare('UPDATE iva SET PORCENTAJE = ?, DESCRIPCION = ?, FECHA_VIGENCIA = ? WHERE ID_IVA = ?');
+                    $stmt->execute([$porcentaje, $descripcion, $fechaVigencia, $idIva]);
                     $mensaje = '✓ Tasa de IVA actualizada correctamente.';
                 }
             }
@@ -58,7 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
+asegurar_columna_vigencia_iva($pdo);
+$tasas = $pdo->query('SELECT * FROM iva ORDER BY FECHA_VIGENCIA DESC, PORCENTAJE')->fetchAll();
+$ivaVigente = obtener_iva_vigente($pdo);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -95,12 +102,6 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
             <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
             <a href="gestionar_iva.php" class="sidebar-link sidebar-link--primary active">Gestionar IVA</a>
         </div>
-        <div class="sidebar-group">
-            <h4>Módulos del Sistema</h4>
-            <a href="../instructor/index.php" class="sidebar-link">Panel Instructor</a>
-            <a href="../coordinador/index.php" class="sidebar-link">Panel Coordinador</a>
-            <a href="../almacenista/index.php" class="sidebar-link">Panel Almacenista</a>
-        </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
@@ -110,7 +111,7 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
     <main class="dashboard-main">
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <h2>Gestionar Tasas de IVA</h2>
-            <p>Estas tasas se pueden seleccionar al crear un ítem en la matriz de un lote.</p>
+            <p>El sistema aplica automáticamente la tasa cuya fecha de vigencia sea la más reciente ya alcanzada. Puede registrar tasas con fecha futura para programar cambios de antemano.</p>
 
             <?php if ($error): ?>
                 <div style="padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-weight: 500; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
@@ -136,6 +137,10 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
                             <label for="descripcion">Descripción *</label>
                             <input type="text" id="descripcion" name="descripcion" class="form-control" placeholder="Ej: IVA General" required>
                         </div>
+                        <div class="form-group">
+                            <label for="fecha_vigencia">Fecha de Vigencia *</label>
+                            <input type="date" id="fecha_vigencia" name="fecha_vigencia" class="form-control" required>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-sena" style="margin-top: 15px;">Crear Tasa</button>
                 </form>
@@ -149,12 +154,15 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
                             <th>ID</th>
                             <th>Porcentaje</th>
                             <th>Descripción</th>
+                            <th>Fecha Vigencia</th>
+                            <th>Vigente</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($tasas as $t): ?>
                             <?php $formId = 'form-iva-' . $t['ID_IVA']; ?>
+                            <?php $esVigente = $ivaVigente && (int)$ivaVigente['ID_IVA'] === (int)$t['ID_IVA']; ?>
                             <tr>
                                 <td><?= htmlspecialchars($t['ID_IVA']) ?></td>
                                 <td>
@@ -162,6 +170,16 @@ $tasas = $pdo->query('SELECT * FROM iva ORDER BY PORCENTAJE')->fetchAll();
                                 </td>
                                 <td>
                                     <input type="text" name="descripcion" form="<?= $formId ?>" value="<?= htmlspecialchars($t['DESCRIPCION']) ?>" class="form-control" required>
+                                </td>
+                                <td>
+                                    <input type="date" name="fecha_vigencia" form="<?= $formId ?>" value="<?= htmlspecialchars($t['FECHA_VIGENCIA']) ?>" class="form-control" required>
+                                </td>
+                                <td>
+                                    <?php if ($esVigente): ?>
+                                        <span style="background:#eff8f1; color:#270; border:1px solid #d4ebd5; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700;">✓ Vigente</span>
+                                    <?php else: ?>
+                                        <span style="color:#999;">—</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <button type="submit" form="<?= $formId ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Guardar</button>

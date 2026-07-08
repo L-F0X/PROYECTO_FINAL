@@ -1,5 +1,5 @@
 <?php
-// coordinador/proveedores.php
+// almacenista/proveedores.php
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
@@ -10,9 +10,23 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 $rolNombre = strtolower(trim($_SESSION['rol_nombre'] ?? ''));
-if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
+if ($rolNombre !== 'almacenista') {
     header('Location: ../login.php');
     exit;
+}
+
+function proveedor_columna_existe(PDO $pdo, string $columna): bool {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'proveedor' AND COLUMN_NAME = ?");
+    $stmt->execute([$columna]);
+    return (bool) $stmt->fetchColumn();
+}
+// ALTER TABLE es DDL: MySQL hace commit implícito de cualquier transacción
+// abierta, por eso se verifica primero por information_schema (solo SELECT).
+if (!proveedor_columna_existe($pdo, 'TELEFONO')) {
+    $pdo->exec("ALTER TABLE proveedor ADD COLUMN TELEFONO VARCHAR(20) DEFAULT NULL");
+}
+if (!proveedor_columna_existe($pdo, 'CONTACTO')) {
+    $pdo->exec("ALTER TABLE proveedor ADD COLUMN CONTACTO VARCHAR(100) DEFAULT NULL");
 }
 
 $mensaje = '';
@@ -28,12 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nit = trim($_POST['nit'] ?? '');
         $razonSocial = trim($_POST['razon_social'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $telefono = trim($_POST['telefono'] ?? '');
+        $contacto = trim($_POST['contacto'] ?? '');
 
         if ($nit === '' || $razonSocial === '') {
             $mensaje = 'NIT y Razón Social son obligatorios.';
             $tipoMensaje = 'error';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $mensaje = 'El correo electrónico no tiene un formato válido.';
+            $tipoMensaje = 'error';
+        } elseif (strlen($nit) > 20) {
+            $mensaje = 'El NIT no puede tener más de 20 caracteres.';
+            $tipoMensaje = 'error';
+        } elseif (strlen($razonSocial) > 150) {
+            $mensaje = 'La razón social no puede tener más de 150 caracteres.';
+            $tipoMensaje = 'error';
+        } elseif (strlen($email) > 100) {
+            $mensaje = 'El correo electrónico no puede tener más de 100 caracteres.';
+            $tipoMensaje = 'error';
+        } elseif (strlen($telefono) > 20) {
+            $mensaje = 'El teléfono no puede tener más de 20 caracteres.';
+            $tipoMensaje = 'error';
+        } elseif (strlen($contacto) > 100) {
+            $mensaje = 'La persona de contacto no puede tener más de 100 caracteres.';
             $tipoMensaje = 'error';
         } elseif ($accion === 'editar') {
             $idProveedor = intval($_POST['id_proveedor'] ?? 0);
@@ -44,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mensaje = 'No se encontró el proveedor indicado.';
                     $tipoMensaje = 'error';
                 } else {
-                    $stmt = $pdo->prepare('UPDATE proveedor SET NIT = ?, RAZON_SOCIAL = ?, EMAIL = ? WHERE ID_PROVEEDOR = ?');
-                    $stmt->execute([$nit, $razonSocial, $email, $idProveedor]);
+                    $stmt = $pdo->prepare('UPDATE proveedor SET NIT = ?, RAZON_SOCIAL = ?, EMAIL = ?, TELEFONO = ?, CONTACTO = ? WHERE ID_PROVEEDOR = ?');
+                    $stmt->execute([$nit, $razonSocial, $email, $telefono !== '' ? $telefono : null, $contacto !== '' ? $contacto : null, $idProveedor]);
                     $mensaje = '✓ Proveedor actualizado correctamente.';
                 }
             } catch (PDOException $e) {
@@ -57,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             try {
-                $stmt = $pdo->prepare('INSERT INTO proveedor (NIT, RAZON_SOCIAL, EMAIL) VALUES (?, ?, ?)');
-                $stmt->execute([$nit, $razonSocial, $email]);
+                $stmt = $pdo->prepare('INSERT INTO proveedor (NIT, RAZON_SOCIAL, EMAIL, TELEFONO, CONTACTO) VALUES (?, ?, ?, ?, ?)');
+                $stmt->execute([$nit, $razonSocial, $email, $telefono !== '' ? $telefono : null, $contacto !== '' ? $contacto : null]);
                 $mensaje = '✓ Proveedor registrado correctamente.';
             } catch (PDOException $e) {
                 error_log('Error creando proveedor: ' . $e->getMessage());
@@ -87,12 +118,13 @@ try {
 }
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
+$usuarioId = intval($_SESSION['usuario_id'] ?? 0);
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
-    $candidate = __DIR__ . '/../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+    $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
     if (file_exists($candidate)) {
-        $photoPath = '../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
+        $photoPath = '../uploads/profiles/' . $usuarioId . '.' . $ext;
         break;
     }
 }
@@ -109,17 +141,17 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
 <header class="header-main">
     <div class="header-left" style="display: flex; align-items: center; gap: 15px;">
-        <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
+        <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
-            <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
-            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
+            <h1 class="header-title">BICERGAM | <span class="accent-color">Almacén Central</span></h1>
+            <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, $usuarioId); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
-        <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
+        <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
                 <img src="<?= htmlspecialchars($photoPath) ?>" alt="Foto perfil" class="header-avatar">
             <?php else: ?>
@@ -132,32 +164,36 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 <div class="dashboard-page">
     <aside class="dashboard-sidebar">
         <div class="sidebar-logo">
-            <a href="index.php" style="text-decoration: none; display: flex; align-items: center;"><img src="../imagenes/sena-logo.png" alt="SENA"><span>BICERGAM</span></a>
+            <img src="../imagenes/sena-logo.png" alt="SENA">
+            <span>BICERGAM</span>
         </div>
         <div class="sidebar-group">
-            <h4>Gestión de Lotes</h4>
-            <a href="revisar_lotes.php" class="sidebar-link">Revisar Lotes</a>
-            <a href="historial_decisiones.php" class="sidebar-link">Historial Decisiones</a>
+            <h4>Gestión de Inventario</h4>
+            <a href="index.php?tab=stock" class="sidebar-link">Vista de Stock</a>
+            <a href="index.php?tab=entrada" class="sidebar-link">Registrar Entrada</a>
+            <a href="index.php?tab=salida" class="sidebar-link">Registrar Salida</a>
+            <a href="historial_movimientos.php" class="sidebar-link">Historial de Movimientos</a>
         </div>
         <div class="sidebar-group">
-            <h4>Consultas</h4>
-            <a href="instructores.php" class="sidebar-link">Instructores</a>
+            <h4>Módulos del Sistema</h4>
+            <a href="index.php?tab=instructor" class="sidebar-link">Panel Instructor</a>
             <a href="proveedores.php" class="sidebar-link sidebar-link--primary active">Proveedores</a>
-            <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
-            <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
-            <a href="coordinador_profile.php" class="sidebar-link">Editar Perfil</a>
+            <a href="almacenista_profile.php" class="sidebar-link">Editar Perfil</a>
             <a href="../logout.php" class="sidebar-link sidebar-link--logout">Cerrar Sesión</a>
         </div>
     </aside>
 
     <main class="dashboard-main">
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
-            <div class="role-banner role-coordinador">
-                <h2>Proveedores</h2>
-                <p>Registra los proveedores que participan en las cotizaciones de los ítems de la matriz.</p>
+            <div class="dashboard-topbar">
+                <div>
+                    <h2>Proveedores</h2>
+                    <p class="dashboard-subtitle">Catálogo de proveedores externos que cotizan los ítems de la matriz.</p>
+                </div>
             </div>
 
             <?php if ($mensaje): ?>
@@ -174,15 +210,23 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="nit">NIT *</label>
-                            <input type="text" id="nit" name="nit" class="form-control" required>
+                            <input type="text" id="nit" name="nit" class="form-control" required maxlength="20">
                         </div>
                         <div class="form-group">
                             <label for="razon_social">Razón Social *</label>
-                            <input type="text" id="razon_social" name="razon_social" class="form-control" required>
+                            <input type="text" id="razon_social" name="razon_social" class="form-control" required maxlength="150">
                         </div>
                         <div class="form-group">
                             <label for="email">Correo Electrónico *</label>
-                            <input type="email" id="email" name="email" class="form-control" required>
+                            <input type="email" id="email" name="email" class="form-control" required maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="tel" id="telefono" name="telefono" class="form-control" maxlength="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="contacto">Persona de Contacto</label>
+                            <input type="text" id="contacto" name="contacto" class="form-control" maxlength="100">
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sena" style="margin-top: 15px;">Registrar Proveedor</button>
@@ -202,13 +246,15 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th>NIT</th>
                             <th>Razón Social</th>
                             <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Contacto</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($proveedores)): ?>
                             <tr>
-                                <td colspan="5">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
                                             <circle cx="11" cy="11" r="8"/>
@@ -226,13 +272,19 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 <tr>
                                     <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
                                     <td>
-                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required>
+                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required maxlength="20">
                                     </td>
                                     <td>
-                                        <input type="text" name="razon_social" form="<?= $formId ?>" value="<?= htmlspecialchars($p['RAZON_SOCIAL']) ?>" class="form-control" required>
+                                        <input type="text" name="razon_social" form="<?= $formId ?>" value="<?= htmlspecialchars($p['RAZON_SOCIAL']) ?>" class="form-control" required maxlength="150">
                                     </td>
                                     <td>
-                                        <input type="email" name="email" form="<?= $formId ?>" value="<?= htmlspecialchars($p['EMAIL']) ?>" class="form-control" required>
+                                        <input type="email" name="email" form="<?= $formId ?>" value="<?= htmlspecialchars($p['EMAIL']) ?>" class="form-control" required maxlength="100">
+                                    </td>
+                                    <td>
+                                        <input type="tel" name="telefono" form="<?= $formId ?>" value="<?= htmlspecialchars($p['TELEFONO'] ?? '') ?>" class="form-control" maxlength="20">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="contacto" form="<?= $formId ?>" value="<?= htmlspecialchars($p['CONTACTO'] ?? '') ?>" class="form-control" maxlength="100">
                                     </td>
                                     <td>
                                         <button type="submit" form="<?= $formId ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Guardar</button>

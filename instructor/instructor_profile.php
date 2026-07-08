@@ -477,10 +477,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link sidebar-link--primary">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>

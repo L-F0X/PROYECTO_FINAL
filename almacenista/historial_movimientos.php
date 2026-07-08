@@ -108,6 +108,7 @@ $total = count($movimientos);
         <div class="sidebar-group">
             <h4>Módulos del Sistema</h4>
             <a href="index.php?tab=instructor" class="sidebar-link">Panel Instructor</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">

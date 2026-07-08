@@ -36,26 +36,36 @@ if ($lote['ESTADO_TRAMITE'] !== 'Borrador') {
 }
 
 // Procesar actualización
+$errorMensaje = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {
         die('Token CSRF inválido.');
     }
 
-    $nombre = trim($_POST['lote_nombre']);
+    $nombre = trim($_POST['lote_nombre'] ?? '');
 
-    // El estado del trámite no se edita aquí: solo el coordinador puede
-    // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
-    // El solicitante tampoco se reasigna: un lote siempre pertenece a quien lo creó.
-    $sql = "UPDATE lote_requerimiento SET LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
-    try {
-        $pdo->prepare($sql)->execute([$nombre, $id, $usuarioId]);
-        header("Location: mis_lotes.php?msg=editado");
-        exit;
-    } catch (\PDOException $e) {
-        error_log('Editar lote error: ' . $e->getMessage());
-        die('Error al actualizar el lote. Contacte al administrador.');
+    if ($nombre === '') {
+        $errorMensaje = 'El nombre del lote no puede estar vacío.';
+    } elseif (strlen($nombre) > 100) {
+        $errorMensaje = 'El nombre del lote no puede tener más de 100 caracteres.';
+    } else {
+        // El estado del trámite no se edita aquí: solo el coordinador puede
+        // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
+        // El solicitante tampoco se reasigna: un lote siempre pertenece a quien lo creó.
+        $sql = "UPDATE lote_requerimiento SET LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
+        try {
+            $pdo->prepare($sql)->execute([$nombre, $id, $usuarioId]);
+            header("Location: mis_lotes.php?msg=editado");
+            exit;
+        } catch (\PDOException $e) {
+            error_log('Editar lote error: ' . $e->getMessage());
+            die('Error al actualizar el lote. Contacte al administrador.');
+        }
     }
+
+    // Si hubo un error de validación, se conserva el valor ingresado para no perderlo.
+    $lote['LOTE_NOMBRE'] = $nombre;
 }
 
 $photoPath = null;
@@ -111,10 +121,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
         </div>
         <div class="sidebar-group">
-            <h4>Operaciones</h4>
-            <a href="crear_ficha_tecnica.php" class="sidebar-link">Ficha Técnica</a>
-        </div>
-        <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="matriz_consulta.php" class="sidebar-link">Consulta de Ítems</a>
             <a href="certificado_existencia.php" class="sidebar-link">Certificados Existencia</a>
@@ -129,12 +135,18 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <main class="dashboard-main">
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <h2>Editar Lote #<?= htmlspecialchars($lote['ID_LOTE']) ?></h2>
-            
+
+            <?php if ($errorMensaje !== ''): ?>
+                <div style="padding: 12px 16px; border-radius: 6px; margin: 15px 0; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
+                    ✗ <?= htmlspecialchars($errorMensaje) ?>
+                </div>
+            <?php endif; ?>
+
             <form id="formLote" action="editar.php?id=<?= htmlspecialchars($id) ?>" method="POST" style="margin-top: 20px;">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                 <div class="form-group">
                     <label for="lote_nombre">Nombre del Lote:</label>
-                    <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" value="<?= htmlspecialchars($lote['LOTE_NOMBRE']) ?>" required style="border-radius: 7px; padding: 10px 14px;">
+                    <input type="text" id="lote_nombre" name="lote_nombre" class="form-control" value="<?= htmlspecialchars($lote['LOTE_NOMBRE']) ?>" required maxlength="100" style="border-radius: 7px; padding: 10px 14px;">
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-top: 15px;">

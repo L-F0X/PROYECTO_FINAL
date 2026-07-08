@@ -40,7 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newPassword     = $_POST['new_password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
-        if ($nombre !== '' && $apellido !== '' && $email !== '') {
+        if ($nombre === '' || $apellido === '' || $email === '') {
+            $message = '✗ Todos los campos de perfil son obligatorios.';
+            $messageType = 'error';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $message = '✗ El correo electrónico no tiene un formato válido.';
+            $messageType = 'error';
+        } elseif (strlen($nombre) > 100 || strlen($apellido) > 100) {
+            $message = '✗ El nombre y el apellido no pueden tener más de 100 caracteres.';
+            $messageType = 'error';
+        } elseif (strlen($email) > 100) {
+            $message = '✗ El correo electrónico no puede tener más de 100 caracteres.';
+            $messageType = 'error';
+        } else {
             try {
                 $changePassword = false;
                 if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
@@ -111,14 +123,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $message .= ' Formato de imagen no permitido.';
                     }
                 }
+            } catch (PDOException $e) {
+                error_log('Profile update error: ' . $e->getMessage());
+                $message = $e->getCode() === '23000'
+                    ? '✗ Ese correo electrónico ya está en uso por otro usuario.'
+                    : '✗ No se pudo actualizar el perfil. Contacte al administrador.';
+                $messageType = 'error';
             } catch (Exception $e) {
                 error_log('Profile update error: ' . $e->getMessage());
                 $message = '✗ ' . $e->getMessage();
                 $messageType = 'error';
             }
-        } else {
-            $message = '✗ Todos los campos de perfil son obligatorios.';
-            $messageType = 'error';
         }
     }
 
@@ -430,7 +445,6 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         <div class="sidebar-group">
             <h4>Consultas</h4>
             <a href="instructores.php" class="sidebar-link">Instructores</a>
-            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
         </div>
@@ -487,19 +501,19 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
                     <div class="profile-field">
                         <label for="p-nombre">Nombre</label>
                         <input type="text" id="p-nombre" name="nombre"
-                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required maxlength="100">
                     </div>
 
                     <div class="profile-field">
                         <label for="p-apellido">Apellido</label>
                         <input type="text" id="p-apellido" name="apellido"
-                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required maxlength="100">
                     </div>
 
                     <div class="profile-field full-col">
                         <label for="p-email">Correo electrónico</label>
                         <input type="email" id="p-email" name="email"
-                               value="<?= htmlspecialchars($user['EMAIL'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars($user['EMAIL'] ?? '') ?>" required maxlength="100">
                     </div>
 
                     <div class="profile-field full-col">
