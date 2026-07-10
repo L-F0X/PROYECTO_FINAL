@@ -69,9 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($codigo_unspsc !== '') {
                 $stmtCheckCod = $pdo->prepare("SELECT 1 FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
                 $stmtCheckCod->execute([$codigo_unspsc]);
-                $codigoValido = (bool) $stmtCheckCod->fetchColumn();
+                $found = $stmtCheckCod->fetchColumn();
+                if (!$found) {
+                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
+                    $stmtInsertUnspsc->execute([$codigo_unspsc, $codigo_unspsc]);
+                }
             }
-            if (!$codigoValido) {
+            if (false) { // Skip old validation check
                 $errorMsg = "El código UNSPSC seleccionado no existe en el catálogo.";
             } else {
                 try {
@@ -106,9 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($codigo_unspsc !== '') {
                 $stmtCheckCod = $pdo->prepare("SELECT 1 FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
                 $stmtCheckCod->execute([$codigo_unspsc]);
-                $codigoValido = (bool) $stmtCheckCod->fetchColumn();
+                $found = $stmtCheckCod->fetchColumn();
+                if (!$found) {
+                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
+                    $stmtInsertUnspsc->execute([$codigo_unspsc, $codigo_unspsc]);
+                }
             }
-            if (!$codigoValido) {
+            if (false) { // Skip old validation check
                 $errorMsg = "El código UNSPSC seleccionado no existe en el catálogo.";
             } else {
                 try {
@@ -340,8 +348,7 @@ try {
                  WHERE 1=1";
     $paramsLotes = [];
     if ($busquedaInstructor !== '') {
-        $sqlLotes .= " AND (lr.LOTE_NOMBRE LIKE ? OR u.NOMBRE LIKE ? OR u.APELLIDO LIKE ?)";
-        $paramsLotes[] = "%$busquedaInstructor%";
+        $sqlLotes .= " AND (lr.LOTE_NOMBRE LIKE ? OR CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ?)";
         $paramsLotes[] = "%$busquedaInstructor%";
         $paramsLotes[] = "%$busquedaInstructor%";
     }

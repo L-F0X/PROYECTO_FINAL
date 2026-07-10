@@ -135,10 +135,10 @@ if ($busqueda !== '') {
 }
 if ($busqueda !== '') {
     // Coincidencias de nombre por prefijo se muestran primero, igual que en Fase 22.
-    $sql .= " ORDER BY CASE WHEN ft.NOMBRE_ITEM LIKE ? THEN 0 ELSE 1 END, ft.ID_FICHA_TECNICA DESC";
+    $sql .= " ORDER BY CASE WHEN ft.NOMBRE_ITEM LIKE ? THEN 0 ELSE 1 END, ft.ID_FICHA_TECNICA ASC";
     $params[] = "$busqueda%";
 } else {
-    $sql .= " ORDER BY ft.ID_FICHA_TECNICA DESC";
+    $sql .= " ORDER BY ft.ID_FICHA_TECNICA ASC";
 }
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -255,7 +255,7 @@ $total = count($fichas);
                         <thead>
                             <tr>
                                 <?php if ($hayEnviables): ?><th></th><?php endif; ?>
-                                <th>ID</th>
+                                <th>N°</th>
                                 <th>Nombre del Ítem</th>
                                 <th>Código UNSPSC</th>
                                 <th>Denominación Técnica</th>
@@ -280,6 +280,7 @@ $total = count($fichas);
                                     </td>
                                 </tr>
                             <?php else: ?>
+                                <?php $contador = 1; ?>
                                 <?php foreach ($fichas as $f): ?>
                                     <tr>
                                         <?php if ($hayEnviables): ?>
@@ -289,7 +290,7 @@ $total = count($fichas);
                                             <?php endif; ?>
                                         </td>
                                         <?php endif; ?>
-                                        <td>#<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?></td>
+                                        <td><?= $contador++ ?></td>
                                         <td><strong><?= htmlspecialchars($f['NOMBRE_ITEM']) ?></strong></td>
                                         <td><?= htmlspecialchars($f['CODIGO_UNSPSC_FK']) ?></td>
                                         <td><?= htmlspecialchars($f['DENOMINACION_TECNICA_BIEN']) ?></td>

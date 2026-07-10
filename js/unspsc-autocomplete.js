@@ -51,7 +51,7 @@ function initUnspscAutocomplete(options) {
     }
 
     input.addEventListener('input', function () {
-        hidden.value = '';
+        hidden.value = input.value;
         const q = input.value.trim();
         clearTimeout(debounceTimer);
         if (q.length < 1) {

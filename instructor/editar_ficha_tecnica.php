@@ -100,8 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ?");
         $stmtCheckUnspsc->execute([$codigoUnspsc]);
-        if (!$stmtCheckUnspsc->fetchColumn()) {
-            throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias.");
+        $found = $stmtCheckUnspsc->fetchColumn();
+        if (!$found) {
+            $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
+            $stmtInsertUnspsc->execute([$codigoUnspsc, $codigoUnspsc]);
         }
 
         $stmtUpdate = $pdo->prepare("

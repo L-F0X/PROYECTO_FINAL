@@ -79,10 +79,10 @@ try {
 
     if ($busqueda !== '') {
         // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
-        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.FECHA_CREACION DESC";
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.ID_LOTE ASC";
         $params[] = "$busqueda%";
     } else {
-        $sql .= " ORDER BY lr.FECHA_CREACION DESC";
+        $sql .= " ORDER BY lr.ID_LOTE ASC";
     }
 
     $stmt = $pdo->prepare($sql);
@@ -246,8 +246,12 @@ if ($msg === 'aprobado') {
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th>ID Lote</th>
+                            <th>
+                                <?php if ($totalEnviados > 0): ?>
+                                    <input type="checkbox" id="check-all-lotes" title="Seleccionar todos">
+                                <?php endif; ?>
+                            </th>
+                            <th>N°</th>
                             <th>Nombre</th>
                             <th>Instructor</th>
                             <th>Items</th>
@@ -272,6 +276,7 @@ if ($msg === 'aprobado') {
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $contador = 1; ?>
                             <?php foreach ($lotes as $lote): ?>
                                 <tr>
                                     <td>
@@ -279,7 +284,7 @@ if ($msg === 'aprobado') {
                                             <input type="checkbox" name="lotes[]" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="check-lote">
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                                    <td><?= $contador++ ?></td>
                                     <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
                                     <td><?= htmlspecialchars($lote['NOMBRE'] . ' ' . $lote['APELLIDO']) ?></td>
                                     <td><?= htmlspecialchars($lote['ITEMS_COUNT']) ?></td>
@@ -308,6 +313,7 @@ if ($msg === 'aprobado') {
 <script src="../js/apartados.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const checkAll = document.getElementById('check-all-lotes');
     const checksLote = document.querySelectorAll('.check-lote');
     const contador = document.getElementById('contador-seleccion');
 
@@ -315,6 +321,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!contador) return;
         const marcados = document.querySelectorAll('.check-lote:checked').length;
         contador.textContent = marcados + ' lote(s) seleccionado(s)';
+        if (checkAll) {
+            checkAll.checked = (marcados > 0 && marcados === checksLote.length);
+        }
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            checksLote.forEach(cb => cb.checked = checkAll.checked);
+            actualizarContador();
+        });
     }
 
     checksLote.forEach(cb => cb.addEventListener('change', actualizarContador));

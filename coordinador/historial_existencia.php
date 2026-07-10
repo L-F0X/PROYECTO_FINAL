@@ -19,6 +19,22 @@ $fechaDesde = isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : '';
 $fechaHasta = isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : '';
 
 $photoPath = null;
+
+// Migración aditiva: asegurar columnas de auditoría en certificado_existencia si no existen
+if (!function_exists('certificado_columna_existe')) {
+    function certificado_columna_existe(PDO $pdo, string $tabla, string $columna): bool {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->execute([$tabla, $columna]);
+        return (bool) $stmt->fetchColumn();
+    }
+}
+if (!certificado_columna_existe($pdo, 'certificado_existencia', 'FECHA_EMISION')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN FECHA_EMISION TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+}
+if (!certificado_columna_existe($pdo, 'certificado_existencia', 'ID_ALMACENISTA')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN ID_ALMACENISTA INT DEFAULT NULL");
+}
+
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . intval($_SESSION['usuario_id']) . '.' . $ext;
     if (file_exists($candidate)) {
@@ -37,8 +53,7 @@ try {
     $params = [];
 
     if ($busqueda !== '') {
-        $sql .= " AND (ce.NUMERO_CERTIFICADO LIKE ? OR lr.LOTE_NOMBRE LIKE ? OR u.NOMBRE LIKE ? OR u.APELLIDO LIKE ?)";
-        $params[] = "%$busqueda%";
+        $sql .= " AND (ce.NUMERO_CERTIFICADO LIKE ? OR lr.LOTE_NOMBRE LIKE ? OR CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ?)";
         $params[] = "%$busqueda%";
         $params[] = "%$busqueda%";
         $params[] = "%$busqueda%";
@@ -55,10 +70,10 @@ try {
 
     if ($busqueda !== '') {
         // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
-        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, ce.ID_CERTIFICADO DESC";
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, ce.ID_CERTIFICADO ASC";
         $params[] = "$busqueda%";
     } else {
-        $sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+        $sql .= " ORDER BY ce.ID_CERTIFICADO ASC";
     }
 
     $stmt = $pdo->prepare($sql);
@@ -159,7 +174,7 @@ $total = count($certificados);
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>ID Certificado</th>
+                            <th>N°</th>
                             <th>ID Lote</th>
                             <th>Nombre Lote</th>
                             <th>Instructor</th>
@@ -184,9 +199,10 @@ $total = count($certificados);
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $contador = 1; ?>
                             <?php foreach ($certificados as $cert): ?>
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 12px;"><?= htmlspecialchars($cert['ID_CERTIFICADO']) ?></td>
+                                    <td style="padding: 12px;"><?= $contador++ ?></td>
                                     <td style="padding: 12px;">
                                         <a href="revisar_lote.php?id=<?= htmlspecialchars($cert['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
                                             <?= htmlspecialchars($cert['ID_LOTE']) ?>

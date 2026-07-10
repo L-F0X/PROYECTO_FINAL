@@ -194,7 +194,7 @@ try {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Administrador</span></h1>
-            <div class="user-greeting">Administrador del Sistema: <strong><?= htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Administrador') ?></strong> <span class="role-badge">(Administrador)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Administrador') ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -253,14 +253,12 @@ try {
 
                         <div class="profile-field">
                             <label for="nombre">Nombres</label>
-                            <input type="text" id="nombre" name="nombre" required maxlength="100" autocomplete="off"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
+                            <input type="text" id="nombre" name="nombre" required maxlength="100" autocomplete="off" title="Ingresa el o los nombres">
                         </div>
 
                         <div class="profile-field">
                             <label for="apellido">Apellidos</label>
-                            <input type="text" id="apellido" name="apellido" required maxlength="100" autocomplete="off"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
+                            <input type="text" id="apellido" name="apellido" required maxlength="100" autocomplete="off" title="Ingresa el o los apellidos">
                         </div>
 
                         <div class="profile-field full-col">

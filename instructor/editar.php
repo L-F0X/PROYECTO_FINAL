@@ -50,14 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($nombre) > 100) {
         $errorMensaje = 'El nombre del lote no puede tener más de 100 caracteres.';
     } else {
-        // El estado del trámite no se edita aquí: solo el coordinador puede
-        // aprobar/rechazar, y el instructor solo puede enviar desde matriz.php.
-        // El solicitante tampoco se reasigna: un lote siempre pertenece a quien lo creó.
-        $sql = "UPDATE lote_requerimiento SET LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
         try {
-            $pdo->prepare($sql)->execute([$nombre, $id, $usuarioId]);
-            header("Location: mis_lotes.php?msg=editado");
-            exit;
+            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM lote_requerimiento WHERE LOTE_NOMBRE = ? AND ID_LOTE != ?");
+            $stmtCheck->execute([$nombre, $id]);
+            if ($stmtCheck->fetchColumn() > 0) {
+                $errorMensaje = 'Ya existe un lote con el nombre "' . htmlspecialchars($nombre) . '".';
+            } else {
+                $sql = "UPDATE lote_requerimiento SET LOTE_NOMBRE = ? WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Borrador'";
+                $pdo->prepare($sql)->execute([$nombre, $id, $usuarioId]);
+                header("Location: mis_lotes.php?msg=editado");
+                exit;
+            }
         } catch (\PDOException $e) {
             error_log('Editar lote error: ' . $e->getMessage());
             die('Error al actualizar el lote. Contacte al administrador.');

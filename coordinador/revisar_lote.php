@@ -63,7 +63,7 @@ try {
                  LEFT JOIN cotizacion c3 ON mi.OFERTA_3 = c3.ID_COTIZACION
                  LEFT JOIN proveedor p3 ON c3.ID_PROVEEDOR = p3.ID_PROVEEDOR
                  WHERE mi.ID_LOTE = ? AND mi.ESTADO_ITEM = 'Pendiente'
-                 ORDER BY mi.ID_MATRIZ_ITEM";
+                 ORDER BY mi.ID_MATRIZ_ITEM ASC";
 
     $stmtItems = $pdo->prepare($sqlItems);
     $stmtItems->execute([$idLote]);
@@ -190,7 +190,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     </tr>
                 </table>
                 <div style="margin-top: 15px;">
-                    <a href="instructores.php?id=<?= htmlspecialchars($lote['ID_SOLICITANTE']) ?>" class="btn btn-sena" style="padding: 8px 16px;">Ver más instructores</a>
+                    <a href="instructores.php?lote_id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 8px 16px;">Ver más instructores</a>
                 </div>
             </div>
 
@@ -200,7 +200,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <table style="width: 100%; margin-top: 10px;">
                     <thead>
                         <tr style="background-color: #f5f5f5;">
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Item</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">N°</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Descrición</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Cantidad</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Unidad</th>
@@ -225,6 +225,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $contador = 1; ?>
                             <?php foreach ($items as $item):
                                 $ofertas = [];
                                 foreach ([1, 2, 3] as $n) {
@@ -241,7 +242,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 }
                             ?>
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 12px;"><?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                    <td style="padding: 12px;"><?= $contador++ ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>

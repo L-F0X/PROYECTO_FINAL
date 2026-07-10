@@ -277,15 +277,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $pdo->beginTransaction();
         $transactionStarted = true;
 
-        // 1. Resolver código UNSPSC si se ingresó uno: debe existir en el catálogo (ya no se crean códigos "al vuelo")
+        // 1. Resolver código UNSPSC si se ingresó uno: se busca en el catálogo y, si no existe, se inserta automáticamente
         if ($rawUnspsc !== '') {
             $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
             $stmtCheckUnspsc->execute([$rawUnspsc]);
             $found = $stmtCheckUnspsc->fetchColumn();
             if (!$found) {
-                throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias.");
+                $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
+                $stmtInsertUnspsc->execute([$rawUnspsc, $rawUnspsc]);
+                $id_unspsc = intval($pdo->lastInsertId());
+            } else {
+                $id_unspsc = intval($found);
             }
-            $id_unspsc = intval($found);
         }
 
         // Si no se proporciona un ID UNSPSC, resolver usando la Ficha Técnica

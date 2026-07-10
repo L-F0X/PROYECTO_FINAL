@@ -15,6 +15,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
+$loteId = isset($_GET['lote_id']) ? intval($_GET['lote_id']) : 0;
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -35,19 +36,28 @@ try {
             WHERE u.ID_ROL = 1";
     $params = [];
 
+    if ($loteId > 0) {
+        $sql .= " AND u.ID_USUARIO IN (
+            SELECT ID_SOLICITANTE FROM lote_requerimiento WHERE ID_LOTE = ?
+            UNION
+            SELECT INSTRUCTOR_APOYO FROM matriz_item WHERE ID_LOTE = ? AND INSTRUCTOR_APOYO IS NOT NULL
+        )";
+        $params[] = $loteId;
+        $params[] = $loteId;
+    }
+
     if ($busqueda !== '') {
-        $sql .= " AND (u.NOMBRE LIKE ? OR u.APELLIDO LIKE ? OR u.EMAIL LIKE ?)";
-        $params[] = "%$busqueda%";
+        $sql .= " AND (CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ? OR u.EMAIL LIKE ?)";
         $params[] = "%$busqueda%";
         $params[] = "%$busqueda%";
     }
 
     if ($busqueda !== '') {
         // Coincidencias de nombre por prefijo se muestran primero, igual que en Fase 22.
-        $sql .= " GROUP BY u.ID_USUARIO ORDER BY CASE WHEN u.NOMBRE LIKE ? THEN 0 ELSE 1 END, u.NOMBRE";
+        $sql .= " GROUP BY u.ID_USUARIO ORDER BY CASE WHEN CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ? THEN 0 ELSE 1 END, u.ID_USUARIO ASC";
         $params[] = "$busqueda%";
     } else {
-        $sql .= " GROUP BY u.ID_USUARIO ORDER BY u.NOMBRE";
+        $sql .= " GROUP BY u.ID_USUARIO ORDER BY u.ID_USUARIO ASC";
     }
 
     $stmt = $pdo->prepare($sql);
@@ -130,8 +140,11 @@ $total = count($instructores);
                     <div class="field-group" style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
                         <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar instructor</label>
                         <input type="text" id="q" name="q" class="search-input" placeholder="Buscar por nombre o correo..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+                        <?php if ($loteId > 0): ?>
+                            <input type="hidden" name="lote_id" value="<?= $loteId ?>">
+                        <?php endif; ?>
                     </div>
-                    <a href="instructores.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
+                    <a href="instructores.php<?= $loteId > 0 ? '?lote_id=' . $loteId : '' ?>" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
 
@@ -140,7 +153,7 @@ $total = count($instructores);
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>N°</th>
                             <th>Nombre Completo</th>
                             <th>Correo</th>
                             <th>Estado</th>
@@ -164,9 +177,10 @@ $total = count($instructores);
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $contador = 1; ?>
                             <?php foreach ($instructores as $instructor): ?>
                                 <tr>
-                                    <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
+                                    <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= $contador++ ?></td>
                                     <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['NOMBRE'] . ' ' . $instructor['APELLIDO']) ?></td>
                                     <td style="padding: 12px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['EMAIL']) ?></td>
                                     <td style="padding: 12px; border-bottom: 1px solid #eee;">

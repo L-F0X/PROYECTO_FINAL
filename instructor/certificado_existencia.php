@@ -17,6 +17,21 @@ if ($rol !== 'instructor') {
 
 $usuarioId = intval($_SESSION['usuario_id']);
 
+// Migración aditiva: asegurar columnas de auditoría en certificado_existencia si no existen
+if (!function_exists('certificado_columna_existe')) {
+    function certificado_columna_existe(PDO $pdo, string $tabla, string $columna): bool {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->execute([$tabla, $columna]);
+        return (bool) $stmt->fetchColumn();
+    }
+}
+if (!certificado_columna_existe($pdo, 'certificado_existencia', 'FECHA_EMISION')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN FECHA_EMISION TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+}
+if (!certificado_columna_existe($pdo, 'certificado_existencia', 'ID_ALMACENISTA')) {
+    $pdo->exec("ALTER TABLE certificado_existencia ADD COLUMN ID_ALMACENISTA INT DEFAULT NULL");
+}
+
 // Foto de perfil
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {

@@ -95,9 +95,8 @@ try {
     $params = [];
     
     if ($busqueda !== '') {
-        $sql .= " AND (u.NOMBRE LIKE ? OR u.APELLIDO LIKE ? OR u.EMAIL LIKE ? OR u.DOCUMENTO LIKE ?)";
+        $sql .= " AND (CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ? OR u.EMAIL LIKE ? OR u.DOCUMENTO LIKE ?)";
         $term = "%$busqueda%";
-        $params[] = $term;
         $params[] = $term;
         $params[] = $term;
         $params[] = $term;
@@ -111,7 +110,7 @@ try {
     if ($busqueda !== '') {
         // Coincidencias de nombre por prefijo (ej. "car" -> "Carlos") se muestran
         // antes que coincidencias en medio de la palabra, igual que en Fase 22.
-        $sql .= " ORDER BY CASE WHEN u.NOMBRE LIKE ? THEN 0 ELSE 1 END, u.ID_USUARIO DESC";
+        $sql .= " ORDER BY CASE WHEN CONCAT(u.NOMBRE, ' ', u.APELLIDO) LIKE ? THEN 0 ELSE 1 END, u.ID_USUARIO DESC";
         $params[] = "$busqueda%";
     } else {
         $sql .= " ORDER BY u.ID_USUARIO DESC";
@@ -197,7 +196,7 @@ if ($msg === 'status_updated') {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Administrador</span></h1>
-            <div class="user-greeting">Administrador del Sistema: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Administrador)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -305,6 +304,7 @@ if ($msg === 'status_updated') {
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
+                            <th>N°</th>
                             <th>Documento</th>
                             <th>Nombre Completo</th>
                             <th>Correo Electrónico</th>
@@ -329,8 +329,10 @@ if ($msg === 'status_updated') {
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $contador = 1; ?>
                             <?php foreach ($usuarios as $usr): ?>
                                 <tr>
+                                    <td><?= $contador++ ?></td>
                                     <td><?= htmlspecialchars($usr['DOCUMENTO']) ?></td>
                                     <td><?= htmlspecialchars($usr['NOMBRE'] . ' ' . $usr['APELLIDO']) ?></td>
                                     <td><?= htmlspecialchars($usr['EMAIL']) ?></td>

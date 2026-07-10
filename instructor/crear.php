@@ -31,10 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
         $errorLote = 'El nombre del lote no puede tener más de 100 caracteres.';
     } else {
         try {
-            $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, 'Borrador', ?)");
-            $stmtInsert->execute([$usuarioId, $nombreLote, date('Y-m-d')]);
-            header("Location: ../index.php");
-            exit;
+            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM lote_requerimiento WHERE LOTE_NOMBRE = ?");
+            $stmtCheck->execute([$nombreLote]);
+            if ($stmtCheck->fetchColumn() > 0) {
+                $errorLote = 'Ya existe un lote con el nombre "' . htmlspecialchars($nombreLote) . '".';
+            } else {
+                $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, 'Borrador', ?)");
+                $stmtInsert->execute([$usuarioId, $nombreLote, date('Y-m-d')]);
+                header("Location: ../index.php");
+                exit;
+            }
         } catch (\PDOException $e) {
             error_log('Error al crear lote: ' . $e->getMessage());
             $errorLote = 'Error al crear el lote. Verifique que los datos sean correctos.';
