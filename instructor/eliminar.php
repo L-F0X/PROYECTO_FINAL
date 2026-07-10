@@ -24,9 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($id > 0 && verify_csrf_token($token)) {
         try {
+            $stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE, ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
+            $stmtLote->execute([$id, $usuarioId]);
+            $loteData = $stmtLote->fetch();
+
             $stmt = $pdo->prepare("DELETE FROM lote_requerimiento WHERE ID_LOTE = ? AND ID_SOLICITANTE = ?");
             $stmt->execute([$id, $usuarioId]);
             $resultado = $stmt->rowCount() > 0 ? 'eliminado' : 'noop';
+
+            if ($resultado === 'eliminado' && $loteData) {
+                $stmtLog = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, ?, ?)");
+                $stmtLog->execute([
+                    $usuarioId,
+                    'Eliminación Lote',
+                    "Eliminado lote de requerimiento: {$loteData['LOTE_NOMBRE']} (ID: $id, Estado previo: {$loteData['ESTADO_TRAMITE']})"
+                ]);
+            }
         } catch (\PDOException $e) {
             error_log('Eliminar lote error: ' . $e->getMessage());
             // Violación de FK: el lote todavía tiene ítems, certificados u otros

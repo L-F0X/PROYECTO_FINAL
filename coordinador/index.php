@@ -61,6 +61,17 @@ try {
     $stmtDecRechazado = $pdo->query("SELECT COUNT(*) FROM aprobacion_rechazo_lote WHERE ESTADO_DECISION = 'Rechazado'");
     $decRechazados = intval($stmtDecRechazado->fetchColumn());
 
+    // Últimos avisos de aprobado/rechazado, para verlos de un vistazo sin
+    // tener que ir al Historial de Decisiones completo.
+    $stmtUltimasDecisiones = $pdo->query("
+        SELECT arl.*, lr.LOTE_NOMBRE
+        FROM aprobacion_rechazo_lote arl
+        INNER JOIN lote_requerimiento lr ON arl.ID_LOTE = lr.ID_LOTE
+        ORDER BY arl.FECHA_DECISION DESC
+        LIMIT 6
+    ");
+    $ultimasDecisiones = $stmtUltimasDecisiones->fetchAll();
+
 } catch (Exception $e) {
     error_log('Error loading coordinator dashboard stats: ' . $e->getMessage());
     $totalInstructores = 0;
@@ -73,6 +84,7 @@ try {
     $lotesRechazado = 0;
     $decAprobados = 0;
     $decRechazados = 0;
+    $ultimasDecisiones = [];
 }
 ?>
 <!DOCTYPE html>
@@ -189,6 +201,38 @@ try {
                 </div>
             </div>
 
+        </div>
+
+        <!-- Avisos de Aprobado/Rechazado -->
+        <div class="panel-card" style="margin-bottom: 30px;">
+            <h3>Avisos Recientes de Decisiones</h3>
+            <p class="dashboard-subtitle">Últimos lotes aprobados o rechazados en el sistema.</p>
+            <?php if (empty($ultimasDecisiones)): ?>
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                    <p>No hay decisiones registradas todavía.</p>
+                    <span>Los avisos de lotes aprobados o rechazados aparecerán aquí.</span>
+                </div>
+            <?php else: ?>
+                <ul style="list-style:none; margin:15px 0 0; padding:0;">
+                    <?php foreach ($ultimasDecisiones as $dec): ?>
+                        <li style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #eee;">
+                            <span>
+                                <span style="padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; <?= $dec['ESTADO_DECISION'] === 'Aprobado' ? 'background:#d4edda; color:#155724;' : 'background:#f8d7da; color:#721c24;' ?>">
+                                    <?= htmlspecialchars($dec['ESTADO_DECISION']) ?>
+                                </span>
+                                <strong style="margin-left:8px;"><?= htmlspecialchars($dec['LOTE_NOMBRE']) ?></strong>
+                            </span>
+                            <span style="font-size:12px; color:#888; white-space:nowrap;"><?= htmlspecialchars($dec['FECHA_DECISION']) ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <a href="historial_decisiones.php" style="display:inline-block; margin-top:12px; font-size:13px; color: var(--verde-sena);">Ver historial completo →</a>
+            <?php endif; ?>
         </div>
 
         <!-- Accesos rápidos -->

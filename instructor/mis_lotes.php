@@ -30,6 +30,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 // Parámetros de búsqueda y filtrado
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
+$fechaDesde = isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : '';
+$fechaHasta = isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : '';
 
 $sql = "SELECT * FROM lote_requerimiento WHERE ID_SOLICITANTE = ?";
 $params = [$usuarioId];
@@ -42,7 +44,21 @@ if ($filtroEstado !== '') {
     $sql .= " AND ESTADO_TRAMITE = ?";
     $params[] = $filtroEstado;
 }
-$sql .= " ORDER BY FECHA_CREACION DESC";
+if ($fechaDesde !== '') {
+    $sql .= " AND DATE(FECHA_CREACION) >= ?";
+    $params[] = $fechaDesde;
+}
+if ($fechaHasta !== '') {
+    $sql .= " AND DATE(FECHA_CREACION) <= ?";
+    $params[] = $fechaHasta;
+}
+if ($busqueda !== '') {
+    // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+    $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+    $params[] = "$busqueda%";
+} else {
+    $sql .= " ORDER BY FECHA_CREACION DESC";
+}
 
 $msg = $_GET['msg'] ?? '';
 $messageText = '';
@@ -52,6 +68,8 @@ if ($msg === 'editado') {
     $messageText = '✗ Este lote ya no se puede editar: solo los lotes en Borrador son editables.';
 } elseif ($msg === 'reabierto') {
     $messageText = '✓ Lote regresado a Borrador. Ya puedes corregirlo y reenviarlo.';
+} elseif ($msg === 'envio_cancelado') {
+    $messageText = '✓ Envío cancelado. El lote volvió a Borrador y ya no está pendiente de revisión.';
 } elseif ($msg === 'eliminado') {
     $messageText = '✓ Lote eliminado correctamente.';
 } elseif ($msg === 'con_dependencias') {
@@ -166,7 +184,14 @@ $total = count($lotes);
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_desde" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Creado desde</label>
+                        <input type="date" id="fecha_desde" name="fecha_desde" class="search-input" value="<?= htmlspecialchars($fechaDesde) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_hasta" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Hasta</label>
+                        <input type="date" id="fecha_hasta" name="fecha_hasta" class="search-input" value="<?= htmlspecialchars($fechaHasta) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
                     <a href="mis_lotes.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
@@ -215,6 +240,12 @@ $total = count($lotes);
                                                 <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
                                                 <button type="submit" class="btn js-confirm-submit" style="padding: 5px 10px; font-size: 12px; border: none; background: #ffc107; color: #664d03; border-radius: 4px;" data-confirm-title="Corregir y reenviar" data-confirm-message="El lote volverá a estado Borrador para que lo corrijas y lo reenvíes. ¿Continuar?" data-confirm-label="Continuar" data-confirm-danger="false">Corregir y Reenviar</button>
+                                            </form>
+                                        <?php elseif ($lote['ESTADO_TRAMITE'] === 'Enviado'): ?>
+                                            <form action="cancelar_envio.php" method="POST" style="display:inline; margin:0;">
+                                                <input type="hidden" name="id" value="<?= htmlspecialchars($lote['ID_LOTE']) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                                <button type="submit" class="btn js-confirm-submit" style="padding: 5px 10px; font-size: 12px; border: none; background: #ffc107; color: #664d03; border-radius: 4px;" data-confirm-title="Cancelar envío" data-confirm-message="El lote volverá a estado Borrador para que sigas editándolo. El coordinador ya no lo verá pendiente de revisión. ¿Continuar?" data-confirm-label="Continuar" data-confirm-danger="false">Cancelar Envío</button>
                                             </form>
                                         <?php else: ?>
                                             <span class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px; opacity: 0.5; cursor: not-allowed;" title="Solo los lotes en Borrador se pueden editar.">Editar Lote</span>

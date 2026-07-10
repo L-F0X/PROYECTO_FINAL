@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../texto_helper.php';
 
 // Control de acceso
 if (!isset($_SESSION['usuario_id'])) {
@@ -25,17 +26,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $idRol      = intval($_POST['id_rol'] ?? 0);
     $documento  = trim($_POST['documento'] ?? '');
-    $nombre     = trim($_POST['nombre'] ?? '');
-    $apellido   = trim($_POST['apellido'] ?? '');
+    $nombre     = capitalizar_nombre(trim($_POST['nombre'] ?? ''));
+    $apellido   = capitalizar_nombre(trim($_POST['apellido'] ?? ''));
     $email      = trim($_POST['email'] ?? '');
     $password   = trim($_POST['password'] ?? '');
-    $estado     = trim($_POST['estado'] ?? 'Activo');
+    // Todo usuario nuevo se crea Activo; el estado inicial no es una opción
+    // configurable (se puede desactivar después desde Gestión de Usuarios).
+    $estado     = 'Activo';
 
     if ($idRol <= 0 || $documento === '' || $nombre === '' || $apellido === '' || $email === '' || $password === '') {
         $error = '✗ Todos los campos son obligatorios.';
-    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $nombre)) {
+    } elseif (!preg_match('/^[0-9]+$/', $documento)) {
+        $error = '✗ El documento de identidad solo debe contener números.';
+    } elseif (strlen($documento) < 6) {
+        $error = '✗ El documento de identidad debe tener al menos 6 dígitos.';
+    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?$/u', $nombre)) {
         $error = '✗ El nombre solo debe contener letras y espacios.';
-    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $apellido)) {
+    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?$/u', $apellido)) {
         $error = '✗ El apellido solo debe contener letras y espacios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = '✗ El correo electrónico no tiene un formato válido.';
@@ -205,7 +212,6 @@ try {
             <h4>Administración</h4>
             <a href="index.php" class="sidebar-link sidebar-link--primary">Gestión Usuarios</a>
             <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
-            <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -231,7 +237,8 @@ try {
                     <div class="profile-grid">
                         <div class="profile-field">
                             <label for="documento">Documento de Identidad</label>
-                            <input type="text" id="documento" name="documento" required maxlength="20" autocomplete="off">
+                            <input type="text" id="documento" name="documento" required minlength="6" maxlength="20" autocomplete="off"
+                                   inputmode="numeric" pattern="[0-9]+" title="Solo se permiten números">
                         </div>
 
                         <div class="profile-field">
@@ -247,13 +254,13 @@ try {
                         <div class="profile-field">
                             <label for="nombre">Nombres</label>
                             <input type="text" id="nombre" name="nombre" required maxlength="100" autocomplete="off"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
                         </div>
 
                         <div class="profile-field">
                             <label for="apellido">Apellidos</label>
                             <input type="text" id="apellido" name="apellido" required maxlength="100" autocomplete="off"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
                         </div>
 
                         <div class="profile-field full-col">
@@ -267,11 +274,8 @@ try {
                         </div>
 
                         <div class="profile-field">
-                            <label for="estado">Estado inicial</label>
-                            <select id="estado" name="estado" required>
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                            </select>
+                            <label>Estado inicial</label>
+                            <input type="text" value="Activo" disabled title="Todo usuario nuevo se crea Activo; puedes desactivarlo después desde Gestión de Usuarios.">
                         </div>
                     </div>
 

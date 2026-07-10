@@ -15,6 +15,8 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
+$fechaDesde = isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : '';
+$fechaHasta = isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : '';
 
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
@@ -42,7 +44,22 @@ try {
         $params[] = "%$busqueda%";
     }
 
-    $sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+    if ($fechaDesde !== '') {
+        $sql .= " AND DATE(ce.FECHA_EMISION) >= ?";
+        $params[] = $fechaDesde;
+    }
+    if ($fechaHasta !== '') {
+        $sql .= " AND DATE(ce.FECHA_EMISION) <= ?";
+        $params[] = $fechaHasta;
+    }
+
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, ce.ID_CERTIFICADO DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -125,7 +142,14 @@ $total = count($certificados);
                         <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar certificado</label>
                         <input type="text" id="q" name="q" class="search-input" placeholder="Nº certificado, lote o instructor..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_desde" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Emitido desde</label>
+                        <input type="date" id="fecha_desde" name="fecha_desde" class="search-input" value="<?= htmlspecialchars($fechaDesde) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_hasta" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Hasta</label>
+                        <input type="date" id="fecha_hasta" name="fecha_hasta" class="search-input" value="<?= htmlspecialchars($fechaHasta) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
                     <a href="historial_existencia.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>

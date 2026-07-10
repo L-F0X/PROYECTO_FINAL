@@ -18,6 +18,22 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 $usuarioId = intval($_SESSION['usuario_id']);
 
 asegurar_tabla_notificacion($pdo);
+limpiar_notificaciones_antiguas($pdo);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die('Token CSRF inválido.');
+    }
+    $accion = $_POST['accion'] ?? '';
+    if ($accion === 'eliminar') {
+        eliminar_notificacion($pdo, $usuarioId, intval($_POST['id_notificacion'] ?? 0));
+    } elseif ($accion === 'eliminar_todas') {
+        eliminar_notificaciones_usuario($pdo, $usuarioId);
+    }
+    header('Location: notificaciones.php');
+    exit;
+}
 
 $stmt = $pdo->prepare("SELECT * FROM notificacion WHERE ID_USUARIO = ? ORDER BY FECHA DESC");
 $stmt->execute([$usuarioId]);
@@ -100,15 +116,28 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <?php if (empty($notificaciones)): ?>
                     <p style="text-align: center; color: #999; padding: 30px 0;">No tienes notificaciones todavía.</p>
                 <?php else: ?>
+                    <form method="POST" action="notificaciones.php" style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                        <input type="hidden" name="accion" value="eliminar_todas">
+                        <button type="submit" class="btn btn-danger js-confirm-submit" data-confirm-title="Eliminar todas" data-confirm-message="¿Eliminar todas tus notificaciones? Esta acción no se puede deshacer." data-confirm-label="Eliminar" style="padding: 5px 12px; font-size: 12px;">Eliminar Todas</button>
+                    </form>
                     <?php foreach ($notificaciones as $n): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 14px 10px; border-bottom: 1px solid #eee; <?= !$n['LEIDA'] ? 'background: #f0fdf4;' : '' ?>">
                             <div>
                                 <div><?= htmlspecialchars($n['MENSAJE']) ?></div>
                                 <div style="font-size: 12px; color: #888; margin-top: 4px;"><?= htmlspecialchars($n['FECHA']) ?></div>
                             </div>
-                            <?php if ($n['ENLACE']): ?>
-                                <a href="<?= htmlspecialchars($n['ENLACE']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 12px; text-decoration: none; white-space: nowrap;">Ver</a>
-                            <?php endif; ?>
+                            <div style="display:flex; gap:8px; align-items:center; white-space:nowrap;">
+                                <?php if ($n['ENLACE']): ?>
+                                    <a href="<?= htmlspecialchars($n['ENLACE']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 12px; text-decoration: none;">Ver</a>
+                                <?php endif; ?>
+                                <form method="POST" action="notificaciones.php" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                    <input type="hidden" name="accion" value="eliminar">
+                                    <input type="hidden" name="id_notificacion" value="<?= htmlspecialchars($n['ID_NOTIFICACION']) ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" title="Eliminar">✕</button>
+                                </form>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>

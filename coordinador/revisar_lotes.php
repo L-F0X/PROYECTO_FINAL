@@ -43,6 +43,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
 $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
+$fechaDesde = isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : '';
+$fechaHasta = isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : '';
 
 // Obtener todos los lotes para coordinador
 try {
@@ -66,7 +68,22 @@ try {
         $params[] = $filtroEstado;
     }
 
-    $sql .= " ORDER BY lr.FECHA_CREACION DESC";
+    if ($fechaDesde !== '') {
+        $sql .= " AND DATE(lr.FECHA_CREACION) >= ?";
+        $params[] = $fechaDesde;
+    }
+    if ($fechaHasta !== '') {
+        $sql .= " AND DATE(lr.FECHA_CREACION) <= ?";
+        $params[] = $fechaHasta;
+    }
+
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.FECHA_CREACION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY lr.FECHA_CREACION DESC";
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -190,7 +207,14 @@ if ($msg === 'aprobado') {
                             <option value="Rechazado" <?= $filtroEstado === 'Rechazado' ? 'selected' : '' ?>>Rechazado</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_desde" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Creado desde</label>
+                        <input type="date" id="fecha_desde" name="fecha_desde" class="search-input" value="<?= htmlspecialchars($fechaDesde) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div class="field-group" style="display: flex; flex-direction: column;">
+                        <label for="fecha_hasta" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Hasta</label>
+                        <input type="date" id="fecha_hasta" name="fecha_hasta" class="search-input" value="<?= htmlspecialchars($fechaHasta) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
                     <a href="revisar_lotes.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
@@ -222,7 +246,7 @@ if ($msg === 'aprobado') {
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th><?php if ($totalEnviados > 0): ?><input type="checkbox" id="check-todos" title="Seleccionar todos los Enviados"><?php endif; ?></th>
+                            <th></th>
                             <th>ID Lote</th>
                             <th>Nombre</th>
                             <th>Instructor</th>
@@ -284,7 +308,6 @@ if ($msg === 'aprobado') {
 <script src="../js/apartados.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const checkTodos = document.getElementById('check-todos');
     const checksLote = document.querySelectorAll('.check-lote');
     const contador = document.getElementById('contador-seleccion');
 
@@ -294,12 +317,6 @@ document.addEventListener('DOMContentLoaded', function () {
         contador.textContent = marcados + ' lote(s) seleccionado(s)';
     }
 
-    if (checkTodos) {
-        checkTodos.addEventListener('change', function () {
-            checksLote.forEach(cb => { cb.checked = checkTodos.checked; });
-            actualizarContador();
-        });
-    }
     checksLote.forEach(cb => cb.addEventListener('change', actualizarContador));
 
     window.mostrarJustificacionMasiva = function () {

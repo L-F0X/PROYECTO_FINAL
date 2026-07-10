@@ -47,11 +47,17 @@ if ($filtroEstado !== '') {
 }
 
 $whereClause = implode(' AND ', $where);
-$sql = "SELECT lr.*, u.NOMBRE, u.APELLIDO 
+// Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+$orderClause = "ORDER BY lr.FECHA_CREACION DESC";
+if ($busqueda !== '') {
+    $orderClause = "ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.FECHA_CREACION DESC";
+    $params[] = "$busqueda%";
+}
+$sql = "SELECT lr.*, u.NOMBRE, u.APELLIDO
         FROM lote_requerimiento lr
         LEFT JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO
-        WHERE $whereClause 
-        ORDER BY lr.FECHA_CREACION DESC";
+        WHERE $whereClause
+        $orderClause";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -148,7 +154,6 @@ $total = count($lotes);
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" id="btn-buscar">Buscar</button>
                     <a href="consulta_lote.php" class="btn btn-secondary">Limpiar</a>
                 </div>
             </form>

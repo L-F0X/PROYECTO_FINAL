@@ -18,10 +18,9 @@ if (!defined('ACCESO_VALIDO')) {
         <input type="hidden" name="tab" value="instructor">
         <div class="search-bar" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
             <div class="field-group" style="flex: 1; min-width: 220px; display: flex; flex-direction: column;">
-                <label for="qi" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar por lote o instructor</label>
-                <input type="text" id="qi" name="qi" class="search-input" placeholder="Ej: REDES, Carlos Gómez..." value="<?= htmlspecialchars($busquedaInstructor) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+                <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar por lote o instructor</label>
+                <input type="text" id="q" name="q" class="search-input" placeholder="Ej: REDES, Carlos Gómez..." value="<?= htmlspecialchars($busquedaInstructor) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
             </div>
-            <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
             <a href="index.php?tab=instructor" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
         </div>
     </form>

@@ -8,37 +8,38 @@ if (isset($_SESSION['usuario_id'])) {
     exit;
 }
 
-$token = trim($_GET['token'] ?? $_POST['token'] ?? '');
 $mensaje = '';
-$mensajeTipo = 'error';
-$tokenValido = false;
 $exito = false;
+$email = trim($_POST['email'] ?? '');
+$codigo = trim($_POST['codigo'] ?? '');
 
-if ($token === '') {
-    $mensaje = 'Enlace de restablecimiento inválido.';
-} else {
-    $fila = validar_token_reset($pdo, $token);
-    if (!$fila) {
-        $mensaje = 'Este enlace de restablecimiento no es válido, ya fue usado, o venció. Solicita uno nuevo.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+
+    if ($email === '' || $codigo === '' || $newPassword === '' || $confirmPassword === '') {
+        $mensaje = 'Debe completar todos los campos.';
+    } elseif (!preg_match('/^[0-9]{6}$/', $codigo)) {
+        $mensaje = 'El código debe tener 6 dígitos.';
+    } elseif (strlen($newPassword) < 6) {
+        $mensaje = 'La nueva contraseña debe tener al menos 6 caracteres.';
+    } elseif ($newPassword !== $confirmPassword) {
+        $mensaje = 'La contraseña y su confirmación no coinciden.';
     } else {
-        $tokenValido = true;
+        $stmtUser = $pdo->prepare('SELECT ID_USUARIO FROM usuario WHERE EMAIL = ?');
+        $stmtUser->execute([$email]);
+        $usuarioFila = $stmtUser->fetch();
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $newPassword = $_POST['new_password'] ?? '';
-            $confirmPassword = $_POST['confirm_password'] ?? '';
-
-            if ($newPassword === '' || $confirmPassword === '') {
-                $mensaje = 'Debe completar ambos campos de contraseña.';
-            } elseif (strlen($newPassword) < 6) {
-                $mensaje = 'La nueva contraseña debe tener al menos 6 caracteres.';
-            } elseif ($newPassword !== $confirmPassword) {
-                $mensaje = 'La contraseña y su confirmación no coinciden.';
-            } else {
-                $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $pdo->prepare('UPDATE usuario SET PASSWORD = ? WHERE ID_USUARIO = ?')->execute([$hash, intval($fila['ID_USUARIO'])]);
-                marcar_token_usado($pdo, intval($fila['ID_TOKEN']));
-                $exito = true;
-            }
+        // Mensaje genérico si el correo no existe o el código no es válido para
+        // ese correo: no se revela cuál de los dos falló.
+        $fila = $usuarioFila ? validar_token_reset($pdo, intval($usuarioFila['ID_USUARIO']), $codigo) : false;
+        if (!$fila) {
+            $mensaje = 'El correo o el código no son válidos, ya fue usado, o venció. Solicita uno nuevo.';
+        } else {
+            $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $pdo->prepare('UPDATE usuario SET PASSWORD = ? WHERE ID_USUARIO = ?')->execute([$hash, intval($fila['ID_USUARIO'])]);
+            marcar_token_usado($pdo, intval($fila['ID_TOKEN']));
+            $exito = true;
         }
     }
 }
@@ -68,6 +69,9 @@ if ($token === '') {
     <section class="login-form-container">
         <div class="login-form-header">
             <h2>Restablecer Contraseña</h2>
+            <?php if (!$exito): ?>
+                <p>Ingresa el código de 6 dígitos que enviamos a tu correo junto con tu nueva contraseña.</p>
+            <?php endif; ?>
         </div>
 
         <?php if ($exito): ?>
@@ -75,17 +79,19 @@ if ($token === '') {
                 ✓ Contraseña actualizada correctamente. Ya puedes iniciar sesión.
             </div>
             <a href="login.php" class="btn btn-sena btn-block" style="text-align:center; display:block; text-decoration:none;">Ir a Iniciar Sesión</a>
-        <?php elseif (!$tokenValido): ?>
-            <div class="error-msg"><?= htmlspecialchars($mensaje) ?></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="recuperar_password.php" style="font-size: 13px; color: var(--verde-sena);">Solicitar un nuevo enlace</a>
-            </div>
         <?php else: ?>
             <?php if ($mensaje): ?>
                 <div class="error-msg"><?= htmlspecialchars($mensaje) ?></div>
             <?php endif; ?>
             <form method="POST" action="restablecer_password.php">
-                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <div class="form-group">
+                    <label for="email">Correo Electrónico Institucional</label>
+                    <input type="email" id="email" name="email" class="form-control" value="<?= htmlspecialchars($email) ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="codigo">Código de Verificación</label>
+                    <input type="text" id="codigo" name="codigo" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6 dígitos" value="<?= htmlspecialchars($codigo) ?>" required>
+                </div>
                 <div class="form-group">
                     <label for="new_password">Nueva Contraseña</label>
                     <div class="password-input-wrapper">
@@ -108,6 +114,9 @@ if ($token === '') {
                 </div>
                 <button type="submit" class="btn btn-sena btn-block">Restablecer Contraseña</button>
             </form>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="recuperar_password.php" style="font-size: 13px; color: var(--verde-sena);">Solicitar un nuevo código</a>
+            </div>
         <?php endif; ?>
     </section>
 </div>

@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <?php if (!empty($messageText)): ?>
-            <div class="profile-alert success" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;"><?= htmlspecialchars($messageText) ?></div>
+            <div class="profile-alert success" data-toast-duration="8000" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #eff8f1; color: #270; border: 1px solid #d4ebd5;"><?= htmlspecialchars($messageText) ?></div>
         <?php endif; ?>
 
         <form id="formLogin" action="login.php" method="POST" autocomplete="off">

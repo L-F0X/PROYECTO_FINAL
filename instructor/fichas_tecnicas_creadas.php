@@ -41,10 +41,81 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     }
 }
 
+// Procesar envío selectivo de fichas técnicas al coordinador
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'enviar_fichas') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die('Token CSRF inválido.');
+    }
+    $idsMatrizItem = isset($_POST['matriz_item']) && is_array($_POST['matriz_item']) ? array_map('intval', $_POST['matriz_item']) : [];
+    $idsMatrizItem = array_values(array_filter($idsMatrizItem, fn($v) => $v > 0));
+
+    if (empty($idsMatrizItem)) {
+        header("Location: fichas_tecnicas_creadas.php?lote=$idLote&msg=sin_seleccion");
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $placeholders = implode(',', array_fill(0, count($idsMatrizItem), '?'));
+        $stmtCheck = $pdo->prepare("SELECT ID_MATRIZ_ITEM FROM matriz_item WHERE ID_LOTE = ? AND ESTADO_ITEM = 'Borrador' AND ID_MATRIZ_ITEM IN ($placeholders)");
+        $stmtCheck->execute(array_merge([$idLote], $idsMatrizItem));
+        $idsValidos = array_map('intval', $stmtCheck->fetchAll(PDO::FETCH_COLUMN));
+
+        if (empty($idsValidos)) {
+            $pdo->rollBack();
+            header("Location: fichas_tecnicas_creadas.php?lote=$idLote&msg=sin_seleccion");
+            exit;
+        }
+
+        $placeholdersValidos = implode(',', array_fill(0, count($idsValidos), '?'));
+        $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = 'Pendiente' WHERE ID_MATRIZ_ITEM IN ($placeholdersValidos)")->execute($idsValidos);
+
+        $stmtLoteEstado = $pdo->prepare("SELECT ESTADO_TRAMITE, LOTE_NOMBRE FROM lote_requerimiento WHERE ID_LOTE = ?");
+        $stmtLoteEstado->execute([$idLote]);
+        $loteActual = $stmtLoteEstado->fetch();
+        if ($loteActual && $loteActual['ESTADO_TRAMITE'] === 'Borrador') {
+            $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Enviado' WHERE ID_LOTE = ?")->execute([$idLote]);
+        }
+
+        $pdo->commit();
+
+        $cantidadEnviada = count($idsValidos);
+        notificar_por_rol(
+            $pdo,
+            'Coordinacion',
+            htmlspecialchars($_SESSION['usuario_nombre']) . " envió $cantidadEnviada ficha(s) del lote '" . $loteActual['LOTE_NOMBRE'] . "' para revisión.",
+            "../coordinador/revisar_lotes.php"
+        );
+
+        header("Location: fichas_tecnicas_creadas.php?lote=$idLote&msg=enviado&cantidad=$cantidadEnviada");
+        exit;
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Error enviando fichas técnicas: ' . $e->getMessage());
+        header("Location: fichas_tecnicas_creadas.php?lote=$idLote&msg=error");
+        exit;
+    }
+}
+
 $msg = $_GET['msg'] ?? '';
 $messageText = '';
+$messageType = 'error';
 if ($msg === 'sin_permiso') {
     $messageText = '✗ No puede editar esta ficha técnica: fue creada por otro instructor.';
+} elseif ($msg === 'enviado') {
+    $cantidadMsg = intval($_GET['cantidad'] ?? 0);
+    $messageText = $cantidadMsg === 1
+        ? '✓ 1 ficha técnica enviada al coordinador para revisión.'
+        : "✓ $cantidadMsg fichas técnicas enviadas al coordinador para revisión.";
+    $messageType = 'success';
+} elseif ($msg === 'sin_seleccion') {
+    $messageText = '✗ Debe seleccionar al menos una ficha técnica para enviar.';
+} elseif ($msg === 'error') {
+    $messageText = '✗ Ocurrió un error al enviar las fichas técnicas.';
 }
 
 // Búsqueda
@@ -52,7 +123,7 @@ $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 // Consulta de fichas técnicas: solo las que pertenecen a ítems de este lote
 // (una ficha "pertenece" al lote del ítem de matriz al que está asociada).
-$sql = "SELECT ft.* FROM ficha_tecnica ft
+$sql = "SELECT ft.*, mi.ESTADO_ITEM FROM ficha_tecnica ft
         INNER JOIN matriz_item mi ON ft.ID_MATRIZ_ITEM = mi.ID_MATRIZ_ITEM
         WHERE mi.ID_LOTE = ?";
 $params = [$idLote];
@@ -62,7 +133,13 @@ if ($busqueda !== '') {
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
-$sql .= " ORDER BY ft.ID_FICHA_TECNICA DESC";
+if ($busqueda !== '') {
+    // Coincidencias de nombre por prefijo se muestran primero, igual que en Fase 22.
+    $sql .= " ORDER BY CASE WHEN ft.NOMBRE_ITEM LIKE ? THEN 0 ELSE 1 END, ft.ID_FICHA_TECNICA DESC";
+    $params[] = "$busqueda%";
+} else {
+    $sql .= " ORDER BY ft.ID_FICHA_TECNICA DESC";
+}
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $fichas = $stmt->fetchAll();
@@ -130,7 +207,7 @@ $total = count($fichas);
         </div>
 
         <?php if (!empty($messageText)): ?>
-            <div class="profile-alert error" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">
+            <div class="profile-alert <?= $messageType ?>" style="padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; font-size: 14px; <?= $messageType === 'success' ? 'background: #eff8f1; color: #270; border: 1px solid #d4ebd5;' : 'background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;' ?>">
                 <?= htmlspecialchars($messageText) ?>
             </div>
         <?php endif; ?>
@@ -153,7 +230,6 @@ $total = count($fichas);
                             autocomplete="off"
                         >
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
                     <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-secondary" style="padding: 8px 16px; text-decoration: none; border: 1px solid #ccc; background: #eee; color: #333; border-radius: 4px;">Limpiar</a>
                 </div>
             </form>
@@ -163,54 +239,114 @@ $total = count($fichas);
                     <span>Resultados: </span><strong><?= $total ?></strong> ficha<?= $total !== 1 ? 's' : '' ?> encontrada<?= $total !== 1 ? 's' : '' ?>
                 </div>
 
-                <table style="width: 100%; margin-top: 15px;">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre del Ítem</th>
-                            <th>Código UNSPSC</th>
-                            <th>Denominación Técnica</th>
-                            <th>Unidad de Medida</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($fichas)): ?>
+                <?php $hayEnviables = count(array_filter($fichas, fn($f) => $f['ESTADO_ITEM'] === 'Borrador')) > 0; ?>
+                <form method="POST" action="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($idLote) ?>" id="form-envio-fichas">
+                    <input type="hidden" name="accion" value="enviar_fichas">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+
+                    <?php if ($hayEnviables): ?>
+                        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#f5f5f5; padding:12px 15px; border-radius:6px; margin-bottom:15px;">
+                            <strong id="contador-seleccion-fichas">0 ficha(s) seleccionada(s)</strong>
+                            <button type="button" id="btn-enviar-fichas" class="btn" style="padding:6px 14px; font-size:13px; background-color:#39A900; color:white; border:none; border-radius:4px;" disabled>Enviar Solicitud</button>
+                        </div>
+                    <?php endif; ?>
+
+                    <table style="width: 100%; margin-top: 15px;">
+                        <thead>
                             <tr>
-                                <td colspan="6">
-                                    <div class="empty-state">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                            <line x1="8" y1="11" x2="14" y2="11"/>
-                                        </svg>
-                                        <p>Este lote todavía no tiene fichas técnicas creadas.</p>
-                                        <span>Crea una ficha técnica para un ítem de este lote y aparecerá aquí.</span>
-                                    </div>
-                                </td>
+                                <?php if ($hayEnviables): ?><th></th><?php endif; ?>
+                                <th>ID</th>
+                                <th>Nombre del Ítem</th>
+                                <th>Código UNSPSC</th>
+                                <th>Denominación Técnica</th>
+                                <th>Unidad de Medida</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($fichas as $f): ?>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($fichas)): ?>
                                 <tr>
-                                    <td>#<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?></td>
-                                    <td><strong><?= htmlspecialchars($f['NOMBRE_ITEM']) ?></strong></td>
-                                    <td><?= htmlspecialchars($f['CODIGO_UNSPSC_FK']) ?></td>
-                                    <td><?= htmlspecialchars($f['DENOMINACION_TECNICA_BIEN']) ?></td>
-                                    <td><?= htmlspecialchars($f['UNIDAD_MEDIDA']) ?></td>
-                                    <td>
-                                        <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
-                                        <a href="editar_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none; background-color: #00324D;">Editar</a>
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                                <line x1="8" y1="11" x2="14" y2="11"/>
+                                            </svg>
+                                            <p>Este lote todavía no tiene fichas técnicas creadas.</p>
+                                            <span>Crea una ficha técnica para un ítem de este lote y aparecerá aquí.</span>
+                                        </div>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            <?php else: ?>
+                                <?php foreach ($fichas as $f): ?>
+                                    <tr>
+                                        <?php if ($hayEnviables): ?>
+                                        <td>
+                                            <?php if ($f['ESTADO_ITEM'] === 'Borrador'): ?>
+                                                <input type="checkbox" name="matriz_item[]" value="<?= htmlspecialchars($f['ID_MATRIZ_ITEM']) ?>" class="check-ficha">
+                                            <?php endif; ?>
+                                        </td>
+                                        <?php endif; ?>
+                                        <td>#<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?></td>
+                                        <td><strong><?= htmlspecialchars($f['NOMBRE_ITEM']) ?></strong></td>
+                                        <td><?= htmlspecialchars($f['CODIGO_UNSPSC_FK']) ?></td>
+                                        <td><?= htmlspecialchars($f['DENOMINACION_TECNICA_BIEN']) ?></td>
+                                        <td><?= htmlspecialchars($f['UNIDAD_MEDIDA']) ?></td>
+                                        <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($f['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($f['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
+                                        <td>
+                                            <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
+                                            <a href="editar_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none; background-color: #00324D;">Editar</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </form>
             </div>
         </div>
     </main>
 </div>
 
 <script src="../js/apartados.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checks = document.querySelectorAll('.check-ficha');
+    const contador = document.getElementById('contador-seleccion-fichas');
+    const btnEnviar = document.getElementById('btn-enviar-fichas');
+    if (!btnEnviar) return;
+
+    function actualizar() {
+        const marcadas = document.querySelectorAll('.check-ficha:checked').length;
+        contador.textContent = marcadas + ' ficha(s) seleccionada(s)';
+        btnEnviar.textContent = marcadas === 1 ? 'Enviar Solicitud' : 'Enviar Solicitudes';
+        btnEnviar.disabled = marcadas === 0;
+    }
+
+    checks.forEach(cb => cb.addEventListener('change', actualizar));
+
+    btnEnviar.addEventListener('click', function () {
+        const marcadas = document.querySelectorAll('.check-ficha:checked').length;
+        if (marcadas === 0) return;
+        const mensaje = marcadas === 1
+            ? '¿Enviar esta ficha técnica al coordinador para revisión?'
+            : '¿Enviar estas ' + marcadas + ' fichas técnicas al coordinador para revisión?';
+        confirmAction({
+            title: marcadas === 1 ? 'Enviar Solicitud' : 'Enviar Solicitudes',
+            message: mensaje,
+            confirmLabel: marcadas === 1 ? 'Enviar Solicitud' : 'Enviar Solicitudes',
+            danger: false
+        }).then(confirmado => {
+            if (confirmado) {
+                document.getElementById('form-envio-fichas').submit();
+            }
+        });
+    });
+
+    actualizar();
+});
+</script>
 </body>
 </html>

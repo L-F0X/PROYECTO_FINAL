@@ -5,6 +5,10 @@ require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../iva_helper.php';
 
+// Lista cerrada de unidades de medida: no todos los materiales/bienes se
+// cuentan como "Unidad" (ej. combustibles por Galón, telas por Metro).
+$unidadesMedidaEstandar = ['Unidad', 'Caja', 'Paquete', 'Kit', 'Juego', 'Par', 'Docena', 'Rollo', 'Bolsa', 'Galón', 'Litro', 'Metro', 'Metro Cuadrado', 'Kilogramo', 'Gramo'];
+
 function build_need_label(array $need): string {
     $segments = [];
 
@@ -95,13 +99,17 @@ if ($id_ficha_tecnica_get > 0) {
         error_log('Error cargando ficha técnica pre-llenada: ' . $e->getMessage());
     }
 }
+// Si la ficha pre-llenada trae una unidad "heredada" que no está en la lista
+// estándar (datos antiguos, ej. "Gato"/"Galion" mal escritos), se agrega como
+// opción extra para no perderla silenciosamente al re-guardar sin tocarla.
+if ($ficha_tecnica_prefill && !in_array($ficha_tecnica_prefill['UNIDAD_MEDIDA'], $unidadesMedidaEstandar, true)) {
+    $unidadesMedidaEstandar[] = $ficha_tecnica_prefill['UNIDAD_MEDIDA'];
+}
 
 $msg = $_GET['msg'] ?? '';
 $messageText = '';
-if ($msg === 'enviado') {
-    $messageText = '✓ Solicitud enviada al coordinador correctamente.';
-} elseif ($msg === 'guardado') {
-    $messageText = '✓ Ítem guardado como borrador correctamente.';
+if ($msg === 'guardado') {
+    $messageText = '✓ Ficha guardada. Puedes seguir agregando más o ir a Ver Fichas Técnicas para enviarlas.';
 } elseif ($msg === 'item_eliminado') {
     $messageText = '✓ Ítem quitado del lote correctamente.';
 }
@@ -144,15 +152,6 @@ try {
     }
 } catch (Exception $e) {
     error_log('Error cargando necesidades: ' . $e->getMessage());
-}
-
-// Cargar todas las fichas técnicas disponibles
-$fichasTecnicas = [];
-try {
-    $stmtFichas = $pdo->query("SELECT ID_FICHA_TECNICA, NOMBRE_ITEM, CODIGO_UNSPSC_FK FROM ficha_tecnica ORDER BY NOMBRE_ITEM");
-    $fichasTecnicas = $stmtFichas->fetchAll();
-} catch (Exception $e) {
-    error_log('Error cargando fichas técnicas: ' . $e->getMessage());
 }
 
 // Procesar asignación de ficha técnica a un ítem
@@ -253,14 +252,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         die('No puedes seleccionarte a ti mismo como instructor de apoyo.');
     }
 
-    // Acción del botón: guardar borrador o enviar solicitud
-    $submitAction = $_POST['submit_action'] ?? 'guardar';
-    $estadoItem = $submitAction === 'enviar' ? 'Pendiente' : 'Borrador';
+    // El envío a revisión ya no ocurre aquí: cada ítem se crea como Borrador y
+    // se envía selectivamente después desde fichas_tecnicas_creadas.php.
+    $estadoItem = 'Borrador';
 
     $transactionStarted = false;
     try {
         if (strlen($unidad_medida) > 50) {
             throw new Exception("La unidad de medida no puede tener más de 50 caracteres.");
+        }
+        if (!in_array($unidad_medida, $unidadesMedidaEstandar, true)) {
+            throw new Exception("Debe seleccionar una unidad de medida válida.");
+        }
+        if ($cantidad > 100000) {
+            throw new Exception("La cantidad requerida no puede ser mayor a 100,000 unidades.");
         }
 
         $ivaVigenteActual = obtener_iva_vigente($pdo);
@@ -278,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtCheckUnspsc->execute([$rawUnspsc]);
             $found = $stmtCheckUnspsc->fetchColumn();
             if (!$found) {
-                throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias o déjelo vacío.");
+                throw new Exception("El código UNSPSC ingresado no existe en el catálogo. Selecciónelo de la lista de sugerencias.");
             }
             $id_unspsc = intval($found);
         }
@@ -299,15 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
         
         if ($id_unspsc === 0) {
-            $stmtCu = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
-            $stmtCu->execute(['SIN_ASIGNAR']);
-            $found = $stmtCu->fetchColumn();
-            if ($found) {
-                $id_unspsc = intval($found);
-            } else {
-                $pdo->prepare("INSERT INTO codigo_unspsc (SEGMENTO, FAMILIA, CLASE, CODIGO_UNSPSC) VALUES (?,?,?,?)")->execute(['','', '', 'SIN_ASIGNAR']);
-                $id_unspsc = $pdo->lastInsertId();
-            }
+            throw new Exception("Debe seleccionar un código UNSPSC del catálogo.");
         }
 
         // 2. Insertar el ítem en matriz_item (con ID_NECESIDAD y ID_FICHA_TECNICA como NULL temporalmente)
@@ -329,6 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         // 3. Si se ingresaron cantidades por estrategias, insertar nueva necesidad y asociar con el item
         if (count($cantidades) > 0) {
             $map = [
+                'cantidad_regular' => 'CANTIDAD_REGULAR',
                 'cantidad_campesina_complementaria' => 'CANTIDAD_CAMPESINA_COMPLEMENTARIA',
                 'cantidad_campesina_titulada' => 'CANTIDAD_CAMPESINA_TITULADA',
                 'cantidad_vulnerable' => 'CANTIDAD_VULNERABLE',
@@ -354,7 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtNeed = $pdo->prepare($sqlInsertNeed);
             $stmtNeed->execute([
                 $id_matriz_item,
-                $cantidad, $cantidad,
+                $strategyValues['CANTIDAD_REGULAR'], $cantidad,
                 $strategyValues['CANTIDAD_CAMPESINA_COMPLEMENTARIA'],
                 $strategyValues['CANTIDAD_CAMPESINA_TITULADA'],
                 $strategyValues['CANTIDAD_VULNERABLE'],
@@ -460,27 +458,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtUpdateMatrizItem->execute([$id_ficha_tecnica, $id_matriz_item]);
         }
 
-        // Si la acción fue enviar, marcar el lote como Enviado
-        if ($submitAction === 'enviar') {
-            $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Enviado' WHERE ID_LOTE = ?")->execute([$id_lote]);
-        }
-
         $pdo->commit();
 
-        // Avisar a los coordinadores después del commit: notificar_por_rol crea la
-        // tabla de notificaciones si hace falta, y ese CREATE TABLE haría un commit
-        // implícito de la transacción si se llamara mientras sigue abierta.
-        if ($submitAction === 'enviar') {
-            notificar_por_rol(
-                $pdo,
-                'Coordinacion',
-                htmlspecialchars($_SESSION['usuario_nombre']) . " envió el lote '" . $loteInfo['LOTE_NOMBRE'] . "' para revisión.",
-                "../coordinador/revisar_lotes.php"
-            );
-        }
-
-        $msgParam = $submitAction === 'enviar' ? '&msg=enviado' : '&msg=guardado';
-        header("Location: matriz.php?lote=" . urlencode($id_lote) . $msgParam);
+        header("Location: matriz.php?lote=" . urlencode($id_lote) . "&msg=guardado");
         exit;
     } catch (PDOException $e) {
         if ($transactionStarted && $pdo->inTransaction()) {
@@ -599,18 +579,22 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             
             <div class="form-grid-2">
                 <div class="form-group" style="position: relative;">
-                    <label for="id_codigo_unspsc_busqueda">Código UNSPSC (opcional):</label>
+                    <label for="id_codigo_unspsc_busqueda">Código UNSPSC *:</label>
                     <input type="text" id="id_codigo_unspsc_busqueda" class="form-control" autocomplete="off"
-                           placeholder="Escriba el código del producto para buscar"
+                           placeholder="Escriba el nombre o código del producto para buscar"
                            value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>"
-                           <?= $ficha_tecnica_prefill ? 'disabled' : '' ?> 
-                           pattern="[0-9]*" title="Solo se permiten números" />
+                           <?= $ficha_tecnica_prefill ? 'disabled' : 'required' ?> />
                     <input type="hidden" id="id_codigo_unspsc" name="id_codigo_unspsc" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />
                     <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                 </div>
                 <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
-                    <input type="text" id="unidad_medida" name="unidad_medida" class="form-control" placeholder="Ej: Unidad, Galón, Metro" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['UNIDAD_MEDIDA']) : 'Unidad' ?>" required maxlength="50" pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios" />
+                    <?php $unidadActual = $ficha_tecnica_prefill ? $ficha_tecnica_prefill['UNIDAD_MEDIDA'] : 'Unidad'; ?>
+                    <select id="unidad_medida" name="unidad_medida" class="form-control" required>
+                        <?php foreach ($unidadesMedidaEstandar as $u): ?>
+                            <option value="<?= htmlspecialchars($u) ?>" <?= $u === $unidadActual ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Tasa de IVA:</label>
@@ -629,7 +613,29 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <label style="font-weight: 700; color: var(--texto-oscuro); display: block; margin-bottom: 12px; font-size: 15px;">Seleccionar Estrategias Académicas *:</label>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
-                        
+
+                        <!-- Regular -->
+                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
+                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Regular</span>
+                                <input type="number"
+                                       name="cantidades_estrategias[cantidad_regular]"
+                                       class="form-control val-estrategia"
+                                       value="0"
+                                       min="0"
+                                       max="100000"
+                                       disabled
+                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
+                                       data-strategy="cantidad_regular">
+                            </div>
+                            <div style="padding-left: 10px;">
+                                <input type="checkbox"
+                                       class="check-estrategia"
+                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
+                                       data-target="cantidad_regular">
+                            </div>
+                        </div>
+
                         <!-- Campesina Complementaria -->
                         <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                             <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
@@ -639,6 +645,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_campesina_complementaria">
@@ -660,6 +667,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_campesina_titulada">
@@ -681,6 +689,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_vulnerable">
@@ -702,6 +711,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_media_tecnica">
@@ -723,6 +733,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_fic">
@@ -744,6 +755,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_economia_popular">
@@ -765,6 +777,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_eni">
@@ -786,6 +799,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                        class="form-control val-estrategia" 
                                        value="0" 
                                        min="0" 
+                                       max="100000" 
                                        disabled 
                                        style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
                                        data-strategy="cantidad_fc_campesina">
@@ -840,7 +854,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
             <div class="form-group" style="width: 32%;">
                 <label for="cantidad_regular">Cantidad Requerida:</label>
-                <input type="number" id="cantidad_regular" name="cantidad_regular" class="form-control" min="1" value="1" required>
+                <input type="number" id="cantidad_regular" name="cantidad_regular" class="form-control" min="1" max="100000" value="1" required>
             </div>
 
             <div class="form-group">
@@ -866,14 +880,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <?php endif; ?>
 
             <div style="display:flex; gap:10px;">
-                <input type="hidden" name="submit_action" id="submit_action" value="guardar">
-                <button type="submit" onclick="document.getElementById('submit_action').value='guardar';" class="btn">Guardar Borrador</button>
-                <button type="submit" onclick="document.getElementById('submit_action').value='enviar';" class="btn btn-sena">Enviar Solicitud al Coordinador</button>
+                <button type="submit" class="btn">Guardar y Continuar</button>
             </div>
         </form>
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($items)): ?>
     <h3>Artículos Solicitados en este Lote</h3>
     <table>
         <thead>
@@ -887,26 +900,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <th>IVA</th>
                 <th>Instructor Apoyo</th>
                 <th>Estado</th>
-                <th>Ficha Técnica</th>
                 <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?><th>Acciones</th><?php endif; ?>
             </tr>
         </thead>
         <tbody>
-            <?php if(empty($items)): ?>
-                <tr>
-                    <td colspan="11">
-                        <div class="empty-state">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                <line x1="8" y1="11" x2="14" y2="11"/>
-                            </svg>
-                            <p>No se han agregado materiales a este requerimiento todavía.</p>
-                            <span>Agrega el primer material con el formulario de arriba.</span>
-                        </div>
-                    </td>
-                </tr>
-            <?php else: ?>
                 <?php foreach($items as $item): ?>
                     <tr>
                         <td>#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
@@ -929,26 +926,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             ?>
                         </td>
                         <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
-                        <td>
-                            <?php if ($item['ID_FICHA_TECNICA']): ?>
-                                <span style="color: green; font-weight: bold;">✓ Asignada (FT #<?= (int)$item['ID_FICHA_TECNICA'] ?>)</span>
-                            <?php else: ?>
-                                <span style="color: #666; font-style: italic;">Sin Ficha</span>
-                            <?php endif; ?>
-                            <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" style="margin-top: 5px;">
-                                <input type="hidden" name="accion" value="asignar_ficha">
-                                <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                <select name="id_ficha_tecnica" onchange="this.form.submit()" style="padding: 2px; font-size: 11px;">
-                                    <option value="">-- Cambiar Ficha --</option>
-                                    <?php foreach ($fichasTecnicas as $ft): ?>
-                                        <option value="<?= htmlspecialchars($ft['ID_FICHA_TECNICA']) ?>" <?= $item['ID_FICHA_TECNICA'] == $ft['ID_FICHA_TECNICA'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($ft['NOMBRE_ITEM']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </form>
-                        </td>
                         <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
                         <td>
                             <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>">
@@ -961,9 +938,22 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
-            <?php endif; ?>
         </tbody>
     </table>
+
+    <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
+    <div style="display:flex; justify-content:flex-end; margin-top:15px;">
+        <form method="GET" action="fichas_tecnicas_creadas.php">
+            <input type="hidden" name="lote" value="<?= htmlspecialchars($id_lote) ?>">
+            <button type="submit" class="btn btn-sena js-confirm-submit"
+                data-confirm-title="Guardar y cerrar"
+                data-confirm-message="¿Ya terminaste de agregar fichas a este lote? Podrás seguir agregando más después, pero ahora pasarás a Ver Fichas Técnicas para enviarlas a revisión."
+                data-confirm-label="Sí, continuar"
+                data-confirm-danger="false">Guardar y Cerrar</button>
+        </form>
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <script>

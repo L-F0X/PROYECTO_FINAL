@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../texto_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -33,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Token CSRF inválido.';
         $messageType = 'error';
     } else {
-        $nombre   = trim($_POST['nombre']   ?? '');
-        $apellido = trim($_POST['apellido'] ?? '');
+        $nombre   = capitalizar_nombre(trim($_POST['nombre']   ?? ''));
+        $apellido = capitalizar_nombre(trim($_POST['apellido'] ?? ''));
         $email    = trim($_POST['email']    ?? '');
 
         $currentPassword = $_POST['current_password'] ?? '';
@@ -44,11 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nombre === '' || $apellido === '' || $email === '') {
             $message = '✗ Todos los campos de perfil son obligatorios.';
             $messageType = 'error';
-        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $nombre)) {
+        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?$/u', $nombre)) {
             $message = '✗ El nombre solo debe contener letras y espacios.';
             $messageType = 'error';
-        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $apellido)) {
+        } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?$/u', $apellido)) {
             $message = '✗ El apellido solo debe contener letras y espacios.';
+            $messageType = 'error';
+        } elseif (strlen($nombre) > 100 || strlen($apellido) > 100) {
+            $message = '✗ El nombre y el apellido no pueden tener más de 100 caracteres.';
             $messageType = 'error';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $message = '✗ El correo electrónico no tiene un formato válido.';
@@ -500,15 +504,15 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
                     <div class="profile-field">
                         <label for="p-nombre">Nombre</label>
                         <input type="text" id="p-nombre" name="nombre"
-                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required
-                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
+                               value="<?= htmlspecialchars($user['NOMBRE'] ?? '') ?>" required maxlength="100"
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field">
                         <label for="p-apellido">Apellido</label>
                         <input type="text" id="p-apellido" name="apellido"
-                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required
-                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
+                               value="<?= htmlspecialchars($user['APELLIDO'] ?? '') ?>" required maxlength="100"
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+( [a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)?" title="Solo se permiten letras y espacios">
                     </div>
 
                     <div class="profile-field full-col">

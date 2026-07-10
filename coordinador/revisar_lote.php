@@ -47,6 +47,7 @@ try {
     // Obtener items del lote, junto con las hasta 3 ofertas/cotizaciones registradas por ítem
     $sqlItems = "SELECT mi.*, ft.NOMBRE_ITEM, ft.DENOMINACION_TECNICA_BIEN,
                  cu.CODIGO_UNSPSC, iva.PORCENTAJE,
+                 ua.NOMBRE AS APOYO_NOMBRE, ua.APELLIDO AS APOYO_APELLIDO,
                  c1.VALOR_UNITARIO AS OF1_VALOR, c1.VALOR_TOTAL AS OF1_TOTAL, c1.MARCA_OFRECIDA AS OF1_MARCA, p1.RAZON_SOCIAL AS OF1_PROVEEDOR,
                  c2.VALOR_UNITARIO AS OF2_VALOR, c2.VALOR_TOTAL AS OF2_TOTAL, c2.MARCA_OFRECIDA AS OF2_MARCA, p2.RAZON_SOCIAL AS OF2_PROVEEDOR,
                  c3.VALOR_UNITARIO AS OF3_VALOR, c3.VALOR_TOTAL AS OF3_TOTAL, c3.MARCA_OFRECIDA AS OF3_MARCA, p3.RAZON_SOCIAL AS OF3_PROVEEDOR
@@ -54,13 +55,14 @@ try {
                  LEFT JOIN ficha_tecnica ft ON mi.ID_FICHA_TECNICA = ft.ID_FICHA_TECNICA
                  LEFT JOIN codigo_unspsc cu ON mi.ID_CODIGO_UNSPSC = cu.ID_CODIGO
                  LEFT JOIN iva ON mi.ID_IVA = iva.ID_IVA
+                 LEFT JOIN usuario ua ON mi.INSTRUCTOR_APOYO = ua.ID_USUARIO
                  LEFT JOIN cotizacion c1 ON mi.OFERTA_1 = c1.ID_COTIZACION
                  LEFT JOIN proveedor p1 ON c1.ID_PROVEEDOR = p1.ID_PROVEEDOR
                  LEFT JOIN cotizacion c2 ON mi.OFERTA_2 = c2.ID_COTIZACION
                  LEFT JOIN proveedor p2 ON c2.ID_PROVEEDOR = p2.ID_PROVEEDOR
                  LEFT JOIN cotizacion c3 ON mi.OFERTA_3 = c3.ID_COTIZACION
                  LEFT JOIN proveedor p3 ON c3.ID_PROVEEDOR = p3.ID_PROVEEDOR
-                 WHERE mi.ID_LOTE = ?
+                 WHERE mi.ID_LOTE = ? AND mi.ESTADO_ITEM = 'Pendiente'
                  ORDER BY mi.ID_MATRIZ_ITEM";
 
     $stmtItems = $pdo->prepare($sqlItems);
@@ -203,13 +205,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Cantidad</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Unidad</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Instructor de Apoyo</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Ofertas / Proveedor</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
                                             <circle cx="11" cy="11" r="8"/>
@@ -243,6 +246,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($item['ESTADO_ITEM']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <?php if (!empty($item['APOYO_NOMBRE'])): ?>
+                                            <?= htmlspecialchars($item['APOYO_NOMBRE'] . ' ' . $item['APOYO_APELLIDO']) ?>
+                                        <?php else: ?>
+                                            <span style="color:#999; font-style:italic; font-size:13px;">Sin instructor de apoyo</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="padding: 12px; min-width: 260px;">
                                         <?php if (empty($ofertas)): ?>
                                             <span style="color:#999; font-style:italic; font-size:13px;">Sin ofertas registradas</span>

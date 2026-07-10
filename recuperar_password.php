@@ -11,7 +11,7 @@ if (isset($_SESSION['usuario_id'])) {
 
 $mensaje = '';
 $mensajeTipo = 'success';
-$enlaceGenerado = '';
+$codigoGenerado = '';
 $correoEnviado = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -26,33 +26,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usuarioFila = $stmt->fetch();
 
         if ($usuarioFila && !tiene_solicitud_reset_reciente($pdo, intval($usuarioFila['ID_USUARIO']))) {
-            $token = generar_token_reset($pdo, intval($usuarioFila['ID_USUARIO']));
-            $baseUrl = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']);
-            $enlace = rtrim($baseUrl, '/') . '/restablecer_password.php?token=' . $token;
+            $codigo = generar_token_reset($pdo, intval($usuarioFila['ID_USUARIO']));
 
             $cuerpoHtml = '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">'
                 . '<div style="text-align: center; margin-bottom: 10px;"><img src="cid:sena-logo" alt="SENA" style="height: 60px;"></div>'
                 . '<h2 style="color: #39A900; text-align: center;">BICERGAM</h2>'
                 . '<p>Hola ' . htmlspecialchars($usuarioFila['NOMBRE']) . ',</p>'
-                . '<p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para continuar (válido por 1 hora, un solo uso):</p>'
-                . '<p><a href="' . htmlspecialchars($enlace) . '" style="background: #39A900; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">Restablecer contraseña</a></p>'
+                . '<p>Recibimos una solicitud para restablecer tu contraseña. Ingresa el siguiente código junto con tu correo en la página de restablecimiento (válido por 15 minutos, un solo uso):</p>'
+                . '<p style="text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #00324D; background: #eff8f1; padding: 12px; border-radius: 6px;">' . htmlspecialchars($codigo) . '</p>'
                 . '<p style="font-size: 13px; color: #666;">Si no solicitaste esto, puedes ignorar este correo.</p>'
                 . '</div>';
 
-            $correoEnviado = enviar_correo($email, 'Recuperación de contraseña - BICERGAM', $cuerpoHtml);
+            $correoEnviado = enviar_correo($email, 'Código de recuperación de contraseña - BICERGAM', $cuerpoHtml);
 
             // Respaldo: si el envío falla (SMTP no configurado o con error), se
-            // muestra el enlace directamente para que la recuperación no quede rota.
+            // muestra el código directamente para que la recuperación no quede rota.
             if (!$correoEnviado) {
-                $enlaceGenerado = $enlace;
+                $codigoGenerado = $codigo;
             }
         }
         // Nota: si ya hay una solicitud reciente (cooldown), no se genera ni
-        // reenvía un nuevo enlace, pero el mensaje mostrado es el mismo de
+        // reenvía un nuevo código, pero el mensaje mostrado es el mismo de
         // siempre — así no se revela si la cuenta existe ni si hay cooldown activo.
 
         // Mensaje genérico: no confirmamos ni negamos si el correo existe.
-        $mensaje = 'Si el correo electrónico está registrado, se envió un enlace de restablecimiento a esa dirección.';
+        $mensaje = 'Si el correo electrónico está registrado, se envió un código de verificación a esa dirección.';
     }
 }
 ?>
@@ -81,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="login-form-container">
         <div class="login-form-header">
             <h2>Recuperar Contraseña</h2>
-            <p>Ingresa tu correo institucional para generar un enlace de restablecimiento.</p>
+            <p>Ingresa tu correo institucional para recibir un código de verificación.</p>
         </div>
 
         <?php if ($mensaje): ?>
@@ -90,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
-        <?php if ($enlaceGenerado): ?>
+        <?php if ($codigoGenerado): ?>
             <div style="background: #fff3cd; border: 1px solid #ffe69c; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px;">
-                <p style="margin: 0 0 8px; color: #664d03;"><strong>No se pudo enviar el correo</strong> (revisa la configuración SMTP en <code>mail_config.php</code>). Mientras tanto, aquí tienes el enlace directamente. Válido por 1 hora, un solo uso.</p>
-                <a href="<?= htmlspecialchars($enlaceGenerado) ?>" style="word-break: break-all; color: #00324D; font-weight: 600;"><?= htmlspecialchars($enlaceGenerado) ?></a>
+                <p style="margin: 0 0 8px; color: #664d03;"><strong>No se pudo enviar el correo</strong> (revisa la configuración SMTP en <code>mail_config.php</code>). Mientras tanto, aquí tienes el código directamente. Válido por 15 minutos, un solo uso.</p>
+                <p style="text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #00324D;"><?= htmlspecialchars($codigoGenerado) ?></p>
             </div>
         <?php endif; ?>
 
@@ -102,10 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="email">Correo Electrónico Institucional</label>
                 <input type="email" id="email" name="email" class="form-control" autocomplete="username" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
             </div>
-            <button type="submit" class="btn btn-sena btn-block">Generar Enlace de Restablecimiento</button>
+            <button type="submit" class="btn btn-sena btn-block">Enviar Código de Verificación</button>
         </form>
 
         <div style="text-align: center; margin-top: 15px;">
+            <a href="restablecer_password.php" style="font-size: 13px; color: var(--verde-sena);">Ya tengo un código</a>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
             <a href="login.php" style="font-size: 13px; color: var(--verde-sena);">← Volver a Iniciar Sesión</a>
         </div>
     </section>

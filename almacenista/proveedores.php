@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../texto_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -43,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $razonSocial = trim($_POST['razon_social'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
-        $contacto = trim($_POST['contacto'] ?? '');
+        $contacto = capitalizar_nombre(trim($_POST['contacto'] ?? ''));
 
         if ($nit === '' || $razonSocial === '') {
             $mensaje = 'NIT y Razón Social son obligatorios.';
@@ -114,9 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $busqueda = trim($_GET['q'] ?? '');
 try {
     if ($busqueda !== '') {
-        $stmt = $pdo->prepare('SELECT * FROM proveedor WHERE NIT LIKE ? OR RAZON_SOCIAL LIKE ? ORDER BY RAZON_SOCIAL');
+        // Coincidencias de razón social por prefijo se muestran primero, igual que en Fase 22.
+        $stmt = $pdo->prepare('SELECT * FROM proveedor WHERE NIT LIKE ? OR RAZON_SOCIAL LIKE ? ORDER BY CASE WHEN RAZON_SOCIAL LIKE ? THEN 0 ELSE 1 END, RAZON_SOCIAL');
         $like = "%$busqueda%";
-        $stmt->execute([$like, $like]);
+        $stmt->execute([$like, $like, "$busqueda%"]);
     } else {
         $stmt = $pdo->query('SELECT * FROM proveedor ORDER BY RAZON_SOCIAL');
     }
@@ -246,11 +248,11 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </div>
 
             <div class="panel-card" style="margin-top: 20px;">
-                <h3>Proveedores Registrados (<?= count($proveedores) ?>)</h3>
-                <form method="GET" action="proveedores.php" style="margin-bottom: 15px; display: flex; gap: 10px;">
-                    <input type="text" name="q" class="form-control" placeholder="Buscar por NIT o Razón Social..." value="<?= htmlspecialchars($busqueda) ?>" style="max-width: 300px;">
-                    <button type="submit" class="btn btn-secondary">Buscar</button>
+                <form method="GET" action="proveedores.php" id="form-busqueda" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="q" name="q" class="form-control" placeholder="Buscar por NIT o Razón Social..." value="<?= htmlspecialchars($busqueda) ?>" style="max-width: 300px;">
                 </form>
+                <div id="resultados-busqueda">
+                <h3>Proveedores Registrados (<?= count($proveedores) ?>)</h3>
                 <table style="width: 100%;">
                     <thead>
                         <tr>
@@ -316,6 +318,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <input type="hidden" name="id_proveedor" value="<?= htmlspecialchars($p['ID_PROVEEDOR']) ?>">
                     </form>
                 <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </main>

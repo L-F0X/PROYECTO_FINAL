@@ -53,7 +53,13 @@ $sql = "SELECT mi.*, lr.LOTE_NOMBRE, u.NOMBRE AS APOYO_NOMBRE, u.APELLIDO AS APO
 if ($where) {
     $sql .= " WHERE " . implode(' AND ', $where);
 }
-$sql .= " ORDER BY mi.ID_MATRIZ_ITEM DESC";
+if ($busqueda !== '') {
+    // Coincidencias de descripción por prefijo se muestran primero, igual que en Fase 22.
+    $sql .= " ORDER BY CASE WHEN mi.DESCRIPCION_BIEN LIKE ? THEN 0 ELSE 1 END, mi.ID_MATRIZ_ITEM DESC";
+    $params[] = "$busqueda%";
+} else {
+    $sql .= " ORDER BY mi.ID_MATRIZ_ITEM DESC";
+}
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -266,13 +272,6 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                             autocomplete="off"
                         >
                     </div>
-                    <button type="submit" class="btn-buscar" id="btn-buscar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                        Buscar
-                    </button>
                     <a href="matriz_consulta.php" class="btn-limpiar" id="btn-limpiar">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                              fill="none" stroke="currentColor" stroke-width="2.5">

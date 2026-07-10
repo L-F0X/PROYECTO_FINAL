@@ -83,8 +83,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".profile-alert").forEach(banner => {
         const text = banner.textContent.trim().replace(/^[✓✗]\s*/, "");
         const type = banner.classList.contains("error") ? "error" : "success";
+        const customDuration = parseInt(banner.dataset.toastDuration || "", 10);
         if (text) {
-            showToast(text, type);
+            showToast(text, type, isNaN(customDuration) ? undefined : customDuration);
         }
         banner.remove();
     });
@@ -150,19 +151,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Evitar la inserción de caracteres erróneos en campos de nombre, apellido y contacto (solo letras y espacios)
-    const nombreApellidoInputs = document.querySelectorAll('input[pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\\s]+"], input[pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\\s]*"], #p-nombre, #p-apellido, #nombre, #apellido, #contacto, input[name="contacto"]');
+    // Pone en mayúscula solo la primera letra de cada palabra (tras un espacio
+    // o al inicio del texto), sin tocar el resto de letras que ya escribió el
+    // usuario (para no pelear con mayúsculas intermedias válidas en apellidos).
+    function capitalizarPrimeraLetra(valor) {
+        return valor.replace(/(^|\s)(\p{L})/gu, (_, previo, letra) => previo + letra.toUpperCase());
+    }
+
+    // Nombre/Apellido del usuario: solo letras, y como máximo un solo espacio
+    // (dos palabras, ej. "Juan Carlos") — no varias palabras ni espacios dobles.
+    const nombreApellidoInputs = document.querySelectorAll('#p-nombre, #p-apellido, #nombre, #apellido');
     nombreApellidoInputs.forEach(input => {
         input.addEventListener("input", function() {
-            const regex = /[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g;
-            if (regex.test(this.value)) {
-                this.value = this.value.replace(regex, '');
+            let valor = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]/g, '');
+            valor = valor.replace(/ {2,}/g, ' ');
+            const partes = valor.split(' ');
+            if (partes.length > 2) {
+                valor = partes[0] + ' ' + partes.slice(1).join('');
             }
+            this.value = capitalizarPrimeraLetra(valor);
         });
     });
 
-    // Evitar la inserción de caracteres erróneos en Unidad de Medida (solo letras y espacios)
-    const unidadMedidaInputs = document.querySelectorAll('#unidad_medida, #modal-unidad');
+    // Persona de Contacto (proveedores): solo letras y espacios, sin límite de
+    // palabras (puede ser un nombre completo de varias partes).
+    const contactoInputs = document.querySelectorAll('#contacto, input[name="contacto"]');
+    contactoInputs.forEach(input => {
+        input.addEventListener("input", function() {
+            let valor = this.value;
+            const regex = /[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g;
+            if (regex.test(valor)) {
+                valor = valor.replace(regex, '');
+            }
+            this.value = capitalizarPrimeraLetra(valor);
+        });
+    });
+
+    // Evitar la inserción de caracteres erróneos en Unidad de Medida (solo letras y espacios).
+    // #unidad_medida ya no aplica aquí: pasó a ser un <select> de opciones fijas (Fase 51).
+    const unidadMedidaInputs = document.querySelectorAll('#modal-unidad');
     unidadMedidaInputs.forEach(input => {
         input.addEventListener("input", function() {
             const regex = /[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g;
@@ -172,8 +199,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Evitar la inserción de caracteres erróneos en Código UNSPSC, NIT y Teléfono (solo números)
-    const unspscInputs = document.querySelectorAll('#id_codigo_unspsc_busqueda, #codigo_unspsc_busqueda, #nit, input[name="nit"], #telefono, input[name="telefono"]');
+    // Evitar la inserción de caracteres erróneos en NIT, Teléfono y Documento (solo números).
+    // Los campos de búsqueda de UNSPSC (#id_codigo_unspsc_busqueda, #codigo_unspsc_busqueda)
+    // se excluyen a propósito: se puede buscar por nombre de producto (letras) o por
+    // código (números), así que no deben restringirse a solo dígitos.
+    const unspscInputs = document.querySelectorAll('#nit, input[name="nit"], #telefono, input[name="telefono"], #documento, input[name="documento"]');
     unspscInputs.forEach(input => {
         input.addEventListener("input", function() {
             const regex = /[^0-9]/g;
@@ -236,6 +266,12 @@ function initLiveSearch() {
             refresh();
         });
     });
+    form.querySelectorAll('input[type="date"]').forEach(input => {
+        input.addEventListener("change", () => {
+            clearTimeout(timer);
+            refresh();
+        });
+    });
     form.addEventListener("submit", (e) => {
         e.preventDefault();
         clearTimeout(timer);
@@ -248,7 +284,7 @@ function initLiveSearch() {
         link.addEventListener("click", (e) => {
             e.preventDefault();
             const target = link.getAttribute("href");
-            form.querySelectorAll('input[type="text"], input[type="search"]').forEach(i => { i.value = ""; });
+            form.querySelectorAll('input[type="text"], input[type="search"], input[type="date"]').forEach(i => { i.value = ""; });
             form.querySelectorAll("select").forEach(s => { s.selectedIndex = 0; });
             clearTimeout(timer);
             loadResults(target);

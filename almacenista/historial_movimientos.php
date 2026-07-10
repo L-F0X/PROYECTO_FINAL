@@ -141,52 +141,53 @@ $total = count($movimientos);
                             <option value="Salida Inventario" <?= $filtroTipo === 'Salida Inventario' ? 'selected' : '' ?>>Salida</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Filtrar</button>
                     <a href="historial_movimientos.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>
 
-            <h3>Total de Movimientos: <?= $total ?></h3>
-            <table style="width: 100%; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Usuario</th>
-                        <th>Tipo</th>
-                        <th>Detalle</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($movimientos)): ?>
+            <div id="resultados-busqueda">
+                <h3>Total de Movimientos: <?= $total ?></h3>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td colspan="4">
-                                <div class="empty-state">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
-                                        <circle cx="11" cy="11" r="8"/>
-                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                        <line x1="8" y1="11" x2="14" y2="11"/>
-                                    </svg>
-                                    <p>No hay movimientos registrados.</p>
-                                    <span>Las entradas y salidas de inventario aparecerán aquí.</span>
-                                </div>
-                            </td>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Tipo</th>
+                            <th>Detalle</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($movimientos as $mov): ?>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 12px;"><?= htmlspecialchars(substr($mov['FECHA'], 0, 19)) ?></td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($mov['NOMBRE'] . ' ' . $mov['APELLIDO']) ?></td>
-                                <td style="padding: 12px;">
-                                    <span style="padding: 4px 8px; border-radius: 4px; <?= $mov['ACCION'] === 'Entrada Inventario' ? 'background: #d4edda; color: #155724;' : 'background: #cce5ff; color: #004085;' ?>">
-                                        <?= $mov['ACCION'] === 'Entrada Inventario' ? 'Entrada' : 'Salida' ?>
-                                    </span>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($movimientos)): ?>
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                        <p>No hay movimientos registrados.</p>
+                                        <span>Las entradas y salidas de inventario aparecerán aquí.</span>
+                                    </div>
                                 </td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($mov['DETALLE']) ?></td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($movimientos as $mov): ?>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 12px;"><?= htmlspecialchars(substr($mov['FECHA'], 0, 19)) ?></td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($mov['NOMBRE'] . ' ' . $mov['APELLIDO']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <span style="padding: 4px 8px; border-radius: 4px; <?= $mov['ACCION'] === 'Entrada Inventario' ? 'background: #d4edda; color: #155724;' : 'background: #cce5ff; color: #004085;' ?>">
+                                            <?= $mov['ACCION'] === 'Entrada Inventario' ? 'Entrada' : 'Salida' ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px;"><?= htmlspecialchars($mov['DETALLE']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

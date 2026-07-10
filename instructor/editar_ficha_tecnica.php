@@ -4,6 +4,10 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 
+// Lista cerrada de unidades de medida: no todos los materiales/bienes se
+// cuentan como "Unidad" (ej. combustibles por Galón, telas por Metro).
+$unidadesMedidaEstandar = ['Unidad', 'Caja', 'Paquete', 'Kit', 'Juego', 'Par', 'Docena', 'Rollo', 'Bolsa', 'Galón', 'Litro', 'Metro', 'Metro Cuadrado', 'Kilogramo', 'Gramo'];
+
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
     exit;
@@ -48,6 +52,13 @@ if ($ficha['ID_CREADOR'] !== null && intval($ficha['ID_CREADOR']) !== $usuarioId
     exit;
 }
 
+// Si la ficha trae una unidad "heredada" que no está en la lista estándar
+// (datos antiguos, ej. "Gato"/"Galion" mal escritos), se agrega como opción
+// extra para no perderla silenciosamente al re-guardar sin tocarla.
+if (!in_array($ficha['UNIDAD_MEDIDA'], $unidadesMedidaEstandar, true)) {
+    $unidadesMedidaEstandar[] = $ficha['UNIDAD_MEDIDA'];
+}
+
 $mensaje = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -74,8 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strlen($unidadMedida) > 50) {
             throw new Exception("La unidad de medida no puede tener más de 50 caracteres.");
         }
+        if (!in_array($unidadMedida, $unidadesMedidaEstandar, true)) {
+            throw new Exception("Debe seleccionar una unidad de medida válida.");
+        }
         if ($cantidad <= 0) {
             throw new Exception("La cantidad debe ser un número entero mayor que cero.");
+        }
+        if ($cantidad > 100000) {
+            throw new Exception("La cantidad no puede ser mayor a 100,000 unidades.");
         }
         if ($codigoUnspsc === '') {
             throw new Exception("Debe seleccionar un código UNSPSC del catálogo.");
@@ -304,9 +321,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div class="ficha-label">Código UNSPSC *</div>
                     <div class="ficha-value" style="position: relative;">
                         <input type="text" id="codigo_unspsc_busqueda" autocomplete="off"
-                               placeholder="Escriba el código del producto para buscar"
-                               value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>" required
-                               pattern="[0-9]*" title="Solo se permiten números">
+                               placeholder="Escriba el nombre o código del producto para buscar"
+                               value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>" required>
                         <input type="hidden" name="codigo_unspsc" id="codigo_unspsc" value="<?= htmlspecialchars($ficha['CODIGO_UNSPSC_FK']) ?>">
                         <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                     </div>
@@ -320,13 +336,16 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
                 <div class="ficha-section-header">Unidad de Medida</div>
                 <div class="ficha-full-row" style="text-align:center">
-                    <input type="text" name="unidad_medida" id="unidad_medida" value="<?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>" required maxlength="50" style="text-align:center"
-                           pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+" title="Solo se permiten letras y espacios">
+                    <select name="unidad_medida" id="unidad_medida" required style="text-align:center">
+                        <?php foreach ($unidadesMedidaEstandar as $u): ?>
+                            <option value="<?= htmlspecialchars($u) ?>" <?= $u === $ficha['UNIDAD_MEDIDA'] ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="ficha-section-header">Cantidad</div>
                 <div class="ficha-full-row" style="text-align:center">
-                    <input type="number" name="cantidad" id="cantidad" min="1" value="<?= htmlspecialchars($ficha['CANTIDAD']) ?>" required style="text-align:center">
+                    <input type="number" name="cantidad" id="cantidad" min="1" max="100000" value="<?= htmlspecialchars($ficha['CANTIDAD']) ?>" required style="text-align:center">
                 </div>
 
                 <div class="ficha-section-header">Descripción General</div>
@@ -358,7 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const contexto = document.getElementById('unspsc_contexto');
             if (contexto) {
                 const partes = [item.segmento_titulo, item.familia_titulo, item.clase_titulo].filter(Boolean);
-                contexto.textContent = partes.length ? partes.join(' > ') : '';
+                const ruta = partes.length ? partes.join(' > ') : '';
+                contexto.textContent = item.nombre + (ruta ? ' — ' + ruta : '');
             }
         }
     });

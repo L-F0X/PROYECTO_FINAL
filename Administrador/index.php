@@ -86,10 +86,12 @@ $busqueda = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filtroRol = isset($_GET['rol']) ? trim($_GET['rol']) : '';
 
 try {
-    $sql = "SELECT u.*, r.NOMBRE_ROL 
-            FROM usuario u 
-            INNER JOIN rol r ON u.ID_ROL = r.ID_ROL 
-            WHERE 1=1";
+    // La tabla de "Gestión de Usuarios" es para instructores/coordinadores/almacenistas;
+    // las cuentas de administrador no se mezclan con "el resto de usuarios" aquí.
+    $sql = "SELECT u.*, r.NOMBRE_ROL
+            FROM usuario u
+            INNER JOIN rol r ON u.ID_ROL = r.ID_ROL
+            WHERE LOWER(r.NOMBRE_ROL) != 'administrador'";
     $params = [];
     
     if ($busqueda !== '') {
@@ -100,13 +102,20 @@ try {
         $params[] = $term;
         $params[] = $term;
     }
-    
+
     if ($filtroRol !== '') {
         $sql .= " AND u.ID_ROL = ?";
         $params[] = intval($filtroRol);
     }
-    
-    $sql .= " ORDER BY u.ID_USUARIO DESC";
+
+    if ($busqueda !== '') {
+        // Coincidencias de nombre por prefijo (ej. "car" -> "Carlos") se muestran
+        // antes que coincidencias en medio de la palabra, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN u.NOMBRE LIKE ? THEN 0 ELSE 1 END, u.ID_USUARIO DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY u.ID_USUARIO DESC";
+    }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $usuarios = $stmt->fetchAll();
@@ -127,10 +136,11 @@ try {
     $logsActividad = [];
 }
 
-// Cargar roles para filtros/formularios
+// Cargar roles para filtros/formularios (sin "administrador": esta tabla no
+// mezcla cuentas de administrador con el resto de usuarios)
 $roles = [];
 try {
-    $roles = $pdo->query("SELECT * FROM rol ORDER BY ID_ROL")->fetchAll();
+    $roles = $pdo->query("SELECT * FROM rol WHERE LOWER(NOMBRE_ROL) != 'administrador' ORDER BY ID_ROL")->fetchAll();
 } catch (Exception $e) {
     error_log('Error cargando roles: ' . $e->getMessage());
 }
@@ -205,7 +215,6 @@ if ($msg === 'status_updated') {
             <h4>Administración</h4>
             <a href="index.php" class="sidebar-link sidebar-link--primary">Gestión Usuarios</a>
             <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
-            <a href="gestionar_iva.php" class="sidebar-link">Gestionar IVA</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -287,7 +296,6 @@ if ($msg === 'status_updated') {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
                     <a href="index.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>

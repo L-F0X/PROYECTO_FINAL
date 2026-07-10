@@ -29,6 +29,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
 // Parámetros de búsqueda
 $busqueda = trim($_GET['q'] ?? '');
+$fechaDesde = trim($_GET['fecha_desde'] ?? '');
+$fechaHasta = trim($_GET['fecha_hasta'] ?? '');
 
 // Construir consulta dinámica
 $where = [];
@@ -40,19 +42,33 @@ if ($busqueda !== '') {
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
+if ($fechaDesde !== '') {
+    $where[] = "DATE(ce.FECHA_EMISION) >= ?";
+    $params[] = $fechaDesde;
+}
+if ($fechaHasta !== '') {
+    $where[] = "DATE(ce.FECHA_EMISION) <= ?";
+    $params[] = $fechaHasta;
+}
 
 // Los instructores solo ven los certificados asociados a lotes creados por ellos
 $where[] = "lr.ID_SOLICITANTE = ?";
 $params[] = $usuarioId;
 
-$sql = "SELECT ce.ID_CERTIFICADO, ce.NUMERO_CERTIFICADO, ce.ID_LOTE, lr.LOTE_NOMBRE, lr.ESTADO_TRAMITE
+$sql = "SELECT ce.ID_CERTIFICADO, ce.NUMERO_CERTIFICADO, ce.ID_LOTE, ce.FECHA_EMISION, lr.LOTE_NOMBRE, lr.ESTADO_TRAMITE
         FROM certificado_existencia ce
         LEFT JOIN lote_requerimiento lr ON ce.ID_LOTE = lr.ID_LOTE";
 
 if ($where) {
     $sql .= " WHERE " . implode(' AND ', $where);
 }
-$sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+if ($busqueda !== '') {
+    // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+    $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, ce.ID_CERTIFICADO DESC";
+    $params[] = "$busqueda%";
+} else {
+    $sql .= " ORDER BY ce.ID_CERTIFICADO DESC";
+}
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -265,13 +281,14 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                             autocomplete="off"
                         >
                     </div>
-                    <button type="submit" class="btn-buscar" id="btn-buscar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                        Buscar
-                    </button>
+                    <div class="field-group">
+                        <label for="fecha_desde">Emitido desde</label>
+                        <input type="date" id="fecha_desde" name="fecha_desde" class="search-input" value="<?= htmlspecialchars($fechaDesde) ?>">
+                    </div>
+                    <div class="field-group">
+                        <label for="fecha_hasta">Hasta</label>
+                        <input type="date" id="fecha_hasta" name="fecha_hasta" class="search-input" value="<?= htmlspecialchars($fechaHasta) ?>">
+                    </div>
                     <a href="certificado_existencia.php" class="btn-limpiar" id="btn-limpiar">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                              fill="none" stroke="currentColor" stroke-width="2.5">
@@ -302,13 +319,14 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                             <th>ID Lote</th>
                             <th>Nombre del Lote</th>
                             <th>Estado del Lote</th>
+                            <th>Fecha Emisión</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($certificados)): ?>
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
                                              viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
@@ -333,6 +351,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                                             <?= htmlspecialchars($c['ESTADO_TRAMITE']) ?>
                                         </span>
                                     </td>
+                                    <td><?= !empty($c['FECHA_EMISION']) ? htmlspecialchars(date('d/m/Y', strtotime($c['FECHA_EMISION']))) : 'N/D' ?></td>
                                     <td>
                                         <a href="certificado_pdf.php?id=<?= (int)$c['ID_CERTIFICADO'] ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Ver / PDF</a>
                                     </td>

@@ -53,7 +53,13 @@ if ($rolNombre === 'instructor') {
         $sql .= " AND ESTADO_TRAMITE = ?";
         $params[] = $filtroEstado;
     }
-    $sql .= " ORDER BY FECHA_CREACION DESC";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY FECHA_CREACION DESC";
+    }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $panelTitulo = 'Lotes';
@@ -114,7 +120,13 @@ if ($rolNombre === 'instructor') {
     if ($where) {
         $sql .= " WHERE " . implode(" AND ", $where);
     }
-    $sql .= " ORDER BY FECHA_CREACION DESC";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY FECHA_CREACION DESC";
+    }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $panelTitulo = 'Panel de Coordinador';
@@ -135,7 +147,13 @@ if ($rolNombre === 'instructor') {
     if ($where) {
         $sql .= " WHERE " . implode(" AND ", $where);
     }
-    $sql .= " ORDER BY FECHA_CREACION DESC";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY FECHA_CREACION DESC";
+    }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $panelTitulo = 'Lotes de Requerimiento (Pre-Compra)';
@@ -426,7 +444,6 @@ if ($msg === 'eliminado') {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
                 <?php if ($busqueda !== '' || $filtroEstado !== ''): ?>
                     <a href="index.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 <?php endif; ?>
@@ -437,6 +454,7 @@ if ($msg === 'eliminado') {
         </div>
     </div>
 
+    <div id="resultados-busqueda">
     <table>
         <thead>
             <tr>
@@ -486,6 +504,7 @@ if ($msg === 'eliminado') {
             <?php endif; ?>
         </tbody>
     </table>
+    </div>
 </div>
 <?php endif; ?>
 

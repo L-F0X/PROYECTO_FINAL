@@ -46,7 +46,13 @@ try {
         $params[] = $filtroEstado;
     }
 
-    $sql .= " ORDER BY arl.FECHA_DECISION DESC";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, arl.FECHA_DECISION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY arl.FECHA_DECISION DESC";
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -138,7 +144,6 @@ $total = count($decisiones);
                             <option value="Rechazado" <?= $filtroEstado === 'Rechazado' ? 'selected' : '' ?>>Rechazado</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Filtrar</button>
                     <a href="historial_decisiones.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>

@@ -42,7 +42,13 @@ try {
         $params[] = "%$busqueda%";
     }
 
-    $sql .= " GROUP BY u.ID_USUARIO ORDER BY u.NOMBRE";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " GROUP BY u.ID_USUARIO ORDER BY CASE WHEN u.NOMBRE LIKE ? THEN 0 ELSE 1 END, u.NOMBRE";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " GROUP BY u.ID_USUARIO ORDER BY u.NOMBRE";
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -125,7 +131,6 @@ $total = count($instructores);
                         <label for="q" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Buscar instructor</label>
                         <input type="text" id="q" name="q" class="search-input" placeholder="Buscar por nombre o correo..." value="<?= htmlspecialchars($busqueda) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
                     <a href="instructores.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>

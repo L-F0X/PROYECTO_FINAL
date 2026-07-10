@@ -328,7 +328,7 @@ try {
 $totalItems = count($itemsInventario);
 
 // Búsqueda para el Panel Instructor (lote o instructor solicitante)
-$busquedaInstructor = isset($_GET['qi']) ? trim($_GET['qi']) : '';
+$busquedaInstructor = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 // Consulta de Lotes e ítems asociados de Instructores para el Panel Instructor
 $lotesInstructores = [];

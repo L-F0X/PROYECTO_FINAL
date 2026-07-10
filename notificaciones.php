@@ -48,3 +48,24 @@ function notificar_por_rol(PDO $pdo, string $nombreRol, string $mensaje, ?string
         crear_notificacion($pdo, (int) $idUsuario, $mensaje, $enlace);
     }
 }
+
+// Borra una notificación puntual, siempre acotado al dueño (ID_USUARIO) para
+// que nadie pueda borrar la notificación de otra cuenta adivinando su ID.
+function eliminar_notificacion(PDO $pdo, int $idUsuario, int $idNotificacion): void {
+    $pdo->prepare("DELETE FROM notificacion WHERE ID_NOTIFICACION = ? AND ID_USUARIO = ?")->execute([$idNotificacion, $idUsuario]);
+}
+
+function eliminar_notificaciones_usuario(PDO $pdo, int $idUsuario): void {
+    $pdo->prepare("DELETE FROM notificacion WHERE ID_USUARIO = ?")->execute([$idUsuario]);
+}
+
+// Limpieza perezosa: borra notificaciones ya leídas y con más de $dias de
+// antigüedad. Se llama de forma oportunista al cargar la bandeja (mismo
+// espíritu que las migraciones perezosas del proyecto), en vez de depender
+// de una tarea programada que este proyecto no tiene configurada. Las no
+// leídas nunca se borran automáticamente, para no ocultar un aviso que el
+// usuario ni siquiera ha visto todavía.
+function limpiar_notificaciones_antiguas(PDO $pdo, int $dias = 30): void {
+    asegurar_tabla_notificacion($pdo);
+    $pdo->prepare("DELETE FROM notificacion WHERE LEIDA = 1 AND FECHA < DATE_SUB(NOW(), INTERVAL ? DAY)")->execute([$dias]);
+}

@@ -47,7 +47,13 @@ try {
         $params[] = "%$busquedaUnspsc%";
     }
 
-    $sql .= " ORDER BY ft.FECHA_EMISION DESC";
+    if ($busqueda !== '') {
+        // Coincidencias de nombre por prefijo se muestran primero, igual que en Fase 22.
+        $sql .= " ORDER BY CASE WHEN ft.NOMBRE_ITEM LIKE ? THEN 0 ELSE 1 END, ft.FECHA_EMISION DESC";
+        $params[] = "$busqueda%";
+    } else {
+        $sql .= " ORDER BY ft.FECHA_EMISION DESC";
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -135,7 +141,6 @@ $total = count($fichas);
                         <label for="unspsc" style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Código UNSPSC</label>
                         <input type="text" id="unspsc" name="unspsc" class="search-input" placeholder="Ej: 43211508" value="<?= htmlspecialchars($busquedaUnspsc) ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     </div>
-                    <button type="submit" class="btn btn-sena" style="padding: 8px 16px;">Buscar</button>
                     <a href="fichas_tecnicas_coordinador.php" class="btn btn-secondary" style="padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5; color: #333;">Limpiar</a>
                 </div>
             </form>

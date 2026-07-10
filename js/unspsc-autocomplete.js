@@ -34,7 +34,11 @@ function initUnspscAutocomplete(options) {
             row.appendChild(document.createTextNode(' — ' + item.nombre));
             row.addEventListener('mousedown', function (e) {
                 e.preventDefault();
-                input.value = item.codigo + ' - ' + item.nombre;
+                // Solo el código numérico va en el campo visible (mismo que se
+                // permite escribir a mano): el nombre del producto se muestra
+                // aparte vía onSelect, no concatenado aquí, para no violar el
+                // patrón "solo números" del campo ni ensuciarlo con texto.
+                input.value = item.codigo;
                 hidden.value = item.codigo;
                 hideResults();
                 if (typeof options.onSelect === 'function') {
