@@ -233,6 +233,7 @@ $total = count($lotes);
                                     <td>
                                         <a href="matriz.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #39A900;">Gestionar Ítems</a>
                                         <a href="fichas_tecnicas_creadas.php?lote=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #00324D;">Ver Fichas Tecnicas</a>
+                                        <a href="vista_previa_lote.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px; background-color: #17a2b8; text-decoration: none;">Exportar Lote</a>
                                         <?php if ($lote['ESTADO_TRAMITE'] === 'Borrador'): ?>
                                             <a href="editar.php?id=<?= htmlspecialchars($lote['ID_LOTE']) ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Editar Lote</a>
                                         <?php elseif ($lote['ESTADO_TRAMITE'] === 'Rechazado'): ?>

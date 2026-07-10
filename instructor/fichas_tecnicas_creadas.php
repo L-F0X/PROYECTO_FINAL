@@ -235,8 +235,16 @@ $total = count($fichas);
             </form>
 
             <div id="resultados-busqueda">
-                <div class="results-meta" style="margin: 15px 0;">
-                    <span>Resultados: </span><strong><?= $total ?></strong> ficha<?= $total !== 1 ? 's' : '' ?> encontrada<?= $total !== 1 ? 's' : '' ?>
+                <div class="results-meta" style="margin: 15px 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span>Resultados: </span><strong><?= $total ?></strong> ficha<?= $total !== 1 ? 's' : '' ?> encontrada<?= $total !== 1 ? 's' : '' ?>
+                    </div>
+                    <?php if ($total > 0): ?>
+                    <div style="display: flex; gap: 10px;">
+                        <a href="exportar_fichas_pdf.php?lote=<?= htmlspecialchars($idLote) ?>" class="btn" style="padding: 6px 12px; font-size: 13px; text-decoration: none; background-color: #d32f2f; color: white; border-radius: 4px; border: none; cursor: pointer;">📄 Exportar Lote PDF</a>
+                        <a href="exportar_fichas_docx.php?lote=<?= htmlspecialchars($idLote) ?>" class="btn" style="padding: 6px 12px; font-size: 13px; text-decoration: none; background-color: #1976d2; color: white; border-radius: 4px; border: none; cursor: pointer;">📝 Exportar Lote DOCX</a>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <?php $hayEnviables = count(array_filter($fichas, fn($f) => $f['ESTADO_ITEM'] === 'Borrador')) > 0; ?>
@@ -254,7 +262,11 @@ $total = count($fichas);
                     <table style="width: 100%; margin-top: 15px;">
                         <thead>
                             <tr>
-                                <?php if ($hayEnviables): ?><th></th><?php endif; ?>
+                                <?php if ($hayEnviables): ?>
+                                    <th style="width: 40px; text-align: center;">
+                                        <input type="checkbox" id="check-all-fichas" title="Seleccionar Todas">
+                                    </th>
+                                <?php endif; ?>
                                 <th>N°</th>
                                 <th>Nombre del Ítem</th>
                                 <th>Código UNSPSC</th>
@@ -284,7 +296,7 @@ $total = count($fichas);
                                 <?php foreach ($fichas as $f): ?>
                                     <tr>
                                         <?php if ($hayEnviables): ?>
-                                        <td>
+                                        <td style="text-align: center;">
                                             <?php if ($f['ESTADO_ITEM'] === 'Borrador'): ?>
                                                 <input type="checkbox" name="matriz_item[]" value="<?= htmlspecialchars($f['ID_MATRIZ_ITEM']) ?>" class="check-ficha">
                                             <?php endif; ?>
@@ -298,7 +310,7 @@ $total = count($fichas);
                                         <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($f['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($f['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
                                         <td>
                                             <a href="ver_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>&lote=<?= htmlspecialchars($idLote) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">Ver</a>
-                                            <a href="editar_ficha_tecnica.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none; background-color: #00324D;">Editar</a>
+                                            <a href="configurar_matriz.php?id=<?= htmlspecialchars($f['ID_FICHA_TECNICA']) ?>" class="btn btn-sena" style="padding: 5px 12px; font-size: 13px; text-decoration: none; background-color: #00324D;">Configurar Matriz</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -317,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const checks = document.querySelectorAll('.check-ficha');
     const contador = document.getElementById('contador-seleccion-fichas');
     const btnEnviar = document.getElementById('btn-enviar-fichas');
+    const checkAll = document.getElementById('check-all-fichas');
     if (!btnEnviar) return;
 
     function actualizar() {
@@ -324,6 +337,19 @@ document.addEventListener('DOMContentLoaded', function () {
         contador.textContent = marcadas + ' ficha(s) seleccionada(s)';
         btnEnviar.textContent = marcadas === 1 ? 'Enviar Solicitud' : 'Enviar Solicitudes';
         btnEnviar.disabled = marcadas === 0;
+
+        if (checkAll && checks.length > 0) {
+            checkAll.checked = (marcadas === checks.length);
+        }
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function() {
+            checks.forEach(cb => {
+                cb.checked = checkAll.checked;
+            });
+            actualizar();
+        });
     }
 
     checks.forEach(cb => cb.addEventListener('change', actualizar));
@@ -331,6 +357,11 @@ document.addEventListener('DOMContentLoaded', function () {
     btnEnviar.addEventListener('click', function () {
         const marcadas = document.querySelectorAll('.check-ficha:checked').length;
         if (marcadas === 0) return;
+        
+        btnEnviar.disabled = true;
+        const originalText = btnEnviar.textContent;
+        btnEnviar.textContent = 'Procesando...';
+
         const mensaje = marcadas === 1
             ? '¿Enviar esta ficha técnica al coordinador para revisión?'
             : '¿Enviar estas ' + marcadas + ' fichas técnicas al coordinador para revisión?';
@@ -342,6 +373,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(confirmado => {
             if (confirmado) {
                 document.getElementById('form-envio-fichas').submit();
+            } else {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = originalText;
             }
         });
     });

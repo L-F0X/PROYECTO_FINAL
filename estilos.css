@@ -1280,6 +1280,19 @@ table {
     }
 }
 
+/* Rejilla genérica de 3 columnas para formularios */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    gap: 15px;
+}
+
+@media (max-width: 600px) {
+    .form-grid-3 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .recent-lotes h4 {
     margin-top: 0;
 }

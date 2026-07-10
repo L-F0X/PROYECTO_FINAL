@@ -99,6 +99,16 @@ if ($id_ficha_tecnica_get > 0) {
         error_log('Error cargando ficha técnica pre-llenada: ' . $e->getMessage());
     }
 }
+$nombreProductoPrefill = '';
+if ($ficha_tecnica_prefill) {
+    try {
+        $stmtNP = $pdo->prepare("SELECT NOMBRE_PRODUCTO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
+        $stmtNP->execute([$ficha_tecnica_prefill['CODIGO_UNSPSC_FK']]);
+        $nombreProductoPrefill = trim($stmtNP->fetchColumn() ?: '');
+    } catch (Exception $e) {
+        error_log('Error cargando nombre del producto: ' . $e->getMessage());
+    }
+}
 // Si la ficha pre-llenada trae una unidad "heredada" que no está en la lista
 // estándar (datos antiguos, ej. "Gato"/"Galion" mal escritos), se agrega como
 // opción extra para no perderla silenciosamente al re-guardar sin tocarla.
@@ -282,10 +292,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
             $stmtCheckUnspsc->execute([$rawUnspsc]);
             $found = $stmtCheckUnspsc->fetchColumn();
-            if (!$found) {
-                $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
-                $stmtInsertUnspsc->execute([$rawUnspsc, $rawUnspsc]);
-                $id_unspsc = intval($pdo->lastInsertId());
+            if ($found === false) {
+                $stmtMaxCodigo = $pdo->query("SELECT COALESCE(MAX(ID_CODIGO), 0) + 1 FROM codigo_unspsc");
+                $id_unspsc = intval($stmtMaxCodigo->fetchColumn());
+                $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (ID_CODIGO, CODIGO_UNSPSC, NOMBRE_PRODUCTO) VALUES (?, ?, ?)");
+                $stmtInsertUnspsc->execute([$id_unspsc, $rawUnspsc, 'Ingresado Manualmente - ' . $rawUnspsc]);
             } else {
                 $id_unspsc = intval($found);
             }
@@ -311,9 +322,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
 
         // 2. Insertar el ítem en matriz_item (con ID_NECESIDAD y ID_FICHA_TECNICA como NULL temporalmente)
-        $sqlInsert = "INSERT INTO matriz_item (ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, NOTAS_TECNICAS, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA)
-                      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
+        $stmtMaxMatriz = $pdo->query("SELECT COALESCE(MAX(ID_MATRIZ_ITEM), 0) + 1 FROM matriz_item");
+        $id_matriz_item = intval($stmtMaxMatriz->fetchColumn());
+
+        $sqlInsert = "INSERT INTO matriz_item (ID_MATRIZ_ITEM, ID_LOTE, ID_NECESIDAD, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, NOTAS_TECNICAS, ESTADO_ITEM, INSTRUCTOR_APOYO, ID_FICHA_TECNICA)
+                      VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
         $pdo->prepare($sqlInsert)->execute([
+            $id_matriz_item,
             $id_lote, 
             $id_unspsc, 
             $id_iva, 
@@ -324,7 +339,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $estadoItem, 
             $instructor_apoyo
         ]);
-        $id_matriz_item = $pdo->lastInsertId();
 
         // 3. Si se ingresaron cantidades por estrategias, insertar nueva necesidad y asociar con el item
         if (count($cantidades) > 0) {
@@ -345,15 +359,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $strategyValues[$columnName] = isset($cantidades[$key]) ? max(0, intval($cantidades[$key])) : 0;
             }
 
+            $stmtMaxNeed = $pdo->query("SELECT COALESCE(MAX(ID_NECESIDAD), 0) + 1 FROM necesidad");
+            $id_necesidad = intval($stmtMaxNeed->fetchColumn());
+
             $sqlInsertNeed = "INSERT INTO necesidad (
-                ID_MATRIZ, CANTIDAD_REGULAR, CANTIDAD_NESECIDAD,
+                ID_NECESIDAD, ID_MATRIZ, CANTIDAD_REGULAR, CANTIDAD_NESECIDAD,
                 CANTIDAD_CAMPESINA_COMPLEMENTARIA, CANTIDAD_CAMPESINA_TITULADA,
                 CANTIDAD_VULNERABLE, CANTIDAD_MEDIA_TECNICA, CANTIDAD_FIC,
                 CANTIDAD_ECONOMIA_POPULAR, CANTIDAD_ENI, CANTIDAD_FC_CAMPESINA
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmtNeed = $pdo->prepare($sqlInsertNeed);
             $stmtNeed->execute([
+                $id_necesidad,
                 $id_matriz_item,
                 $strategyValues['CANTIDAD_REGULAR'], $cantidad,
                 $strategyValues['CANTIDAD_CAMPESINA_COMPLEMENTARIA'],
@@ -365,7 +383,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $strategyValues['CANTIDAD_ENI'],
                 $strategyValues['CANTIDAD_FC_CAMPESINA']
             ]);
-            $id_necesidad = $pdo->lastInsertId();
 
             // Actualizar la matriz con el ID_NECESIDAD generado
             $stmtUpdateM = $pdo->prepare("UPDATE matriz_item SET ID_NECESIDAD = ? WHERE ID_MATRIZ_ITEM = ?");
@@ -434,11 +451,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $nombreItem = substr($nombreItem, 0, 147) . '...';
             }
 
+            $stmtMaxFicha = $pdo->query("SELECT COALESCE(MAX(ID_FICHA_TECNICA), 0) + 1 FROM ficha_tecnica");
+            $id_ficha_tecnica = intval($stmtMaxFicha->fetchColumn());
+
             $sqlInsertFicha = "INSERT INTO ficha_tecnica
-                (ID_MATRIZ_ITEM, ID_CREADOR, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD, IMAGEN)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (ID_FICHA_TECNICA, ID_MATRIZ_ITEM, ID_CREADOR, NOMBRE_ITEM, CODIGO_UNSPSC_FK, DENOMINACION_TECNICA_BIEN, UNIDAD_MEDIDA, DESCRIPCION_GENERAL, COMENTARIOS, CANTIDAD, IMAGEN)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmtInsertF = $pdo->prepare($sqlInsertFicha);
             $stmtInsertF->execute([
+                $id_ficha_tecnica,
                 $id_matriz_item,
                 $usuarioId,
                 $nombreItem,
@@ -450,7 +471,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $cantidad,
                 $imagenPath
             ]);
-            $id_ficha_tecnica = $pdo->lastInsertId();
 
             // Vincular el ID_FICHA_TECNICA recién creado de vuelta a la tabla matriz_item
             $stmtUpdateMatrizItem = $pdo->prepare("UPDATE matriz_item SET ID_FICHA_TECNICA = ? WHERE ID_MATRIZ_ITEM = ?");
@@ -580,7 +600,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="id_ficha_tecnica" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['ID_FICHA_TECNICA']) : '' ?>">
             
-            <div class="form-grid-2">
+            <div class="form-grid-3">
                 <div class="form-group" style="position: relative;">
                     <label for="id_codigo_unspsc_busqueda">Código UNSPSC *:</label>
                     <input type="text" id="id_codigo_unspsc_busqueda" class="form-control" autocomplete="off"
@@ -591,6 +611,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                 </div>
                 <div class="form-group">
+                    <label for="nombre_producto">Nombre del Producto:</label>
+                    <input type="text" id="nombre_producto" class="form-control" disabled
+                           placeholder="Nombre del producto asociado al código"
+                           value="<?= htmlspecialchars($nombreProductoPrefill) ?>" />
+                </div>
+                <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
                     <?php $unidadActual = $ficha_tecnica_prefill ? $ficha_tecnica_prefill['UNIDAD_MEDIDA'] : 'Unidad'; ?>
                     <select id="unidad_medida" name="unidad_medida" class="form-control" required>
@@ -599,288 +625,20 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Tasa de IVA:</label>
-                    <?php if ($ivaVigente): ?>
-                        <input type="text" class="form-control" disabled value="<?= htmlspecialchars($ivaVigente['DESCRIPCION']) ?> (<?= htmlspecialchars(rtrim(rtrim(number_format($ivaVigente['PORCENTAJE'], 2), '0'), '.')) ?>%) — aplicada automáticamente">
-                    <?php else: ?>
-                        <input type="text" class="form-control" disabled value="Sin tasa de IVA vigente configurada" style="color:#de3a3a;">
-                    <?php endif; ?>
-                </div>
             </div>
 
             <?php if ($ficha_tecnica_prefill): ?>
                 <input type="hidden" id="id_necesidad" name="id_necesidad" value="<?= !empty($needs) ? (int)$needs[0]['ID_NECESIDAD'] : '' ?>">
-            <?php else: ?>
-                <div class="form-group" style="margin-top: 20px; margin-bottom: 25px; grid-column: span 2;">
-                    <label style="font-weight: 700; color: var(--texto-oscuro); display: block; margin-bottom: 12px; font-size: 15px;">Seleccionar Estrategias Académicas *:</label>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
-
-                        <!-- Regular -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Regular</span>
-                                <input type="number"
-                                       name="cantidades_estrategias[cantidad_regular]"
-                                       class="form-control val-estrategia"
-                                       value="0"
-                                       min="0"
-                                       max="100000"
-                                       disabled
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_regular">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox"
-                                       class="check-estrategia"
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_regular">
-                            </div>
-                        </div>
-
-                        <!-- Campesina Complementaria -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Campesina Complementaria</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_campesina_complementaria]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_campesina_complementaria">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_campesina_complementaria">
-                            </div>
-                        </div>
-                        
-                        <!-- Campesina Titulada -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Campesina Titulada</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_campesina_titulada]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_campesina_titulada">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_campesina_titulada">
-                            </div>
-                        </div>
-                        
-                        <!-- Vulnerable -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Vulnerable</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_vulnerable]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_vulnerable">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_vulnerable">
-                            </div>
-                        </div>
-                        
-                        <!-- Media Técnica -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Media Técnica</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_media_tecnica]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_media_tecnica">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_media_tecnica">
-                            </div>
-                        </div>
-                        
-                        <!-- FIC -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">FIC</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_fic]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_fic">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_fic">
-                            </div>
-                        </div>
-                        
-                        <!-- Economía Popular -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">Economía Popular</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_economia_popular]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_economia_popular">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_economia_popular">
-                            </div>
-                        </div>
-                        
-                        <!-- ENI -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">ENI</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_eni]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_eni">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_eni">
-                            </div>
-                        </div>
-                        
-                        <!-- FC Campesina -->
-                        <div class="strategy-card" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 15px; background: #fff; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
-                                <span style="font-weight: 600; font-size: 13px; color: var(--texto-oscuro);">FC Campesina</span>
-                                <input type="number" 
-                                       name="cantidades_estrategias[cantidad_fc_campesina]" 
-                                       class="form-control val-estrategia" 
-                                       value="0" 
-                                       min="0" 
-                                       max="100000" 
-                                       disabled 
-                                       style="width: 80px; padding: 4px 8px; font-size: 13px; margin-top: 4px;"
-                                       data-strategy="cantidad_fc_campesina">
-                            </div>
-                            <div style="padding-left: 10px;">
-                                <input type="checkbox" 
-                                       class="check-estrategia" 
-                                       style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--verde-sena);"
-                                       data-target="cantidad_fc_campesina">
-                            </div>
-                        </div>
-                    </div>
-                </div>
             <?php endif; ?>
 
-            <?php if ($ficha_tecnica_prefill): ?>
-                <div class="form-group" style="margin-top: 15px; margin-bottom: 15px;">
-                    <label for="columna_necesidad" style="font-weight:bold; color:#00324D;">Necesidad (Columna de la tabla Necesidad):</label>
-                    <select id="columna_necesidad" name="columna_necesidad" class="form-control" style="border: 2px solid #00324D;"
-                        <?php if (!empty($needs)): ?>
-                            <?php $dn = $needs[0]; ?>
-                            data-cantidad_regular="<?= intval($dn['CANTIDAD_REGULAR']) ?>"
-                            data-cantidad_campesina_complementaria="<?= intval($dn['CANTIDAD_CAMPESINA_COMPLEMENTARIA']) ?>"
-                            data-cantidad_campesina_titulada="<?= intval($dn['CANTIDAD_CAMPESINA_TITULADA']) ?>"
-                            data-cantidad_vulnerable="<?= intval($dn['CANTIDAD_VULNERABLE']) ?>"
-                            data-cantidad_media_tecnica="<?= intval($dn['CANTIDAD_MEDIA_TECNICA']) ?>"
-                            data-cantidad_fic="<?= intval($dn['CANTIDAD_FIC']) ?>"
-                            data-cantidad_economia_popular="<?= intval($dn['CANTIDAD_ECONOMIA_POPULAR']) ?>"
-                            data-cantidad_eni="<?= intval($dn['CANTIDAD_ENI']) ?>"
-                            data-cantidad_fc_campesina="<?= intval($dn['CANTIDAD_FC_CAMPESINA']) ?>"
-                            data-cantidad_nesecidad="<?= intval($dn['CANTIDAD_NESECIDAD']) ?>"
-                        <?php endif; ?>
-                    >
-                        <option value="cantidad_regular">Regular (CANTIDAD_REGULAR)</option>
-                        <option value="cantidad_campesina_complementaria">Campesina Complementaria (CANTIDAD_CAMPESINA_COMPLEMENTARIA)</option>
-                        <option value="cantidad_campesina_titulada">Campesina Titulada (CANTIDAD_CAMPESINA_TITULADA)</option>
-                        <option value="cantidad_vulnerable">Vulnerable (CANTIDAD_VULNERABLE)</option>
-                        <option value="cantidad_media_tecnica">Media Técnica (CANTIDAD_MEDIA_TECNICA)</option>
-                        <option value="cantidad_fic">FIC (CANTIDAD_FIC)</option>
-                        <option value="cantidad_economia_popular">Economía Popular (CANTIDAD_ECONOMIA_POPULAR)</option>
-                        <option value="cantidad_eni">ENI (CANTIDAD_ENI)</option>
-                        <option value="cantidad_fc_campesina">FC Campesina (CANTIDAD_FC_CAMPESINA)</option>
-                        <option value="cantidad_nesecidad">Necesidad (CANTIDAD_NESECIDAD)</option>
-                    </select>
-                </div>
-            <?php endif; ?>
-
-            <div class="form-group">
-                <label for="descripcion_bien">Descripción Detallada del Bien / Ficha técnica breve:</label>
-                <textarea id="descripcion_bien" name="descripcion_bien" class="form-control" rows="2" required <?= $ficha_tecnica_prefill ? 'readonly' : '' ?>><?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['NOMBRE_ITEM'] . ' - ' . $ficha_tecnica_prefill['DENOMINACION_TECNICA_BIEN']) : '' ?></textarea>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="descripcion_bien">Descripción Detallada del Bien / Ficha técnica breve *:</label>
+                <textarea id="descripcion_bien" name="descripcion_bien" class="form-control" rows="3" required <?= $ficha_tecnica_prefill ? 'readonly' : '' ?>><?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['NOMBRE_ITEM'] . ' - ' . $ficha_tecnica_prefill['DENOMINACION_TECNICA_BIEN']) : '' ?></textarea>
             </div>
 
-            <div class="form-group" style="width: 32%;">
-                <label for="cantidad_regular">Cantidad Requerida:</label>
-                <input type="number" id="cantidad_regular" name="cantidad_regular" class="form-control" min="1" max="100000" value="1" required>
-            </div>
-
-            <div class="form-group">
-                <label for="instructor_apoyo">Instructor de Apoyo (opcional):</label>
-                <select id="instructor_apoyo" name="instructor_apoyo" class="form-control">
-                    <option value="">-- Ninguno --</option>
-                    <?php foreach($instructors as $ins): ?>
-                        <option value="<?= htmlspecialchars($ins['ID_USUARIO']) ?>"><?= htmlspecialchars($ins['NOMBRE'] . ' ' . $ins['APELLIDO']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="ficha_tecnica">Ficha Técnica (detalles para el coordinador):</label>
-                <textarea id="ficha_tecnica" name="ficha_tecnica" class="form-control" rows="3" placeholder="Detalles adicionales, enlaces o requisitos" <?= $ficha_tecnica_prefill ? 'readonly' : '' ?>><?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['DESCRIPCION_GENERAL']) : '' ?></textarea>
-            </div>
-
-            <?php if (!$ficha_tecnica_prefill): ?>
-            <div class="form-group">
-                <label for="imagen_referencia">Imagen de Referencia (opcional):</label>
-                <input type="file" id="imagen_referencia" name="imagen_referencia" class="form-control" accept="image/*" />
-            </div>
-            <?php endif; ?>
+            <input type="hidden" name="cantidad_regular" value="1">
+            <input type="hidden" name="instructor_apoyo" value="">
+            <input type="hidden" name="ficha_tecnica" value="">
 
             <div style="display:flex; gap:10px;">
                 <button type="submit" class="btn">Guardar y Continuar</button>
@@ -959,99 +717,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <?php endif; ?>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const qtyInput = document.getElementById('cantidad_regular');
-        const colSelect = document.getElementById('columna_necesidad');
-        const checkboxes = document.querySelectorAll('.check-estrategia');
-        const inputs = document.querySelectorAll('.val-estrategia');
-
-        // Permitir que el usuario edite la cantidad requerida
-        if (qtyInput) {
-            qtyInput.removeAttribute('readonly');
-        }
-
-        const calculateTotal = function () {
-            if (colSelect) {
-                // Modo catálogo de Ficha Técnica pre-llenada
-                const columnName = colSelect.value;
-                const attributeName = 'data-' + columnName;
-                const cantidadVal = colSelect.getAttribute(attributeName);
-                if (cantidadVal && Number(cantidadVal) > 0) {
-                    qtyInput.value = cantidadVal;
-                }
-                return;
-            }
-
-            let sum = 0;
-            inputs.forEach(input => {
-                const strategy = input.getAttribute('data-strategy');
-                const checkbox = document.querySelector(`.check-estrategia[data-target="${strategy}"]`);
-                if (checkbox && checkbox.checked) {
-                    sum += parseInt(input.value || '0', 10);
-                }
-            });
-            if (qtyInput) {
-                qtyInput.value = sum > 0 ? sum : '0';
-            }
-        };
-
-        checkboxes.forEach(cb => {
-            cb.addEventListener('change', function () {
-                const targetStrategy = this.getAttribute('data-target');
-                const relatedInput = document.querySelector(`.val-estrategia[data-strategy="${targetStrategy}"]`);
-                const card = this.closest('.strategy-card');
-
-                if (relatedInput) {
-                    if (this.checked) {
-                        relatedInput.removeAttribute('disabled');
-                        if (parseInt(relatedInput.value || '0', 10) === 0) {
-                            relatedInput.value = '1';
-                        }
-                        if (card) {
-                            card.style.borderColor = 'var(--verde-sena)';
-                            card.style.background = '#f0fdf4';
-                        }
-                        relatedInput.focus();
-                    } else {
-                        relatedInput.setAttribute('disabled', 'true');
-                        relatedInput.value = '0';
-                        if (card) {
-                            card.style.borderColor = '#cbd5e1';
-                            card.style.background = '#fff';
-                        }
-                    }
-                }
-                calculateTotal();
-            });
-        });
-
-        inputs.forEach(input => {
-            input.addEventListener('input', calculateTotal);
-        });
-
-        // Click en la tarjeta para activar/desactivar (excepto al interactuar con el input directamente)
-        document.querySelectorAll('.strategy-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'number') {
-                    return;
-                }
-                const cb = this.querySelector('.check-estrategia');
-                if (cb && e.target !== cb) {
-                    cb.checked = !cb.checked;
-                    cb.dispatchEvent(new Event('change'));
-                }
-            });
-        });
-
-        if (colSelect) {
-            colSelect.addEventListener('change', calculateTotal);
-        }
-
-        // Ejecutar inicialmente
-        calculateTotal();
-    });
-</script>
     </main>
 </div>
 <script src="../js/apartados.js"></script>
@@ -1064,12 +729,28 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsSelector: '#unspsc_resultados',
         searchUrl: '../ajax/buscar_unspsc.php',
         onSelect: function (item) {
+            const nombreProd = document.getElementById('nombre_producto');
+            if (nombreProd) {
+                nombreProd.value = item.nombre;
+            }
             const descripcion = document.getElementById('descripcion_bien');
-            if (descripcion && !descripcion.hasAttribute('readonly') && descripcion.value.trim() === '') {
+            if (descripcion && !descripcion.hasAttribute('readonly')) {
                 descripcion.value = item.nombre;
             }
         }
     });
+
+    const inputBusqueda = document.getElementById('id_codigo_unspsc_busqueda');
+    if (inputBusqueda) {
+        inputBusqueda.addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                const nombreProd = document.getElementById('nombre_producto');
+                if (nombreProd) {
+                    nombreProd.value = '';
+                }
+            }
+        });
+    }
 });
 </script>
 </body>

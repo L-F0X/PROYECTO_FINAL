@@ -17,34 +17,23 @@ if (mb_strlen($q) < 1) {
 }
 
 if (ctype_digit($q)) {
-    $sql = "SELECT CODIGO_UNSPSC, NOMBRE_PRODUCTO, SEGMENTO_TITULO, FAMILIA_TITULO, CLASE_TITULO
+    // If digits, search by code (primarily) or name, prioritizing exact prefix code matches
+    $sql = "SELECT CODIGO_UNSPSC, NOMBRE_PRODUCTO
             FROM codigo_unspsc
-            WHERE CODIGO_UNSPSC LIKE ? AND NOMBRE_PRODUCTO IS NOT NULL
-            ORDER BY CODIGO_UNSPSC
+            WHERE CODIGO_UNSPSC LIKE ? OR NOMBRE_PRODUCTO LIKE ?
+            ORDER BY (CASE WHEN CODIGO_UNSPSC LIKE ? THEN 0 WHEN NOMBRE_PRODUCTO LIKE ? THEN 1 ELSE 2 END) ASC, CODIGO_UNSPSC ASC
             LIMIT 20";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$q . '%']);
-} elseif (mb_strlen($q) === 1) {
-    // Una sola letra: solo coincidencias que empiecen con ella (más rápido y relevante
-    // que buscarla en cualquier parte del texto, que con miles de filas sería ruido).
-    $sql = "SELECT CODIGO_UNSPSC, NOMBRE_PRODUCTO, SEGMENTO_TITULO, FAMILIA_TITULO, CLASE_TITULO
-            FROM codigo_unspsc
-            WHERE NOMBRE_PRODUCTO LIKE ?
-            ORDER BY CHAR_LENGTH(NOMBRE_PRODUCTO) ASC, NOMBRE_PRODUCTO ASC
-            LIMIT 20";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$q . '%']);
+    $stmt->execute([$q . '%', '%' . $q . '%', $q . '%', $q . '%']);
 } else {
-    // Prioriza los nombres que EMPIEZAN con la búsqueda sobre los que solo la
-    // contienen en medio del texto (antes ambos casos se mezclaban sin orden de relevancia).
-    $sql = "SELECT CODIGO_UNSPSC, NOMBRE_PRODUCTO, SEGMENTO_TITULO, FAMILIA_TITULO, CLASE_TITULO,
-                   (CASE WHEN NOMBRE_PRODUCTO LIKE ? THEN 0 ELSE 1 END) AS relevancia
+    // If text, search by name or code, prioritizing prefix matches in name
+    $sql = "SELECT CODIGO_UNSPSC, NOMBRE_PRODUCTO
             FROM codigo_unspsc
-            WHERE NOMBRE_PRODUCTO LIKE ?
-            ORDER BY relevancia ASC, CHAR_LENGTH(NOMBRE_PRODUCTO) ASC, NOMBRE_PRODUCTO ASC
+            WHERE NOMBRE_PRODUCTO LIKE ? OR CODIGO_UNSPSC LIKE ?
+            ORDER BY (CASE WHEN NOMBRE_PRODUCTO LIKE ? THEN 0 ELSE 1 END) ASC, CHAR_LENGTH(NOMBRE_PRODUCTO) ASC, NOMBRE_PRODUCTO ASC
             LIMIT 20";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$q . '%', '%' . $q . '%']);
+    $stmt->execute(['%' . $q . '%', '%' . $q . '%', $q . '%']);
 }
 
 $rows = $stmt->fetchAll();
@@ -53,10 +42,12 @@ $out = array_map(function ($r) {
     return [
         'codigo' => $r['CODIGO_UNSPSC'],
         'nombre' => $r['NOMBRE_PRODUCTO'],
-        'segmento_titulo' => $r['SEGMENTO_TITULO'],
-        'familia_titulo' => $r['FAMILIA_TITULO'],
-        'clase_titulo' => $r['CLASE_TITULO'],
+        'segmento_titulo' => '',
+        'familia_titulo' => '',
+        'clase_titulo' => '',
     ];
 }, $rows);
 
 echo json_encode($out);
+exit;
+

@@ -35,9 +35,14 @@ if (!$ficha) {
 // Obtener datos del lote e ítem si existen
 $loteNombre = 'N/A';
 $itemNombre = 'N/A';
+$matriz_item = null;
+$necesidad = null;
+$iva_info = null;
+$instructor_apoyo_nombre = 'Ninguno';
+
 if ($ficha['ID_MATRIZ_ITEM']) {
     $stmtItem = $pdo->prepare("
-        SELECT mi.DESCRIPCION_BIEN, lr.LOTE_NOMBRE 
+        SELECT mi.*, lr.LOTE_NOMBRE 
         FROM matriz_item mi 
         INNER JOIN lote_requerimiento lr ON mi.ID_LOTE = lr.ID_LOTE 
         WHERE mi.ID_MATRIZ_ITEM = ? LIMIT 1
@@ -47,6 +52,29 @@ if ($ficha['ID_MATRIZ_ITEM']) {
     if ($itemInfo) {
         $loteNombre = $itemInfo['LOTE_NOMBRE'];
         $itemNombre = $itemInfo['DESCRIPCION_BIEN'];
+        $matriz_item = $itemInfo;
+        
+        // Load IVA
+        $stmtIva = $pdo->prepare("SELECT * FROM iva WHERE ID_IVA = ? LIMIT 1");
+        $stmtIva->execute([$matriz_item['ID_IVA']]);
+        $iva_info = $stmtIva->fetch();
+        
+        // Load Instructor de Apoyo
+        if ($matriz_item['INSTRUCTOR_APOYO']) {
+            $stmtUser = $pdo->prepare("SELECT NOMBRE, APELLIDO FROM usuario WHERE ID_USUARIO = ? LIMIT 1");
+            $stmtUser->execute([$matriz_item['INSTRUCTOR_APOYO']]);
+            $uApoyo = $stmtUser->fetch();
+            if ($uApoyo) {
+                $instructor_apoyo_nombre = $uApoyo['NOMBRE'] . ' ' . $uApoyo['APELLIDO'];
+            }
+        }
+        
+        // Load Necesidad
+        if ($matriz_item['ID_NECESIDAD']) {
+            $stmtNec = $pdo->prepare("SELECT * FROM necesidad WHERE ID_NECESIDAD = ? LIMIT 1");
+            $stmtNec->execute([$matriz_item['ID_NECESIDAD']]);
+            $necesidad = $stmtNec->fetch();
+        }
     }
 }
 
@@ -152,6 +180,60 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             align-items: center;
             margin-bottom: 20px;
         }
+
+        /* A4 Page View styling */
+        .ficha-a4-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            box-sizing: border-box;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        @media print {
+            body {
+                background: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .header-main, .dashboard-sidebar, .actions-bar, .dashboard-topbar {
+                display: none !important;
+            }
+            .dashboard-main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .dashboard-page {
+                display: block !important;
+            }
+            .panel-card {
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                background: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .ficha-a4-container {
+                width: 210mm !important;
+                height: 297mm !important;
+                padding: 15mm 20mm !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                box-sizing: border-box !important;
+                page-break-after: always;
+            }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -206,8 +288,8 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <p class="dashboard-subtitle">Visualización y exportación de la ficha técnica seleccionada.</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="editar_ficha_tecnica.php?id=<?= $idFicha ?>" class="btn btn-sena" style="text-decoration: none; padding: 10px 18px; font-weight: bold; background-color: #00324D;">
-                    ✎ Editar
+                <a href="configurar_matriz.php?id=<?= $idFicha ?>" class="btn btn-sena" style="text-decoration: none; padding: 10px 18px; font-weight: bold; background-color: #00324D;">
+                    ⚙️ Configurar Matriz
                 </a>
                 <button type="button" onclick="window.print()" class="btn btn-sena" style="padding: 10px 18px; font-weight: bold; background-color: #39A900;">
                     📥 Exportar a PDF
@@ -218,7 +300,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </div>
         </div>
 
-        <div class="panel-card" style="max-width: 820px; width: 100%; margin: 0 auto; padding: 20px;">
+        <div class="panel-card ficha-a4-container">
             <table class="ficha-table-view">
                 <thead>
                     <tr>
@@ -226,14 +308,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="ficha-label-col">LOTE DESTINO</td>
-                        <td class="ficha-value-col"><?= htmlspecialchars($loteNombre) ?></td>
-                    </tr>
-                    <tr>
-                        <td class="ficha-label-col">ASOCIAR A UN ÍTEM EXISTENTE</td>
-                        <td class="ficha-value-col"><?= htmlspecialchars($itemNombre) ?></td>
-                    </tr>
                     <tr>
                         <td class="ficha-label-col">NOMBRE DEL ÍTEM</td>
                         <td class="ficha-value-col"><?= htmlspecialchars($ficha['NOMBRE_ITEM']) ?></td>
@@ -258,15 +332,6 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <tr>
                         <td colspan="2" class="ficha-full-value">
                             <?= htmlspecialchars($ficha['UNIDAD_MEDIDA']) ?>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th colspan="2" class="ficha-section-title">CANTIDAD</th>
-                    </tr>
-                    <tr>
-                        <td colspan="2" class="ficha-full-value">
-                            <?= htmlspecialchars($ficha['CANTIDAD']) ?>
                         </td>
                     </tr>
 

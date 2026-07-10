@@ -71,8 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmtCheckCod->execute([$codigo_unspsc]);
                 $found = $stmtCheckCod->fetchColumn();
                 if (!$found) {
-                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
-                    $stmtInsertUnspsc->execute([$codigo_unspsc, $codigo_unspsc]);
+                    $stmtMaxCodigo = $pdo->query("SELECT COALESCE(MAX(ID_CODIGO), 0) + 1 FROM codigo_unspsc");
+                    $id_unspsc = intval($stmtMaxCodigo->fetchColumn());
+                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (ID_CODIGO, CODIGO_UNSPSC, NOMBRE_PRODUCTO) VALUES (?, ?, ?)");
+                    $stmtInsertUnspsc->execute([$id_unspsc, $codigo_unspsc, 'Ingresado Manualmente - ' . $codigo_unspsc]);
                 }
             }
             if (false) { // Skip old validation check
@@ -112,8 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmtCheckCod->execute([$codigo_unspsc]);
                 $found = $stmtCheckCod->fetchColumn();
                 if (!$found) {
-                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (CODIGO_UNSPSC, SEGMENTO, FAMILIA, CLASE, CLASE_TITULO, NOMBRE_PRODUCTO) VALUES (?, 'SIN', 'ASIG', 'CL', 'Ingresado Manualmente', ?)");
-                    $stmtInsertUnspsc->execute([$codigo_unspsc, $codigo_unspsc]);
+                    $stmtMaxCodigo = $pdo->query("SELECT COALESCE(MAX(ID_CODIGO), 0) + 1 FROM codigo_unspsc");
+                    $id_unspsc = intval($stmtMaxCodigo->fetchColumn());
+                    $stmtInsertUnspsc = $pdo->prepare("INSERT INTO codigo_unspsc (ID_CODIGO, CODIGO_UNSPSC, NOMBRE_PRODUCTO) VALUES (?, ?, ?)");
+                    $stmtInsertUnspsc->execute([$id_unspsc, $codigo_unspsc, 'Ingresado Manualmente - ' . $codigo_unspsc]);
                 }
             }
             if (false) { // Skip old validation check

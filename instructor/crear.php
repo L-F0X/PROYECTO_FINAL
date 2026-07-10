@@ -36,8 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
             if ($stmtCheck->fetchColumn() > 0) {
                 $errorLote = 'Ya existe un lote con el nombre "' . htmlspecialchars($nombreLote) . '".';
             } else {
-                $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, 'Borrador', ?)");
-                $stmtInsert->execute([$usuarioId, $nombreLote, date('Y-m-d')]);
+                $stmtMaxLote = $pdo->query("SELECT COALESCE(MAX(ID_LOTE), 0) + 1 FROM lote_requerimiento");
+                $newIdLote = intval($stmtMaxLote->fetchColumn());
+
+                $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_LOTE, ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, ?, 'Borrador', ?)");
+                $stmtInsert->execute([$newIdLote, $usuarioId, $nombreLote, date('Y-m-d')]);
                 header("Location: ../index.php");
                 exit;
             }

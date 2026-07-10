@@ -199,9 +199,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $ivaVigenteDefecto = obtener_iva_vigente($pdo);
                 $id_iva_defecto = $ivaVigenteDefecto ? intval($ivaVigenteDefecto['ID_IVA']) : null;
 
+                $stmtMaxMatriz = $pdo->query("SELECT COALESCE(MAX(ID_MATRIZ_ITEM), 0) + 1 FROM matriz_item");
+                $newIdMatriz = intval($stmtMaxMatriz->fetchColumn());
+
                 // Insertar en matriz_item
-                $stmtInsert = $pdo->prepare("INSERT INTO matriz_item (ID_LOTE, ID_FICHA_TECNICA, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, ESTADO_ITEM) VALUES (?, ?, ?, ?, ?, ?, 1, 'Borrador')");
+                $stmtInsert = $pdo->prepare("INSERT INTO matriz_item (ID_MATRIZ_ITEM, ID_LOTE, ID_FICHA_TECNICA, ID_CODIGO_UNSPSC, ID_IVA, DESCRIPCION_BIEN, UNIDAD_MEDIDA, CANTIDAD_REGULAR, ESTADO_ITEM) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'Borrador')");
                 $stmtInsert->execute([
+                    $newIdMatriz,
                     $id_lote,
                     $id_ficha_tecnica,
                     $id_unspsc,
