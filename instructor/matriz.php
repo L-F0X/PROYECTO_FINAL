@@ -112,6 +112,19 @@ if ($ficha_tecnica_prefill) {
 // Si la ficha pre-llenada trae una unidad "heredada" que no está en la lista
 // estándar (datos antiguos, ej. "Gato"/"Galion" mal escritos), se agrega como
 // opción extra para no perderla silenciosamente al re-guardar sin tocarla.
+$editar_item_id = isset($_GET['editar_item_id']) ? intval($_GET['editar_item_id']) : 0;
+$editar_item_data = null;
+if ($editar_item_id > 0) {
+    try {
+        $stmtEdit = $pdo->prepare("SELECT m.*, c.CODIGO_UNSPSC, c.NOMBRE_PRODUCTO, f.IMAGEN as FICHA_IMAGEN, f.NOMBRE_ITEM, f.DENOMINACION_TECNICA_BIEN FROM matriz_item m LEFT JOIN codigo_unspsc c ON m.ID_CODIGO_UNSPSC = c.ID_CODIGO LEFT JOIN ficha_tecnica f ON m.ID_FICHA_TECNICA = f.ID_FICHA_TECNICA WHERE m.ID_MATRIZ_ITEM = ? AND m.ID_LOTE = ? LIMIT 1");
+        $stmtEdit->execute([$editar_item_id, $id_lote]);
+        $editar_item_data = $stmtEdit->fetch();
+    } catch (Exception $e) {
+        error_log('Error cargando item a editar: ' . $e->getMessage());
+    }
+}
+$isEditMode = ($editar_item_data !== null);
+
 if ($ficha_tecnica_prefill && !in_array($ficha_tecnica_prefill['UNIDAD_MEDIDA'], $unidadesMedidaEstandar, true)) {
     $unidadesMedidaEstandar[] = $ficha_tecnica_prefill['UNIDAD_MEDIDA'];
 }
@@ -426,6 +439,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                         $imagenPath = 'uploads/fichas/' . $newFileName;
                     }
                 }
+            } elseif (!empty($_POST['imagen_url_automatica'])) {
+                $urlAuto = $_POST['imagen_url_automatica'];
+                if (filter_var($urlAuto, FILTER_VALIDATE_URL)) {
+                    $imgContent = @file_get_contents($urlAuto);
+                    if ($imgContent !== false) {
+                        $uploadFileDir = '../uploads/fichas/';
+                        if (!file_exists($uploadFileDir)) {
+                            mkdir($uploadFileDir, 0755, true);
+                        }
+                        $ext = 'jpg';
+                        if (strpos(strtolower($urlAuto), '.png') !== false) $ext = 'png';
+                        if (strpos(strtolower($urlAuto), '.gif') !== false) $ext = 'gif';
+                        if (strpos(strtolower($urlAuto), '.webp') !== false) $ext = 'webp';
+                        
+                        $newFileName = bin2hex(random_bytes(16)) . '.' . $ext;
+                        $dest_path = $uploadFileDir . $newFileName;
+                        
+                        if (file_put_contents($dest_path, $imgContent)) {
+                            $imageInfo = @getimagesize($dest_path);
+                            if ($imageInfo !== false) {
+                                $imagenPath = 'uploads/fichas/' . $newFileName;
+                            } else {
+                                unlink($dest_path);
+                            }
+                        }
+                    }
+                }
             }
 
             // Obtener el código unspsc en texto
@@ -497,6 +537,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
         error_log('Error guardando ítem/necesidad: ' . $e->getMessage());
         die('Error al agregar el ítem: ' . htmlspecialchars($e->getMessage()));
+    }
+}
+
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'editar_item_post') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die('Token CSRF inválido.');
+    }
+    if ($loteInfo['ESTADO_TRAMITE'] !== 'Borrador') {
+        die('Solo se pueden editar ítems de un lote en Borrador.');
+    }
+    $id_matriz_item_edit = isset($_POST['id_matriz_item_edit']) ? intval($_POST['id_matriz_item_edit']) : 0;
+    $rawUnspsc = isset($_POST['id_codigo_unspsc']) ? trim($_POST['id_codigo_unspsc']) : '';
+    $id_unspsc = 0;
+    $descripcion = trim($_POST['descripcion_bien']);
+    $unidad_medida = isset($_POST['unidad_medida']) ? trim($_POST['unidad_medida']) : 'Unidad';
+
+    $imagenPath = null;
+    if (isset($_FILES['imagen_referencia']) && $_FILES['imagen_referencia']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['imagen_referencia']['tmp_name'];
+        $fileName = $_FILES['imagen_referencia']['name'];
+        $fileNameCmps = explode(".", $fileName);
+        $fileExtension = strtolower(end($fileNameCmps));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (in_array($fileExtension, $allowedExts)) {
+            $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+            $uploadFileDir = '../uploads/fichas/';
+            if (!is_dir($uploadFileDir)) mkdir($uploadFileDir, 0777, true);
+            $dest_path = $uploadFileDir . $newFileName;
+            if (move_uploaded_file($fileTmpPath, $dest_path)) $imagenPath = $dest_path;
+        }
+    } elseif (!empty($_POST['imagen_url_automatica'])) {
+        $url = trim($_POST['imagen_url_automatica']);
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            $imgContent = @file_get_contents($url);
+            if ($imgContent !== false) {
+                $ext = 'jpg';
+                if (strpos($url, '.png') !== false) $ext = 'png';
+                if (strpos($url, '.gif') !== false) $ext = 'gif';
+                $newFileName = md5(time() . rand()) . '_auto.' . $ext;
+                $uploadFileDir = '../uploads/fichas/';
+                if (!is_dir($uploadFileDir)) mkdir($uploadFileDir, 0777, true);
+                $dest_path = $uploadFileDir . $newFileName;
+                if (file_put_contents($dest_path, $imgContent)) $imagenPath = $dest_path;
+            }
+        }
+    }
+
+    try {
+        $pdo->beginTransaction();
+        if ($rawUnspsc !== '') {
+            $stmtCheckUnspsc = $pdo->prepare("SELECT ID_CODIGO FROM codigo_unspsc WHERE CODIGO_UNSPSC = ? LIMIT 1");
+            $stmtCheckUnspsc->execute([$rawUnspsc]);
+            $found = $stmtCheckUnspsc->fetchColumn();
+            if ($found === false) {
+                $stmtMaxCodigo = $pdo->query("SELECT COALESCE(MAX(ID_CODIGO), 0) + 1 FROM codigo_unspsc");
+                $id_unspsc = intval($stmtMaxCodigo->fetchColumn());
+                $pdo->prepare("INSERT INTO codigo_unspsc (ID_CODIGO, CODIGO_UNSPSC, NOMBRE_PRODUCTO) VALUES (?, ?, ?)")->execute([$id_unspsc, $rawUnspsc, 'Ingresado Manualmente - ' . $rawUnspsc]);
+            } else {
+                $id_unspsc = intval($found);
+            }
+        }
+        if ($id_unspsc === 0) throw new Exception("Debe seleccionar un código UNSPSC.");
+        
+        $stmtUpdateM = $pdo->prepare("UPDATE matriz_item SET ID_CODIGO_UNSPSC=?, DESCRIPCION_BIEN=?, UNIDAD_MEDIDA=? WHERE ID_MATRIZ_ITEM=? AND ID_LOTE=?");
+        $stmtUpdateM->execute([$id_unspsc, $descripcion, $unidad_medida, $id_matriz_item_edit, $id_lote]);
+
+        $stmtF = $pdo->prepare("SELECT ID_FICHA_TECNICA FROM matriz_item WHERE ID_MATRIZ_ITEM=?");
+        $stmtF->execute([$id_matriz_item_edit]);
+        $id_ficha = $stmtF->fetchColumn();
+        if ($id_ficha) {
+            if ($imagenPath) {
+                $pdo->prepare("UPDATE ficha_tecnica SET DENOMINACION_TECNICA_BIEN=?, UNIDAD_MEDIDA=?, CODIGO_UNSPSC_FK=?, IMAGEN=? WHERE ID_FICHA_TECNICA=?")->execute([$descripcion, $unidad_medida, $rawUnspsc, $imagenPath, $id_ficha]);
+            } else {
+                $pdo->prepare("UPDATE ficha_tecnica SET DENOMINACION_TECNICA_BIEN=?, UNIDAD_MEDIDA=?, CODIGO_UNSPSC_FK=? WHERE ID_FICHA_TECNICA=?")->execute([$descripcion, $unidad_medida, $rawUnspsc, $id_ficha]);
+            }
+        }
+        $pdo->commit();
+        header("Location: matriz.php?lote=" . urlencode($id_lote) . "&msg=editado");
+        exit;
+    } catch(Exception $e) {
+        $pdo->rollBack();
+        die("Error editando: " . $e->getMessage());
     }
 }
 
@@ -594,9 +717,17 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <?php else: ?>
     <div style="background: var(--gris-claro); padding: 20px; border-radius: 6px; margin-bottom: 30px; border-left: 4px solid var(--verde-sena);">
-        <h3>Añadir Material / Bien al Lote</h3>
+        <?php
+        $prefillUnspsc = $isEditMode ? $editar_item_data['CODIGO_UNSPSC'] : ($ficha_tecnica_prefill ? $ficha_tecnica_prefill['CODIGO_UNSPSC_FK'] : '');
+        $prefillNombre = $isEditMode ? $editar_item_data['NOMBRE_PRODUCTO'] : $nombreProductoPrefill;
+        $disableFields = ($ficha_tecnica_prefill && !$isEditMode) ? 'disabled' : '';
+        ?>
+        <h3 id="form_title"><?= $isEditMode ? 'Editar Material / Bien al Lote' : 'Añadir Material / Bien al Lote' ?></h3>
         <form action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" method="POST" id="formItem" enctype="multipart/form-data">
-            <input type="hidden" name="accion" value="crear">
+            <input type="hidden" name="accion" value="<?= $isEditMode ? 'editar_item_post' : 'crear' ?>">
+            <?php if ($isEditMode): ?>
+            <input type="hidden" name="id_matriz_item_edit" value="<?= htmlspecialchars($editar_item_data['ID_MATRIZ_ITEM']) ?>">
+            <?php endif; ?>
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="id_ficha_tecnica" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['ID_FICHA_TECNICA']) : '' ?>">
             
@@ -605,20 +736,20 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <label for="id_codigo_unspsc_busqueda">Código UNSPSC *:</label>
                     <input type="text" id="id_codigo_unspsc_busqueda" class="form-control" autocomplete="off"
                            placeholder="Escriba el nombre o código del producto para buscar"
-                           value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>"
-                           <?= $ficha_tecnica_prefill ? 'disabled' : 'required' ?> />
-                    <input type="hidden" id="id_codigo_unspsc" name="id_codigo_unspsc" value="<?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['CODIGO_UNSPSC_FK']) : '' ?>" />
+                           value="<?= htmlspecialchars($prefillUnspsc) ?>"
+                           <?= $disableFields ?> <?= !$disableFields ? 'required' : '' ?> />
+                    <input type="hidden" id="id_codigo_unspsc" name="id_codigo_unspsc" value="<?= htmlspecialchars($prefillUnspsc) ?>" />
                     <div id="unspsc_resultados" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:20; max-height:220px; overflow-y:auto; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
                 </div>
                 <div class="form-group">
                     <label for="nombre_producto">Nombre del Producto:</label>
                     <input type="text" id="nombre_producto" class="form-control" disabled
                            placeholder="Nombre del producto asociado al código"
-                           value="<?= htmlspecialchars($nombreProductoPrefill) ?>" />
+                           value="<?= htmlspecialchars($prefillNombre) ?>" />
                 </div>
                 <div class="form-group">
                     <label for="unidad_medida">Unidad de Medida *:</label>
-                    <?php $unidadActual = $ficha_tecnica_prefill ? $ficha_tecnica_prefill['UNIDAD_MEDIDA'] : 'Unidad'; ?>
+                    <?php $unidadActual = $isEditMode ? $editar_item_data['UNIDAD_MEDIDA'] : ($ficha_tecnica_prefill ? $ficha_tecnica_prefill['UNIDAD_MEDIDA'] : 'Unidad'); ?>
                     <select id="unidad_medida" name="unidad_medida" class="form-control" required>
                         <?php foreach ($unidadesMedidaEstandar as $u): ?>
                             <option value="<?= htmlspecialchars($u) ?>" <?= $u === $unidadActual ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
@@ -633,15 +764,49 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
             <div class="form-group" style="margin-top: 15px;">
                 <label for="descripcion_bien">Descripción Detallada del Bien / Ficha técnica breve *:</label>
-                <textarea id="descripcion_bien" name="descripcion_bien" class="form-control" rows="3" required <?= $ficha_tecnica_prefill ? 'readonly' : '' ?>><?= $ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['NOMBRE_ITEM'] . ' - ' . $ficha_tecnica_prefill['DENOMINACION_TECNICA_BIEN']) : '' ?></textarea>
+                <?php $prefillDesc = $isEditMode ? $editar_item_data['DESCRIPCION_BIEN'] : ($ficha_tecnica_prefill ? htmlspecialchars($ficha_tecnica_prefill['NOMBRE_ITEM'] . ' - ' . $ficha_tecnica_prefill['DENOMINACION_TECNICA_BIEN']) : ''); ?>
+                <textarea id="descripcion_bien" name="descripcion_bien" class="form-control" rows="3" required <?= $disableFields ?>><?= htmlspecialchars($prefillDesc) ?></textarea>
             </div>
 
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="imagen_referencia">Imagen de Referencia (Opcional):</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <button type="button" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="buscarImagenOnline()" <?= $disableFields ?>>
+                        🔍 Buscar automáticamente
+                    </button>
+                    <button type="button" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px; background: var(--alerta-rojo); color: white; border: none; border-radius: 4px; display: none;" id="btn_remover_foto" onclick="removerFoto()">
+                        ✖ Remover foto
+                    </button>
+                </div>
+                
+                <div id="image_search_alert" style="display: none; padding: 12px 16px; border-radius: 6px; margin-bottom: 15px; font-weight: 500; font-size: 13px; background: #fff3cd; color: #664d03; border: 1px solid #ffc107;">
+                    <span id="image_search_alert_msg"></span>
+                    <div id="manual_search_container" style="display: none; margin-top: 10px; flex-direction: row; gap: 5px; align-items: center;">
+                        <input type="text" id="manual_search_query" class="form-control" style="font-size: 13px; padding: 4px 8px; height: 32px; width: auto; flex: 1;" placeholder="Ej. Jabones lubricantes">
+                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px; height: 32px;" onclick="buscarImagenOnline(true)">🔍 Buscar manual</button>
+                    </div>
+                </div>
+
+                <input type="file" id="imagen_referencia" name="imagen_referencia" class="form-control" accept="image/jpeg, image/png, image/gif, image/webp" <?= $disableFields ?> onchange="previewImage(event)">
+                <input type="hidden" id="imagen_url_automatica" name="imagen_url_automatica" value="">
+                <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">Adjunte una foto del producto o busque una en línea automáticamente y se adjuntará aquí.</small>
+                <div id="image_preview_container" style="<?= ($isEditMode && $editar_item_data['FICHA_IMAGEN']) ? 'display: block;' : 'display: none;' ?> margin-top: 10px;">
+                    <p style="font-size: 13px; color: #555; margin-bottom: 5px;">Vista previa:</p>
+                    <img id="image_preview" src="<?= ($isEditMode && $editar_item_data['FICHA_IMAGEN']) ? htmlspecialchars($editar_item_data['FICHA_IMAGEN']) : '' ?>" alt="Vista previa de imagen" style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #ccc;">
+                </div>
+            </div>
+
+            <?php if (!$isEditMode): ?>
             <input type="hidden" name="cantidad_regular" value="1">
+            <?php endif; ?>
             <input type="hidden" name="instructor_apoyo" value="">
             <input type="hidden" name="ficha_tecnica" value="">
 
-            <div style="display:flex; gap:10px;">
-                <button type="submit" class="btn">Guardar y Continuar</button>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="submit" class="btn"><?= $isEditMode ? 'Guardar Cambios' : 'Guardar y Continuar' ?></button>
+                <?php if ($isEditMode): ?>
+                    <a href="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" class="btn btn-danger" style="background: var(--alerta-rojo); color: white; text-decoration: none;">Cancelar Edición</a>
+                <?php endif; ?>
             </div>
         </form>
     </div>
@@ -689,12 +854,15 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
                         <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
                         <td>
-                            <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>">
-                                <input type="hidden" name="accion" value="eliminar_item">
-                                <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                                <button type="submit" class="btn btn-danger js-confirm-submit" style="padding: 4px 10px; font-size: 11px; border: none; background: var(--alerta-rojo); color: white; border-radius: 4px;" data-confirm-title="Quitar ítem" data-confirm-message="¿Quitar este ítem del lote?" data-confirm-label="Quitar">Quitar</button>
-                            </form>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <a href="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>&editar_item_id=<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>" class="btn btn-sena" style="padding: 4px 10px; font-size: 11px; background-color: #39A900; color: white; border-radius: 4px; text-decoration: none;">Editar</a>
+                                <form method="POST" action="matriz.php?lote=<?= htmlspecialchars($id_lote) ?>" style="margin: 0;">
+                                    <input type="hidden" name="accion" value="eliminar_item">
+                                    <input type="hidden" name="id_matriz_item" value="<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                    <button type="submit" class="btn btn-danger js-confirm-submit" style="padding: 4px 10px; font-size: 11px; border: none; background: var(--alerta-rojo); color: white; border-radius: 4px;" data-confirm-title="Quitar ítem" data-confirm-message="¿Quitar este ítem del lote?" data-confirm-label="Quitar">Quitar</button>
+                                </form>
+                            </div>
                         </td>
                         <?php endif; ?>
                     </tr>
@@ -752,6 +920,103 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function removerFoto() {
+    document.getElementById('imagen_referencia').value = "";
+    document.getElementById('imagen_url_automatica').value = "";
+    document.getElementById('image_preview').src = "";
+    document.getElementById('image_preview_container').style.display = 'none';
+    document.getElementById('btn_remover_foto').style.display = 'none';
+}
+
+function previewImage(event) {
+    const input = event.target;
+    const container = document.getElementById('image_preview_container');
+    const img = document.getElementById('image_preview');
+    const btnRemover = document.getElementById('btn_remover_foto');
+
+    document.getElementById('imagen_url_automatica').value = "";
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            container.style.display = 'block';
+            btnRemover.style.display = 'inline-block';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        removerFoto();
+    }
+}
+
+async function buscarImagenOnline(isManual = false) {
+    let query = "";
+    const alertBox = document.getElementById('image_search_alert');
+    const alertMsg = document.getElementById('image_search_alert_msg');
+    const manualContainer = document.getElementById('manual_search_container');
+    
+    alertBox.style.display = 'none';
+    manualContainer.style.display = 'none';
+
+    if (isManual) {
+        query = document.getElementById('manual_search_query').value.trim();
+        if (!query) {
+            alertMsg.innerText = "Por favor, ingrese un término para la búsqueda manual.";
+            alertBox.style.display = 'block';
+            manualContainer.style.display = 'flex';
+            return;
+        }
+    } else {
+        query = document.getElementById('nombre_producto').value.trim();
+        if (!query) query = document.getElementById('descripcion_bien').value.trim();
+        if (!query) query = document.getElementById('id_codigo_unspsc_busqueda').value.trim();
+        
+        if (!query) {
+            alertMsg.innerText = "Por favor, ingrese un nombre de producto o código para buscar la imagen.";
+            alertBox.style.display = 'block';
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch(`https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=pageimages&pithumbsize=500&format=json&origin=*`);
+        const data = await response.json();
+        
+        if (data.query && data.query.pages) {
+            const pages = data.query.pages;
+            const pageId = Object.keys(pages)[0];
+            const imageUrl = pages[pageId].thumbnail ? pages[pageId].thumbnail.source : null;
+            
+            if (imageUrl) {
+                document.getElementById('imagen_referencia').value = "";
+                document.getElementById('imagen_url_automatica').value = imageUrl;
+                
+                const img = document.getElementById('image_preview');
+                const container = document.getElementById('image_preview_container');
+                const btnRemover = document.getElementById('btn_remover_foto');
+                
+                img.src = imageUrl;
+                container.style.display = 'block';
+                btnRemover.style.display = 'inline-block';
+                return;
+            }
+        }
+        
+        alertMsg.innerText = `No se encontró ninguna imagen para '${query}'. Puede adjuntarla manualmente o intentar con otro término.`;
+        alertBox.style.display = 'block';
+        manualContainer.style.display = 'flex';
+        if (!isManual) {
+            document.getElementById('manual_search_query').value = query;
+        }
+        
+    } catch (e) {
+        alertMsg.innerText = "Error al buscar la imagen. Puede adjuntarla manualmente.";
+        alertBox.style.display = 'block';
+    }
+}
 </script>
 </body>
 </html>
