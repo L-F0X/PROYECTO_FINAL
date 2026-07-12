@@ -6,7 +6,7 @@ require_once '../vendor/autoload.php';
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Style\Cell;
+use PhpOffice\PhpWord\SimpleType\VerticalJc;
 
 if (!isset($_SESSION['usuario_id']) || strtolower(trim($_SESSION['rol_nombre'] ?? '')) !== 'instructor') {
     die('Acceso denegado');
@@ -27,6 +27,25 @@ if (empty($fichas)) {
     die('No hay fichas técnicas para exportar en este lote.');
 }
 
+$tempImages = [];
+function webpToPngTemp(string $webpPath): ?string
+{
+    global $tempImages;
+    if (!function_exists('imagecreatefromwebp')) {
+        return null;
+    }
+    $image = @imagecreatefromwebp($webpPath);
+    if ($image === false) {
+        return null;
+    }
+    $tempPath = tempnam(sys_get_temp_dir(), 'ficha_img_') . '.png';
+    imagepng($image, $tempPath);
+    imagedestroy($image);
+    $tempImages[] = $tempPath;
+
+    return $tempPath;
+}
+
 $phpWord = new PhpWord();
 $phpWord->setDefaultFontName('Arial');
 $phpWord->setDefaultFontSize(10);
@@ -39,8 +58,8 @@ $tableStyle = [
 ];
 $phpWord->addTableStyle($tableStyleName, $tableStyle);
 
-$headerStyle = ['bgColor' => 'E0E0E0', 'valign' => Cell::VALIGN_CENTER];
-$labelStyle = ['bgColor' => 'F0F0F0', 'valign' => Cell::VALIGN_CENTER];
+$headerStyle = ['bgColor' => 'E0E0E0', 'valign' => VerticalJc::CENTER];
+$labelStyle = ['bgColor' => 'F0F0F0', 'valign' => VerticalJc::CENTER];
 $titleFont = ['bold' => true, 'size' => 12];
 $centerFormat = ['alignment' => Jc::CENTER];
 
@@ -51,7 +70,7 @@ foreach ($fichas as $index => $ficha) {
     
     // Header
     $table->addRow();
-    $cell = $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'E0E0E0', 'valign' => Cell::VALIGN_CENTER]);
+    $cell = $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'E0E0E0', 'valign' => VerticalJc::CENTER]);
     $cell->addText('FICHA TÉCNICA DE PRODUCTO (N° ' . ($index + 1) . ')', $titleFont, $centerFormat);
     
     // Name
@@ -66,7 +85,7 @@ foreach ($fichas as $index => $ficha) {
     
     // Denominacion Section
     $table->addRow();
-    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => Cell::VALIGN_CENTER])
+    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => VerticalJc::CENTER])
           ->addText('DENOMINACIÓN TÉCNICA DEL BIEN', ['bold' => true], $centerFormat);
     
     $table->addRow();
@@ -74,7 +93,7 @@ foreach ($fichas as $index => $ficha) {
     
     // Unidad Section
     $table->addRow();
-    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => Cell::VALIGN_CENTER])
+    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => VerticalJc::CENTER])
           ->addText('UNIDAD DE MEDIDA', ['bold' => true], $centerFormat);
     
     $table->addRow();
@@ -82,7 +101,7 @@ foreach ($fichas as $index => $ficha) {
     
     // Descripcion Section
     $table->addRow();
-    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => Cell::VALIGN_CENTER])
+    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => VerticalJc::CENTER])
           ->addText('DESCRIPCIÓN GENERAL', ['bold' => true], $centerFormat);
     
     $table->addRow();
@@ -96,18 +115,23 @@ foreach ($fichas as $index => $ficha) {
     if (!empty($ficha['IMAGEN'])) {
         $imgPath = __DIR__ . '/../' . $ficha['IMAGEN'];
         if (file_exists($imgPath)) {
-            $descCell->addTextBreak();
-            $descCell->addImage($imgPath, [
-                'height' => 120,
-                'alignment' => Jc::CENTER
-            ]);
-            $descCell->addText('Imagen de referencia', ['italic' => true, 'size' => 8, 'color' => '666666'], $centerFormat);
+            if (strtolower(pathinfo($imgPath, PATHINFO_EXTENSION)) === 'webp') {
+                $imgPath = webpToPngTemp($imgPath);
+            }
+            if ($imgPath) {
+                $descCell->addTextBreak();
+                $descCell->addImage($imgPath, [
+                    'height' => 120,
+                    'alignment' => Jc::CENTER
+                ]);
+                $descCell->addText('Imagen de referencia', ['italic' => true, 'size' => 8, 'color' => '666666'], $centerFormat);
+            }
         }
     }
     
     // Comentarios
     $table->addRow();
-    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => Cell::VALIGN_CENTER])
+    $table->addCell(9000, ['gridSpan' => 2, 'bgColor' => 'D8D8D8', 'valign' => VerticalJc::CENTER])
           ->addText('COMENTARIOS / ESPECIFICACIONES ADICIONALES', ['bold' => true], $centerFormat);
     
     $table->addRow();
@@ -138,4 +162,8 @@ header('Expires: 0');
 
 $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
 $objWriter->save('php://output');
+
+foreach ($tempImages as $tempImage) {
+    @unlink($tempImage);
+}
 exit;
