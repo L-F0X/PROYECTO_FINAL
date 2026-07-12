@@ -1,9 +1,9 @@
 <?php
-// almacenista/proveedores.php
+// almacenista/proveedores.php - consulta de solo lectura. La gestión
+// (crear/editar) vive ahora en instructor/proveedores.php: es el instructor
+// quien registra ofertas/proveedores al configurar la matriz de sus ítems.
 require_once '../conexion.php';
-require_once '../csrf.php';
 require_once '../notificaciones.php';
-require_once '../texto_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -16,109 +16,16 @@ if ($rolNombre !== 'almacenista') {
     exit;
 }
 
-function proveedor_columna_existe(PDO $pdo, string $columna): bool {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'proveedor' AND COLUMN_NAME = ?");
-    $stmt->execute([$columna]);
-    return (bool) $stmt->fetchColumn();
-}
-// ALTER TABLE es DDL: MySQL hace commit implícito de cualquier transacción
-// abierta, por eso se verifica primero por information_schema (solo SELECT).
-if (!proveedor_columna_existe($pdo, 'TELEFONO')) {
-    $pdo->exec("ALTER TABLE proveedor ADD COLUMN TELEFONO VARCHAR(20) DEFAULT NULL");
-}
-if (!proveedor_columna_existe($pdo, 'CONTACTO')) {
-    $pdo->exec("ALTER TABLE proveedor ADD COLUMN CONTACTO VARCHAR(100) DEFAULT NULL");
-}
-
-$mensaje = '';
-$tipoMensaje = 'success';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!verify_csrf_token($token)) {
-        $mensaje = 'Token CSRF inválido.';
-        $tipoMensaje = 'error';
-    } else {
-        $accion = $_POST['accion'] ?? 'crear';
-        $nit = trim($_POST['nit'] ?? '');
-        $razonSocial = trim($_POST['razon_social'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $telefono = trim($_POST['telefono'] ?? '');
-        $contacto = capitalizar_nombre(trim($_POST['contacto'] ?? ''));
-
-        if ($nit === '' || $razonSocial === '') {
-            $mensaje = 'NIT y Razón Social son obligatorios.';
-            $tipoMensaje = 'error';
-        } elseif (!preg_match('/^[0-9]+$/', $nit)) {
-            $mensaje = 'El NIT solo debe contener números.';
-            $tipoMensaje = 'error';
-        } elseif ($telefono !== '' && !preg_match('/^[0-9]+$/', $telefono)) {
-            $mensaje = 'El teléfono solo debe contener números.';
-            $tipoMensaje = 'error';
-        } elseif ($contacto !== '' && !preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/u', $contacto)) {
-            $mensaje = 'La persona de contacto solo debe contener letras y espacios.';
-            $tipoMensaje = 'error';
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $mensaje = 'El correo electrónico no tiene un formato válido.';
-            $tipoMensaje = 'error';
-        } elseif (strlen($nit) > 20) {
-            $mensaje = 'El NIT no puede tener más de 20 caracteres.';
-            $tipoMensaje = 'error';
-        } elseif (strlen($razonSocial) > 150) {
-            $mensaje = 'La razón social no puede tener más de 150 caracteres.';
-            $tipoMensaje = 'error';
-        } elseif (strlen($email) > 100) {
-            $mensaje = 'El correo electrónico no puede tener más de 100 caracteres.';
-            $tipoMensaje = 'error';
-        } elseif (strlen($telefono) > 20) {
-            $mensaje = 'El teléfono no puede tener más de 20 caracteres.';
-            $tipoMensaje = 'error';
-        } elseif (strlen($contacto) > 100) {
-            $mensaje = 'La persona de contacto no puede tener más de 100 caracteres.';
-            $tipoMensaje = 'error';
-        } elseif ($accion === 'editar') {
-            $idProveedor = intval($_POST['id_proveedor'] ?? 0);
-            try {
-                $existe = $pdo->prepare('SELECT 1 FROM proveedor WHERE ID_PROVEEDOR = ?');
-                $existe->execute([$idProveedor]);
-                if ($idProveedor <= 0 || !$existe->fetch()) {
-                    $mensaje = 'No se encontró el proveedor indicado.';
-                    $tipoMensaje = 'error';
-                } else {
-                    $stmt = $pdo->prepare('UPDATE proveedor SET NIT = ?, RAZON_SOCIAL = ?, EMAIL = ?, TELEFONO = ?, CONTACTO = ? WHERE ID_PROVEEDOR = ?');
-                    $stmt->execute([$nit, $razonSocial, $email, $telefono !== '' ? $telefono : null, $contacto !== '' ? $contacto : null, $idProveedor]);
-                    $mensaje = '✓ Proveedor actualizado correctamente.';
-                }
-            } catch (PDOException $e) {
-                error_log('Error editando proveedor: ' . $e->getMessage());
-                $mensaje = $e->getCode() === '23000'
-                    ? 'Ya existe otro proveedor con ese NIT.'
-                    : 'No se pudo actualizar el proveedor. Contacte al administrador.';
-                $tipoMensaje = 'error';
-            }
-        } else {
-            try {
-                $stmt = $pdo->prepare('INSERT INTO proveedor (NIT, RAZON_SOCIAL, EMAIL, TELEFONO, CONTACTO) VALUES (?, ?, ?, ?, ?)');
-                $stmt->execute([$nit, $razonSocial, $email, $telefono !== '' ? $telefono : null, $contacto !== '' ? $contacto : null]);
-                $mensaje = '✓ Proveedor registrado correctamente.';
-            } catch (PDOException $e) {
-                error_log('Error creando proveedor: ' . $e->getMessage());
-                $mensaje = $e->getCode() === '23000'
-                    ? 'Ya existe un proveedor con ese NIT.'
-                    : 'No se pudo registrar el proveedor. Contacte al administrador.';
-                $tipoMensaje = 'error';
-            }
-        }
-    }
-}
-
 $busqueda = trim($_GET['q'] ?? '');
 try {
     if ($busqueda !== '') {
-        // Coincidencias de razón social por prefijo se muestran primero, igual que en Fase 22.
-        $stmt = $pdo->prepare('SELECT * FROM proveedor WHERE NIT LIKE ? OR RAZON_SOCIAL LIKE ? ORDER BY CASE WHEN RAZON_SOCIAL LIKE ? THEN 0 ELSE 1 END, RAZON_SOCIAL');
+        // Coincidencias por prefijo en cualquier campo se muestran primero
+        // (mismo patrón de ranking usado en el resto del proyecto).
+        $stmt = $pdo->prepare('SELECT * FROM proveedor WHERE NIT LIKE ? OR RAZON_SOCIAL LIKE ? OR CONTACTO LIKE ?
+            ORDER BY CASE WHEN NIT LIKE ? OR RAZON_SOCIAL LIKE ? OR CONTACTO LIKE ? THEN 0 ELSE 1 END, RAZON_SOCIAL');
         $like = "%$busqueda%";
-        $stmt->execute([$like, $like, "$busqueda%"]);
+        $prefijo = "$busqueda%";
+        $stmt->execute([$like, $like, $like, $prefijo, $prefijo, $prefijo]);
     } else {
         $stmt = $pdo->query('SELECT * FROM proveedor ORDER BY RAZON_SOCIAL');
     }
@@ -203,53 +110,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <div class="dashboard-topbar">
                 <div>
                     <h2>Proveedores</h2>
-                    <p class="dashboard-subtitle">Catálogo de proveedores externos que cotizan los ítems de la matriz.</p>
+                    <p class="dashboard-subtitle">Catálogo de proveedores externos que cotizan los ítems de la matriz (solo consulta — el instructor los gestiona al configurar cada ítem).</p>
                 </div>
-            </div>
-
-            <?php if ($mensaje): ?>
-                <div style="padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-weight: 500; <?= $tipoMensaje === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' ?>">
-                    <?= htmlspecialchars($mensaje) ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="panel-card" style="margin-top: 20px;">
-                <h3>Nuevo Proveedor</h3>
-                <form method="POST" action="proveedores.php">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                    <input type="hidden" name="accion" value="crear">
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label for="nit">NIT *</label>
-                            <input type="text" id="nit" name="nit" class="form-control" required maxlength="20"
-                                   pattern="[0-9]+" title="Solo se permiten números">
-                        </div>
-                        <div class="form-group">
-                            <label for="razon_social">Razón Social *</label>
-                            <input type="text" id="razon_social" name="razon_social" class="form-control" required maxlength="150">
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Correo Electrónico *</label>
-                            <input type="email" id="email" name="email" class="form-control" required maxlength="100">
-                        </div>
-                        <div class="form-group">
-                            <label for="telefono">Teléfono</label>
-                            <input type="tel" id="telefono" name="telefono" class="form-control" maxlength="20"
-                                   pattern="[0-9]*" title="Solo se permiten números">
-                        </div>
-                        <div class="form-group">
-                            <label for="contacto">Persona de Contacto</label>
-                            <input type="text" id="contacto" name="contacto" class="form-control" maxlength="100"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]*" title="Solo se permiten letras y espacios">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-sena" style="margin-top: 15px;">Registrar Proveedor</button>
-                </form>
             </div>
 
             <div class="panel-card" style="margin-top: 20px;">
                 <form method="GET" action="proveedores.php" id="form-busqueda" style="margin-bottom: 15px; display: flex; gap: 10px;">
-                    <input type="text" id="q" name="q" class="form-control" placeholder="Buscar por NIT o Razón Social..." value="<?= htmlspecialchars($busqueda) ?>" style="max-width: 300px;">
+                    <input type="text" id="q" name="q" class="form-control" placeholder="Buscar por NIT, Razón Social o Contacto..." value="<?= htmlspecialchars($busqueda) ?>" style="max-width: 300px;">
                 </form>
                 <div id="resultados-busqueda">
                 <h3>Proveedores Registrados (<?= count($proveedores) ?>)</h3>
@@ -262,13 +129,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th>Correo</th>
                             <th>Teléfono</th>
                             <th>Contacto</th>
-                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($proveedores)): ?>
                             <tr>
-                                <td colspan="7">
+                                <td colspan="6">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
                                             <circle cx="11" cy="11" r="8"/>
@@ -276,48 +142,24 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                             <line x1="8" y1="11" x2="14" y2="11"/>
                                         </svg>
                                         <p>No hay proveedores registrados.</p>
-                                        <span>Registra el primer proveedor con el formulario de arriba.</span>
+                                        <span>Los proveedores que registre un instructor aparecerán aquí.</span>
                                     </div>
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($proveedores as $p): ?>
-                                <?php $formId = 'form-prov-' . $p['ID_PROVEEDOR']; ?>
                                 <tr>
                                     <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
-                                    <td>
-                                        <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required maxlength="20"
-                                               pattern="[0-9]+" title="Solo se permiten números">
-                                    </td>
-                                    <td>
-                                        <input type="text" name="razon_social" form="<?= $formId ?>" value="<?= htmlspecialchars($p['RAZON_SOCIAL']) ?>" class="form-control" required maxlength="150">
-                                    </td>
-                                    <td>
-                                        <input type="email" name="email" form="<?= $formId ?>" value="<?= htmlspecialchars($p['EMAIL']) ?>" class="form-control" required maxlength="100">
-                                    </td>
-                                    <td>
-                                        <input type="tel" name="telefono" form="<?= $formId ?>" value="<?= htmlspecialchars($p['TELEFONO'] ?? '') ?>" class="form-control" maxlength="20"
-                                               pattern="[0-9]*" title="Solo se permiten números">
-                                    </td>
-                                    <td>
-                                        <input type="text" name="contacto" form="<?= $formId ?>" value="<?= htmlspecialchars($p['CONTACTO'] ?? '') ?>" class="form-control" maxlength="100"
-                                               pattern="[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]*" title="Solo se permiten letras y espacios">
-                                    </td>
-                                    <td>
-                                        <button type="submit" form="<?= $formId ?>" class="btn btn-sena" style="padding: 5px 10px; font-size: 12px;">Guardar</button>
-                                    </td>
+                                    <td><?= htmlspecialchars($p['NIT']) ?></td>
+                                    <td><?= htmlspecialchars($p['RAZON_SOCIAL']) ?></td>
+                                    <td><?= htmlspecialchars($p['EMAIL']) ?></td>
+                                    <td><?php if (($p['TELEFONO'] ?? '') !== ''): ?><?= htmlspecialchars($p['TELEFONO']) ?><?php else: ?><span style="color:#999; font-style:italic;">Sin registrar</span><?php endif; ?></td>
+                                    <td><?php if (($p['CONTACTO'] ?? '') !== ''): ?><?= htmlspecialchars($p['CONTACTO']) ?><?php else: ?><span style="color:#999; font-style:italic;">Sin registrar</span><?php endif; ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
-                <?php foreach ($proveedores as $p): ?>
-                    <form id="form-prov-<?= htmlspecialchars($p['ID_PROVEEDOR']) ?>" method="POST" action="proveedores.php<?= $busqueda !== '' ? '?q=' . urlencode($busqueda) : '' ?>" style="display:none;">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
-                        <input type="hidden" name="accion" value="editar">
-                        <input type="hidden" name="id_proveedor" value="<?= htmlspecialchars($p['ID_PROVEEDOR']) ?>">
-                    </form>
-                <?php endforeach; ?>
                 </div>
             </div>
         </div>

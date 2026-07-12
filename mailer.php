@@ -10,6 +10,15 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
  * (el error se registra con error_log, nunca se lanza al llamador).
  */
 function enviar_correo(string $destinatarioEmail, string $asunto, string $cuerpoHtml): bool {
+    // mail_config.php contiene credenciales reales y está en .gitignore, así
+    // que en un checkout nuevo (o en este entorno) puede no existir todavía.
+    // Antes esto tronaba con un error fatal (require de un archivo ausente),
+    // impidiendo el respaldo de "mostrar el código en pantalla" que las
+    // páginas que llaman a esta función ya esperan cuando el correo falla.
+    if (!file_exists(__DIR__ . '/mail_config.php')) {
+        error_log('enviar_correo: falta mail_config.php. Copie mail_config.example.php y complete sus credenciales.');
+        return false;
+    }
     $config = require __DIR__ . '/mail_config.php';
 
     if (empty($config['username']) || empty($config['password'])) {

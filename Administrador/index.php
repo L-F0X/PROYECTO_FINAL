@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../auditoria_helper.php';
 
 // Control de acceso: si no hay sesión activa, redirigir al login
 if (!isset($_SESSION['usuario_id'])) {
@@ -18,19 +19,7 @@ if ($rolNombre !== 'administrador') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Administrador');
 
-// Crear tabla de auditoría si no existe
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS auditoria_actividad (
-        ID_AUDITORIA INT AUTO_INCREMENT PRIMARY KEY,
-        ID_USUARIO INT NOT NULL,
-        ACCION VARCHAR(255) NOT NULL,
-        DETALLE TEXT DEFAULT NULL,
-        FECHA TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (ID_USUARIO) REFERENCES usuario(ID_USUARIO) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (Exception $e) {
-    error_log('Error creando la tabla de auditoría: ' . $e->getMessage());
-}
+asegurar_tabla_auditoria($pdo);
 
 // Cambiar estado de usuario (Activar/Desactivar)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'toggle_estado') {

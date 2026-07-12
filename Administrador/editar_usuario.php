@@ -4,6 +4,7 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../texto_helper.php';
+require_once '../auditoria_helper.php';
 
 // Control de acceso
 if (!isset($_SESSION['usuario_id'])) {
@@ -108,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Registrar en la auditoría
+                asegurar_tabla_auditoria($pdo);
                 $stmtLog = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, ?, ?)");
                 $stmtLog->execute([
                     $_SESSION['usuario_id'],

@@ -2,6 +2,7 @@
 // coordinador/gestionar_oferta.php
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../cotizacion_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -22,34 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $token = $_POST['csrf_token'] ?? '';
 if (!verify_csrf_token($token)) {
     die('Token CSRF inválido.');
-}
-
-function recalcular_promedios_item(PDO $pdo, int $idMatrizItem): void {
-    $stmt = $pdo->prepare("SELECT OFERTA_1, OFERTA_2, OFERTA_3 FROM matriz_item WHERE ID_MATRIZ_ITEM = ?");
-    $stmt->execute([$idMatrizItem]);
-    $item = $stmt->fetch();
-    $idsCotizacion = array_filter([$item['OFERTA_1'] ?? null, $item['OFERTA_2'] ?? null, $item['OFERTA_3'] ?? null]);
-
-    $valorUnitarioProm = null;
-    $valorTotalProm = null;
-
-    if (!empty($idsCotizacion)) {
-        $placeholders = implode(',', array_fill(0, count($idsCotizacion), '?'));
-        $stmtCot = $pdo->prepare("SELECT VALOR_UNITARIO, VALOR_TOTAL FROM cotizacion WHERE ID_COTIZACION IN ($placeholders)");
-        $stmtCot->execute(array_values($idsCotizacion));
-        $cotizaciones = $stmtCot->fetchAll();
-
-        if (!empty($cotizaciones)) {
-            $sumaUnitario = array_sum(array_column($cotizaciones, 'VALOR_UNITARIO'));
-            $sumaTotal = array_sum(array_column($cotizaciones, 'VALOR_TOTAL'));
-            $count = count($cotizaciones);
-            $valorUnitarioProm = (int) round($sumaUnitario / $count);
-            $valorTotalProm = (int) round($sumaTotal / $count);
-        }
-    }
-
-    $pdo->prepare("UPDATE matriz_item SET VALOR_UNITARIO_PROMEDIO = ?, VALOR_TOTAL_PROMEDIO = ? WHERE ID_MATRIZ_ITEM = ?")
-        ->execute([$valorUnitarioProm, $valorTotalProm, $idMatrizItem]);
 }
 
 $accion = $_POST['accion'] ?? '';
@@ -73,8 +46,8 @@ $idLote = intval($item['ID_LOTE']);
 
 if ($accion === 'agregar') {
     // El coordinador solo aprueba/revisa lotes; registrar ofertas y proveedores
-    // es responsabilidad del almacenista (ver Fase 39/43).
-    header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('El coordinador ya no registra ofertas. Esa gestión corresponde al almacenista.'));
+    // es responsabilidad del instructor, al configurar la matriz de su ítem.
+    header("Location: revisar_lote.php?id=$idLote&msg=oferta_error&detalle=" . urlencode('El coordinador ya no registra ofertas. Esa gestión corresponde al instructor.'));
     exit;
 } elseif ($accion === 'quitar') {
     $idCotizacion = isset($_POST['id_cotizacion']) ? intval($_POST['id_cotizacion']) : 0;

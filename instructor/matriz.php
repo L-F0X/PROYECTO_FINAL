@@ -685,6 +685,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
@@ -984,39 +985,128 @@ async function buscarImagenOnline(isManual = false) {
     }
 
     try {
-        const response = await fetch(`https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=pageimages&pithumbsize=500&format=json&origin=*`);
-        const data = await response.json();
-        
-        if (data.query && data.query.pages) {
-            const pages = data.query.pages;
-            const pageId = Object.keys(pages)[0];
-            const imageUrl = pages[pageId].thumbnail ? pages[pageId].thumbnail.source : null;
-            
-            if (imageUrl) {
-                document.getElementById('imagen_referencia').value = "";
-                document.getElementById('imagen_url_automatica').value = imageUrl;
-                
-                const img = document.getElementById('image_preview');
-                const container = document.getElementById('image_preview_container');
-                const btnRemover = document.getElementById('btn_remover_foto');
-                
-                img.src = imageUrl;
-                container.style.display = 'block';
-                btnRemover.style.display = 'inline-block';
-                return;
+        let imageUrl = null;
+
+        // 1) Intento principal: traducir el término al inglés y buscar en
+        // Wikimedia Commons (el repositorio de fotos, no de artículos —
+        // indexado y descrito mayormente en inglés). Esto da coincidencias
+        // mucho más específicas para un producto concreto ("Cuchillo para
+        // masa" → "Dough Knife" → fotos reales de ese utensilio) que buscar
+        // la frase en español, que casi siempre falla contra artículos de
+        // enciclopedia sin relación real con el objeto.
+        const queryEn = await traducirAIngles(query);
+        if (queryEn) {
+            imageUrl = await buscarImagenCommons(queryEn);
+        }
+
+        // 2) Respaldo si Commons no encontró nada (o la traducción falló):
+        // el enfoque anterior, con la palabra principal antes de un conector
+        // ("para"/"de"/"con"...) para evitar que Wikipedia empareje con el
+        // ingrediente/complemento en vez del objeto (p.ej. no "Masa").
+        if (!imageUrl) {
+            const queryPrincipal = query.split(/\s+(?:para|de|con|sin|y)\s+/i)[0].trim();
+            const candidatos = (queryPrincipal && queryPrincipal.toLowerCase() !== query.toLowerCase())
+                ? [queryPrincipal, query]
+                : [query];
+            for (const candidato of candidatos) {
+                imageUrl = await buscarImagenWikipedia(candidato);
+                if (imageUrl) break;
             }
         }
-        
+
+        if (imageUrl) {
+            document.getElementById('imagen_referencia').value = "";
+            document.getElementById('imagen_url_automatica').value = imageUrl;
+
+            const img = document.getElementById('image_preview');
+            const container = document.getElementById('image_preview_container');
+            const btnRemover = document.getElementById('btn_remover_foto');
+
+            img.src = imageUrl;
+            container.style.display = 'block';
+            btnRemover.style.display = 'inline-block';
+            return;
+        }
+
         alertMsg.innerText = `No se encontró ninguna imagen para '${query}'. Puede adjuntarla manualmente o intentar con otro término.`;
         alertBox.style.display = 'block';
         manualContainer.style.display = 'flex';
         if (!isManual) {
             document.getElementById('manual_search_query').value = query;
         }
-        
+
     } catch (e) {
         alertMsg.innerText = "Error al buscar la imagen. Puede adjuntarla manualmente.";
         alertBox.style.display = 'block';
+    }
+}
+
+// Busca hasta 5 artículos candidatos (orden de relevancia real de
+// list=search, a diferencia de generator=search cuyo objeto "pages" viene
+// reordenado por ID numérico de página, no por relevancia) y devuelve la
+// miniatura del primero que sí tenga imagen, en vez de asumir a ciegas que
+// el resultado #1 la tiene.
+async function buscarImagenWikipedia(query) {
+    try {
+        const searchResp = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`);
+        const searchData = await searchResp.json();
+        const resultados = (searchData.query && searchData.query.search) ? searchData.query.search : [];
+
+        for (const resultado of resultados) {
+            const imgResp = await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(resultado.title)}&prop=pageimages&pithumbsize=500&format=json&origin=*`);
+            const imgData = await imgResp.json();
+            const pages = (imgData.query && imgData.query.pages) ? imgData.query.pages : {};
+            const pageId = Object.keys(pages)[0];
+            const thumb = (pageId && pages[pageId].thumbnail) ? pages[pageId].thumbnail.source : null;
+            if (thumb) return thumb;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Traduce un término corto es->en con MyMemory (API pública gratuita, sin
+// llave). Si falla o no responde, devuelve null y el llamador sigue con el
+// respaldo en español, en vez de romper la búsqueda de imagen.
+async function traducirAIngles(texto) {
+    try {
+        const resp = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=es|en`);
+        const data = await resp.json();
+        const traducido = data && data.responseData ? data.responseData.translatedText : null;
+        return (traducido && traducido.trim()) ? traducido.trim() : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Busca hasta 6 archivos de imagen candidatos en Wikimedia Commons (namespace
+// 6 = "File:"), en orden real de relevancia, y devuelve la miniatura del
+// primero que sea una imagen real (se descartan PDFs/escaneos/audio, que
+// Commons también indexa en el mismo namespace).
+async function buscarImagenCommons(query) {
+    try {
+        const extensionesImagen = /\.(jpe?g|png|gif|webp|svg)$/i;
+        const searchResp = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=6&format=json&origin=*`);
+        const searchData = await searchResp.json();
+        const resultados = (searchData.query && searchData.query.search) ? searchData.query.search : [];
+
+        for (const resultado of resultados) {
+            if (!extensionesImagen.test(resultado.title)) continue;
+
+            const infoResp = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(resultado.title)}&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json&origin=*`);
+            const infoData = await infoResp.json();
+            const pages = (infoData.query && infoData.query.pages) ? infoData.query.pages : {};
+            const pageId = Object.keys(pages)[0];
+            const info = (pageId && pages[pageId].imageinfo) ? pages[pageId].imageinfo[0] : null;
+            const thumb = info ? (info.thumburl || info.url) : null;
+            if (thumb) return thumb;
+        }
+        return null;
+    } catch (e) {
+        // Un fallo de red o de formato aquí no debe impedir el respaldo en
+        // Wikipedia; solo se pierde este nivel de búsqueda.
+        return null;
     }
 }
 </script>

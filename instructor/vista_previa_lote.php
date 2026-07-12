@@ -122,7 +122,7 @@ if ($isExport) {
             <th rowspan="2" class="col-header-green" style="background-color: #e2efda; width: 80px;">CANTIDAD ENI</th>
             <th rowspan="2" class="col-header-green" style="background-color: #e2efda; width: 80px;">CANTIDAD FC CAMPESINA</th>
             
-            <th colspan="2" class="col-header-blue" style="background-color: #ddebf7;">OFERTA 2025 (EMPRESA 1)</th>
+            <th colspan="2" class="col-header-blue" style="background-color: #ddebf7;">EMPRESA 1</th>
             <th colspan="2" class="col-header-blue" style="background-color: #ddebf7;">EMPRESA 2</th>
             <th colspan="2" class="col-header-blue" style="background-color: #ddebf7;">EMPRESA 3</th>
             

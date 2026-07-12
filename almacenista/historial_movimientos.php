@@ -2,6 +2,7 @@
 // almacenista/historial_movimientos.php
 require_once '../conexion.php';
 require_once '../notificaciones.php';
+require_once '../auditoria_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -30,6 +31,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 }
 
 // Obtener historial de movimientos de inventario
+asegurar_tabla_auditoria($pdo);
 try {
     $sql = "SELECT aa.*, u.NOMBRE, u.APELLIDO
             FROM auditoria_actividad aa

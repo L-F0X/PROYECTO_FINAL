@@ -2,6 +2,7 @@
 // eliminar.php - ahora acepta solo POST con token CSRF
 require_once '../conexion.php';
 require_once '../csrf.php';
+require_once '../auditoria_helper.php';
 
 // Control de acceso: si no hay sesión activa, denegar el proceso inmediatamente
 if (!isset($_SESSION['usuario_id'])) {
@@ -33,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $resultado = $stmt->rowCount() > 0 ? 'eliminado' : 'noop';
 
             if ($resultado === 'eliminado' && $loteData) {
+                asegurar_tabla_auditoria($pdo);
                 $stmtLog = $pdo->prepare("INSERT INTO auditoria_actividad (ID_USUARIO, ACCION, DETALLE) VALUES (?, ?, ?)");
                 $stmtLog->execute([
                     $usuarioId,

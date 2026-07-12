@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../auditoria_helper.php';
 
 // Definir constante de acceso seguro para archivos incluidos
 define('ACCESO_VALIDO', true);
@@ -168,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tabActiva = 'entrada';
         } else {
             try {
+                asegurar_tabla_auditoria($pdo);
                 $pdo->beginTransaction();
                 // Solo se recibe mercancía sobre stock físico propio del almacén (ID_MATRIZ_ITEM NULL);
                 // una ficha técnica creada por un instructor es una solicitud, no un artículo de stock.
@@ -207,6 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tabActiva = 'salida';
         } else {
             try {
+                asegurar_tabla_auditoria($pdo);
                 $pdo->beginTransaction();
 
                 // Bloquear la fila y verificar stock actual dentro de la transacción.

@@ -280,6 +280,7 @@ if ($msg === 'eliminado') {
         <div class="sidebar-group">
             <h4>Gestión de Lotes</h4>
             <a href="mis_lotes.php" class="sidebar-link">Mis Lotes</a>
+            <a href="proveedores.php" class="sidebar-link">Proveedores</a>
         </div>
         <div class="sidebar-group">
             <h4>Consultas</h4>
