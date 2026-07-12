@@ -124,7 +124,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); $wsToken = generar_ws_token($pdo, intval($_SESSION['usuario_id']), $_SESSION['rol_nombre'] ?? ''); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge" id="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -151,6 +151,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="instructores.php" class="sidebar-link">Instructores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -207,12 +208,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Instructor de Apoyo</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Ofertas / Proveedor</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Ficha Técnica</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
                                             <circle cx="11" cy="11" r="8"/>
@@ -277,6 +279,13 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
+                                    <td style="padding: 12px;">
+                                        <?php if (!empty($item['ID_FICHA_TECNICA'])): ?>
+                                            <a href="ver_ficha_tecnica.php?id=<?= (int) $item['ID_FICHA_TECNICA'] ?>&lote=<?= (int) $idLote ?>" class="btn btn-info" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">Ver Ficha</a>
+                                        <?php else: ?>
+                                            <span style="color:#999; font-style:italic; font-size:13px;">Sin ficha</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -327,5 +336,24 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 </div>
 
 <script src="../js/apartados.js"></script>
+    <script src="../js/realtime.js" data-ws-token="<?= htmlspecialchars($wsToken ?? '') ?>"></script>
+<script>
+    (function () {
+        var canal = 'lote_<?= (int) $idLote ?>';
+        document.addEventListener('bicergam-ws-auth_ok', function () {
+            if (typeof window.bicergamWsCanal === 'function') window.bicergamWsCanal('unirse', canal);
+        });
+        document.addEventListener('bicergam-ws-lote_cancelado', function (ev) {
+            var data = ev.detail || {};
+            var mensaje = data.mensaje || 'El instructor canceló el envío de este lote. Ya no está pendiente de revisión.';
+            if (typeof showToast === 'function') {
+                showToast(mensaje, 'info', 6000);
+            } else {
+                alert(mensaje);
+            }
+            setTimeout(function () { window.location.href = 'revisar_lotes.php'; }, 2500);
+        });
+    })();
+</script>
 </body>
 </html>

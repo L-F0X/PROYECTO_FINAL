@@ -15,6 +15,7 @@ if ($rolNombre !== 'coordinador' && $rolNombre !== 'coordinacion') {
 
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
 $idFicha = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$idLoteOrigen = isset($_GET['lote']) ? intval($_GET['lote']) : 0;
 
 if ($idFicha === 0) {
     header('Location: fichas_tecnicas_coordinador.php');
@@ -217,7 +218,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); $wsToken = generar_ws_token($pdo, intval($_SESSION['usuario_id']), $_SESSION['rol_nombre'] ?? ''); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge" id="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -244,6 +245,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="instructores.php" class="sidebar-link">Instructores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link sidebar-link--primary active">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -259,12 +261,18 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <p class="dashboard-subtitle">Visualización y exportación de la ficha técnica seleccionada.</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="window.print()" class="btn btn-sena" style="padding: 10px 18px; font-weight: bold; background-color: #39A900;">
-                    📥 Exportar a PDF
-                </button>
-                <a href="fichas_tecnicas_coordinador.php" class="btn btn-secondary" style="text-decoration: none; padding: 10px 18px; border: 1px solid #ccc; background-color: #eee; color: #333;">
-                    Volver al Catálogo
+                <a href="exportar_ficha_docx.php?id=<?= $idFicha ?>" class="btn btn-sena" style="padding: 10px 18px; font-weight: bold; background-color: #1976d2; text-decoration: none;">
+                    📝 Exportar a DOCX
                 </a>
+                <?php if ($idLoteOrigen > 0): ?>
+                    <a href="revisar_lote.php?id=<?= $idLoteOrigen ?>" class="btn btn-secondary" style="text-decoration: none; padding: 10px 18px; border: 1px solid #ccc; background-color: #eee; color: #333;">
+                        Volver al Lote
+                    </a>
+                <?php else: ?>
+                    <a href="fichas_tecnicas_coordinador.php" class="btn btn-secondary" style="text-decoration: none; padding: 10px 18px; border: 1px solid #ccc; background-color: #eee; color: #333;">
+                        Volver al Catálogo
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -357,5 +365,26 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 <script src="../js/apartados.js"></script>
+    <script src="../js/realtime.js" data-ws-token="<?= htmlspecialchars($wsToken ?? '') ?>"></script>
+<?php if ($idLoteOrigen > 0): ?>
+<script>
+    (function () {
+        var canal = 'lote_<?= (int) $idLoteOrigen ?>';
+        document.addEventListener('bicergam-ws-auth_ok', function () {
+            if (typeof window.bicergamWsCanal === 'function') window.bicergamWsCanal('unirse', canal);
+        });
+        document.addEventListener('bicergam-ws-lote_cancelado', function (ev) {
+            var data = ev.detail || {};
+            var mensaje = data.mensaje || 'El instructor canceló el envío del lote de esta ficha técnica. Ya no está pendiente de revisión.';
+            if (typeof showToast === 'function') {
+                showToast(mensaje, 'info', 6000);
+            } else {
+                alert(mensaje);
+            }
+            setTimeout(function () { window.location.href = 'revisar_lotes.php'; }, 2500);
+        });
+    })();
+</script>
+<?php endif; ?>
 </body>
 </html>

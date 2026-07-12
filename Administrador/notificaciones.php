@@ -61,6 +61,7 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <?php $wsToken = generar_ws_token($pdo, $usuarioId, $_SESSION['rol_nombre'] ?? ''); ?>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"></a>
     </div>
 </header>
@@ -122,5 +123,6 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
     </main>
 </div>
 <script src="../js/apartados.js"></script>
+    <script src="../js/realtime.js" data-ws-token="<?= htmlspecialchars($wsToken ?? '') ?>"></script>
 </body>
 </html>

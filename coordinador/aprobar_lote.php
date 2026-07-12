@@ -135,7 +135,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
         <a href="index.php" class="btn-inicio-nav">Inicio</a>
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); $wsToken = generar_ws_token($pdo, intval($_SESSION['usuario_id']), $_SESSION['rol_nombre'] ?? ''); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge" id="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="coordinador_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -162,6 +162,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <a href="instructores.php" class="sidebar-link">Instructores</a>
             <a href="fichas_tecnicas_coordinador.php" class="sidebar-link">Fichas Técnicas</a>
             <a href="historial_existencia.php" class="sidebar-link">Certificados Existencia</a>
+            <a href="notificaciones.php" class="sidebar-link">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
             <h4>Sesión</h4>
@@ -212,5 +213,24 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     </main>
 </div>
 <script src="../js/apartados.js"></script>
+    <script src="../js/realtime.js" data-ws-token="<?= htmlspecialchars($wsToken ?? '') ?>"></script>
+<script>
+    (function () {
+        var canal = 'lote_<?= (int) $idLote ?>';
+        document.addEventListener('bicergam-ws-auth_ok', function () {
+            if (typeof window.bicergamWsCanal === 'function') window.bicergamWsCanal('unirse', canal);
+        });
+        document.addEventListener('bicergam-ws-lote_cancelado', function (ev) {
+            var data = ev.detail || {};
+            var mensaje = data.mensaje || 'El instructor canceló el envío de este lote. Ya no está pendiente de revisión.';
+            if (typeof showToast === 'function') {
+                showToast(mensaje, 'info', 6000);
+            } else {
+                alert(mensaje);
+            }
+            setTimeout(function () { window.location.href = 'revisar_lotes.php'; }, 2500);
+        });
+    })();
+</script>
 </body>
 </html>
