@@ -2,6 +2,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -72,6 +73,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateStmt = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Aprobado' WHERE ID_LOTE = ?");
             $updateStmt->execute([$idLote]);
 
+            // Sincronizar el estado de los ítems enviados con la decisión —
+            // si no, quedan mostrando "Pendiente" para siempre aunque el
+            // lote ya esté decidido (matriz.php y fichas_tecnicas_creadas.php
+            // muestran mi.ESTADO_ITEM directamente).
+            $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = 'Aprobado' WHERE ID_LOTE = ? AND ESTADO_ITEM = 'Pendiente'")->execute([$idLote]);
+
             // Registrar la decisión en la tabla de auditoría
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
@@ -130,7 +137,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
-            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -175,7 +182,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <div class="role-banner role-coordinador">
                 <h2>Aprobar Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?></p>
+                <p>Lote #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?></p>
             </div>
 
             <div class="panel-card" style="margin-top: 20px;">
@@ -189,7 +196,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <h4 style="margin-top: 0; color: #2e7d32;">¿Estás seguro de que deseas aprobar este lote?</h4>
                     <p style="margin: 8px 0; color: #558b2f;">
                         <strong>Lote:</strong> <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?><br>
-                        <strong>ID:</strong> <?= htmlspecialchars($lote['ID_LOTE']) ?><br>
+                        <strong>Número:</strong> #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?><br>
                         <strong>Estado Actual:</strong> <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?>
                     </p>
                 </div>

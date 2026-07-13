@@ -276,7 +276,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 } elseif ($stmtCertCheck->fetch()) {
                     $errorMsg = "Este lote ya cuenta con un certificado de existencia emitido.";
                 } else {
-                    $numCertificado = "CERT-" . str_pad($id_lote, 6, "0", STR_PAD_LEFT) . "-" . time();
+                    // Número de certificado legible y consecutivo (por año), en vez de
+                    // exponer el ID del lote más una marca de tiempo Unix cruda. Esta
+                    // tabla nunca se purga (a diferencia de certificado_inventario, que
+                    // sí tiene límite FIFO), así que un conteo simple da una secuencia
+                    // limpia 0001, 0002... sin arrastrar huecos de IDs viejos.
+                    $siguienteNumCert = 1 + (int) $pdo->query("SELECT COUNT(*) FROM certificado_existencia")->fetchColumn();
+                    $numCertificado = "CERT-" . date('Y') . "-" . str_pad($siguienteNumCert, 4, "0", STR_PAD_LEFT);
                     $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?, ?)");
                     $stmtInsert->execute([$id_lote, $numCertificado, $usuarioId]);
                     $idCertificadoNuevo = (int) $pdo->lastInsertId();
@@ -566,7 +572,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Almacén Central</span></h1>
-            <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">

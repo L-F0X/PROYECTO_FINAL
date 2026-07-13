@@ -66,6 +66,10 @@ try {
     $stmtCheck = $pdo->prepare("SELECT ESTADO_TRAMITE, LOTE_NOMBRE, ID_SOLICITANTE FROM lote_requerimiento WHERE ID_LOTE = ? FOR UPDATE");
     $stmtUpdate = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = ? WHERE ID_LOTE = ?");
     $stmtAudit = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, ?, ?)");
+    // Sincroniza el estado de los ítems enviados con la decisión — igual que
+    // aprobar_lote.php/rechazar_lote.php, para que no se queden mostrando
+    // "Pendiente" para siempre aunque el lote ya esté decidido.
+    $stmtItems = $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = ? WHERE ID_LOTE = ? AND ESTADO_ITEM = 'Pendiente'");
 
     foreach ($lotesIds as $idLote) {
         $stmtCheck->execute([$idLote]);
@@ -77,6 +81,7 @@ try {
         }
 
         $stmtUpdate->execute([$estadoNuevo, $idLote]);
+        $stmtItems->execute([$estadoNuevo, $idLote]);
         $stmtAudit->execute([$idLote, $idCoordinador, $estadoNuevo, $justificacionFinal]);
 
         $verbo = $accion === 'aprobar' ? 'fue aprobado' : 'fue rechazado';

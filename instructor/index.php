@@ -4,6 +4,7 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../iva_helper.php';
+require_once '../display_helper.php';
 
 // Permite que los parciales incluidos (mis_lotes.php) verifiquen que no se acceden directamente
 define('ACCESO_VALIDO', true);
@@ -105,16 +106,16 @@ if ($rolNombre === 'instructor') {
         error_log('Error cargando estadísticas en index: ' . $e->getMessage());
     }
 } elseif ($rolNombre === 'coordinador') {
-    $sql = "SELECT * FROM lote_requerimiento";
+    $sql = "SELECT lr.*, u.NOMBRE AS SOLICITANTE_NOMBRE, u.APELLIDO AS SOLICITANTE_APELLIDO FROM lote_requerimiento lr LEFT JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO";
     $params = [];
     $where = [];
     if ($busqueda !== '') {
-        $where[] = "(LOTE_NOMBRE LIKE ? OR ID_LOTE = ?)";
+        $where[] = "(lr.LOTE_NOMBRE LIKE ? OR lr.ID_LOTE = ?)";
         $params[] = "%$busqueda%";
         $params[] = intval($busqueda);
     }
     if ($filtroEstado !== '') {
-        $where[] = "ESTADO_TRAMITE = ?";
+        $where[] = "lr.ESTADO_TRAMITE = ?";
         $params[] = $filtroEstado;
     }
     if ($where) {
@@ -122,26 +123,26 @@ if ($rolNombre === 'instructor') {
     }
     if ($busqueda !== '') {
         // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
-        $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.FECHA_CREACION DESC";
         $params[] = "$busqueda%";
     } else {
-        $sql .= " ORDER BY FECHA_CREACION DESC";
+        $sql .= " ORDER BY lr.FECHA_CREACION DESC";
     }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $panelTitulo = 'Panel de Coordinador';
     $panelDescripcion = 'Revisa, coordina y da seguimiento a los lotes de requerimiento del equipo.';
 } else {
-    $sql = "SELECT * FROM lote_requerimiento";
+    $sql = "SELECT lr.*, u.NOMBRE AS SOLICITANTE_NOMBRE, u.APELLIDO AS SOLICITANTE_APELLIDO FROM lote_requerimiento lr LEFT JOIN usuario u ON lr.ID_SOLICITANTE = u.ID_USUARIO";
     $params = [];
     $where = [];
     if ($busqueda !== '') {
-        $where[] = "(LOTE_NOMBRE LIKE ? OR ID_LOTE = ?)";
+        $where[] = "(lr.LOTE_NOMBRE LIKE ? OR lr.ID_LOTE = ?)";
         $params[] = "%$busqueda%";
         $params[] = intval($busqueda);
     }
     if ($filtroEstado !== '') {
-        $where[] = "ESTADO_TRAMITE = ?";
+        $where[] = "lr.ESTADO_TRAMITE = ?";
         $params[] = $filtroEstado;
     }
     if ($where) {
@@ -149,10 +150,10 @@ if ($rolNombre === 'instructor') {
     }
     if ($busqueda !== '') {
         // Coincidencias de nombre de lote por prefijo se muestran primero, igual que en Fase 22.
-        $sql .= " ORDER BY CASE WHEN LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, FECHA_CREACION DESC";
+        $sql .= " ORDER BY CASE WHEN lr.LOTE_NOMBRE LIKE ? THEN 0 ELSE 1 END, lr.FECHA_CREACION DESC";
         $params[] = "$busqueda%";
     } else {
-        $sql .= " ORDER BY FECHA_CREACION DESC";
+        $sql .= " ORDER BY lr.FECHA_CREACION DESC";
     }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -256,7 +257,7 @@ if ($msg === 'eliminado') {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -407,7 +408,11 @@ if ($msg === 'eliminado') {
         <h1 class="header-title">BICERGAM | <span class="accent-color">SENA</span></h1>
     </div>
     <div class="header-center">
-        <span class="user-greeting"><?= $rolNombre === 'administrador' ? 'Administrador del Sistema:' : 'Coordinador de Compras:' ?> <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
+        <?php if ($rolNombre === 'administrador'): ?>
+        <span class="user-greeting">Administrador del Sistema: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
+        <?php else: ?>
+        <span class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></span>
+        <?php endif; ?>
     </div>
     <div class="header-right">
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
@@ -464,9 +469,9 @@ if ($msg === 'eliminado') {
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <th>N°</th>
                 <th>Nombre del Lote</th>
-                <th>ID Solicitante</th>
+                <th>Solicitante</th>
                 <th>Estado Trámite</th>
                 <th>Fecha Creación</th>
                 <th>Acciones</th>
@@ -490,9 +495,9 @@ if ($msg === 'eliminado') {
             <?php else: ?>
                 <?php foreach($lotes as $lote): ?>
                     <tr>
-                        <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                        <td>#<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?></td>
                         <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
-                        <td><?= htmlspecialchars($lote['ID_SOLICITANTE']) ?></td>
+                        <td><?= htmlspecialchars(trim(($lote['SOLICITANTE_NOMBRE'] ?? '') . ' ' . ($lote['SOLICITANTE_APELLIDO'] ?? '')) ?: 'N/A') ?></td>
                         <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
                         <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>
                         <td>

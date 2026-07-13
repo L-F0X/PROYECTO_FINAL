@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -78,7 +79,7 @@ $total = count($lotes);
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -170,7 +171,7 @@ $total = count($lotes);
                 <table class="lotes-table" style="width: 100%;">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>N°</th>
                                 <th>Nombre del Lote</th>
                                 <th>Estado</th>
                                 <th>Fecha Creación</th>
@@ -195,7 +196,7 @@ $total = count($lotes);
                             <?php else: ?>
                                 <?php foreach ($lotes as $l): ?>
                                     <tr>
-                                        <td>#<?= htmlspecialchars($l['ID_LOTE']) ?></td>
+                                        <td>#<?= numero_visible_lote($pdo, (int) $l['ID_LOTE'], $usuarioId) ?></td>
                                         <td><?= htmlspecialchars($l['LOTE_NOMBRE']) ?></td>
                                         <td><strong><?= htmlspecialchars($l['ESTADO_TRAMITE']) ?></strong></td>
                                         <td><?= htmlspecialchars($l['FECHA_CREACION']) ?></td>

@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -159,7 +160,7 @@ $total = count($fichas);
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -203,7 +204,7 @@ $total = count($fichas);
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
-                <h2>Fichas Técnicas del Lote #<?= $idLote ?></h2>
+                <h2>Fichas Técnicas del Lote #<?= numero_visible_lote($pdo, (int) $idLote, $usuarioId) ?></h2>
                 <p class="dashboard-subtitle">Fichas técnicas creadas para los ítems de este lote.</p>
             </div>
         </div>

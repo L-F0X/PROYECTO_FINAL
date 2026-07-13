@@ -256,7 +256,7 @@ try {
     <main class="dashboard-main">
         <div class="container" style="padding: 20px; margin: 0; max-width: 100%;">
             <div class="profile-card">
-                <h2>Editar Usuario - ID: <?= htmlspecialchars($user['ID_USUARIO']) ?></h2>
+                <h2>Editar Usuario: <?= htmlspecialchars(trim($user['NOMBRE'] . ' ' . $user['APELLIDO'])) ?></h2>
                 <p>Actualiza la información del usuario. Deja la contraseña en blanco si no deseas cambiarla.</p>
 
                 <?php if ($error): ?>

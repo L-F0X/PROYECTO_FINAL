@@ -664,7 +664,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -824,7 +824,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <table>
         <thead>
             <tr>
-                <th>ID Ítem</th>
+                <th>N°</th>
                 <th>Código UNSPSC</th>
                 <th>Descripción del Bien</th>
                 <th>Necesidad</th>
@@ -838,12 +838,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </tr>
         </thead>
         <tbody>
-                <?php foreach($items as $item): ?>
+                <?php $numItem = 1; foreach($items as $item): ?>
                     <tr>
-                        <td>#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                        <td>#<?= $numItem++ ?></td>
                         <td><?= htmlspecialchars($item['CODIGO_UNSPSC'] ?? 'SIN_ASIGNAR') ?></td>
                         <td><strong><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></strong></td>
-                        <td><?= htmlspecialchars($item['ID_NECESIDAD'] ? 'Necesidad #' . $item['ID_NECESIDAD'] : 'N/A') ?></td>
+                        <td><?= $item['ID_NECESIDAD'] ? 'Registrada' : 'N/A' ?></td>
                         <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?? 'N/A') ?></td>
                         <td><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                         <td><?= $item['PORCENTAJE'] !== null ? htmlspecialchars(rtrim(rtrim(number_format($item['PORCENTAJE'], 2), '0'), '.')) . '%' : 'N/A' ?></td>

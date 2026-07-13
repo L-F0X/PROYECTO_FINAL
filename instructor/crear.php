@@ -36,15 +36,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_crear_lote'])) {
             if ($stmtCheck->fetchColumn() > 0) {
                 $errorLote = 'Ya existe un lote con el nombre "' . htmlspecialchars($nombreLote) . '".';
             } else {
+                $pdo->beginTransaction();
+
+                // lote_requerimiento.ID_SOLICITANTE no apunta directo a usuario:
+                // apunta a solicitante.ID_INSTRUCTOR_LIDER, y esa tabla nunca se
+                // llena al crear un instructor nuevo. Sin esto, cualquier
+                // instructor sin fila en solicitante (todos menos el que se dio
+                // de alta manualmente) no puede crear lotes — se asegura aquí,
+                // de forma perezosa e idempotente.
+                $pdo->prepare("INSERT IGNORE INTO solicitante (ID_INSTRUCTOR_LIDER) VALUES (?)")->execute([$usuarioId]);
+
                 $stmtMaxLote = $pdo->query("SELECT COALESCE(MAX(ID_LOTE), 0) + 1 FROM lote_requerimiento");
                 $newIdLote = intval($stmtMaxLote->fetchColumn());
 
                 $stmtInsert = $pdo->prepare("INSERT INTO lote_requerimiento (ID_LOTE, ID_SOLICITANTE, LOTE_NOMBRE, ESTADO_TRAMITE, FECHA_CREACION) VALUES (?, ?, ?, 'Borrador', ?)");
                 $stmtInsert->execute([$newIdLote, $usuarioId, $nombreLote, date('Y-m-d')]);
+
+                $pdo->commit();
                 header("Location: ../index.php");
                 exit;
             }
         } catch (\PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('Error al crear lote: ' . $e->getMessage());
             $errorLote = 'Error al crear el lote. Verifique que los datos sean correctos.';
         }
@@ -77,7 +92,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">

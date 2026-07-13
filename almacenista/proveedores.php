@@ -62,7 +62,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Almacén Central</span></h1>
-            <div class="user-greeting">Gestor de Turno: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Almacenista)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -123,7 +123,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>N°</th>
                             <th>NIT</th>
                             <th>Razón Social</th>
                             <th>Correo</th>
@@ -147,9 +147,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($proveedores as $p): ?>
+                            <?php $numProvAlm = 1; foreach ($proveedores as $p): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
+                                    <td><?= $numProvAlm++ ?></td>
                                     <td><?= htmlspecialchars($p['NIT']) ?></td>
                                     <td><?= htmlspecialchars($p['RAZON_SOCIAL']) ?></td>
                                     <td><?= htmlspecialchars($p['EMAIL']) ?></td>

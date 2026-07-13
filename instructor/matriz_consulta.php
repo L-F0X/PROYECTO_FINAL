@@ -208,7 +208,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -299,7 +299,7 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 <table class="lotes-table">
                     <thead>
                         <tr>
-                            <th>ID Ítem</th>
+                            <th>N°</th>
                             <th>Lote</th>
                             <th>Descripción del Bien</th>
                             <th>U. Medida</th>
@@ -325,13 +325,13 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($items as $item): ?>
+                            <?php $numItemConsulta = 1; foreach ($items as $item): ?>
                                 <?php
                                     $apoyo = trim(($item['APOYO_NOMBRE'] ?? '') . ' ' . ($item['APOYO_APELLIDO'] ?? ''));
                                     if ($apoyo === '') $apoyo = '—';
                                 ?>
                                 <tr>
-                                    <td class="td-id">#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                                    <td class="td-id">#<?= $numItemConsulta++ ?></td>
                                     <td><?= htmlspecialchars($item['LOTE_NOMBRE']) ?></td>
                                     <td class="td-nombre"><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></td>
                                     <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?: '—') ?></td>

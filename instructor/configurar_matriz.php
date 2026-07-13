@@ -5,6 +5,8 @@ require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../texto_helper.php';
 require_once '../cotizacion_helper.php';
+require_once '../iva_helper.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -87,7 +89,11 @@ function cargar_ofertas_detalle(PDO $pdo, ?array $matrizItem): array {
             $slots[] = null;
             continue;
         }
+<<<<<<< HEAD
         $stmt = $pdo->prepare("SELECT c.ID_COTIZACION, c.VALOR_UNITARIO, c.CANTIDAD_OFRECIDA, c.VALOR_TOTAL, p.RAZON_SOCIAL FROM cotizacion c INNER JOIN proveedor p ON c.ID_PROVEEDOR = p.ID_PROVEEDOR WHERE c.ID_COTIZACION = ?");
+=======
+        $stmt = $pdo->prepare("SELECT c.ID_COTIZACION, c.VALOR_UNITARIO, p.RAZON_SOCIAL, i.PORCENTAJE AS IVA_PORCENTAJE FROM cotizacion c INNER JOIN proveedor p ON c.ID_PROVEEDOR = p.ID_PROVEEDOR INNER JOIN iva i ON c.ID_IVA = i.ID_IVA WHERE c.ID_COTIZACION = ?");
+>>>>>>> 73328b637814b87b9de215d8a3a5179df1cb51e1
         $stmt->execute([$idCotizacion]);
         $slots[] = $stmt->fetch() ?: null;
     }
@@ -122,14 +128,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
 
         $idProveedor   = isset($_POST['id_proveedor']) ? intval($_POST['id_proveedor']) : 0;
         $valorUnitario = isset($_POST['valor_unitario']) ? intval($_POST['valor_unitario']) : 0;
+<<<<<<< HEAD
         $cantidadOfrecida = isset($_POST['cantidad_ofrecida']) ? intval($_POST['cantidad_ofrecida']) : 0;
 
         if ($cantidadOfrecida <= 0) {
             throw new Exception("La cantidad ofrecida debe ser un número entero mayor a 0.");
         }
+=======
+        $ivaPorcentaje = isset($_POST['iva_porcentaje']) ? (float) str_replace(',', '.', trim($_POST['iva_porcentaje'])) : -1;
+>>>>>>> 73328b637814b87b9de215d8a3a5179df1cb51e1
 
         if ($valorUnitario <= 0 || $valorUnitario > 999999999) {
             throw new Exception("El valor unitario debe ser un número entero entre 1 y 999,999,999.");
+        }
+        if ($ivaPorcentaje < 0 || $ivaPorcentaje > 100) {
+            throw new Exception("El porcentaje de IVA de esta oferta debe ser un número entre 0 y 100.");
         }
 
         $pdo->beginTransaction();
@@ -170,12 +183,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
             }
         }
 
-        $stmtItemLock = $pdo->prepare("SELECT ID_IVA, OFERTA_1, OFERTA_2, OFERTA_3 FROM matriz_item WHERE ID_MATRIZ_ITEM = ? FOR UPDATE");
+        $stmtItemLock = $pdo->prepare("SELECT OFERTA_1, OFERTA_2, OFERTA_3 FROM matriz_item WHERE ID_MATRIZ_ITEM = ? FOR UPDATE");
         $stmtItemLock->execute([$id_matriz_item]);
         $itemActual = $stmtItemLock->fetch();
-        if (!$itemActual || empty($itemActual['ID_IVA'])) {
-            throw new Exception("Este ítem no tiene una tasa de IVA asignada; no se puede registrar la oferta.");
+        if (!$itemActual) {
+            throw new Exception("Este ítem no existe.");
         }
+        $idIvaOferta = obtener_o_crear_iva_por_porcentaje($pdo, $ivaPorcentaje);
 
         // Las 3 ofertas deben ser de proveedores distintos (así lo indica la
         // propia sección en pantalla); sin este chequeo se podían registrar
@@ -197,8 +211,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
             throw new Exception("Este ítem ya tiene las 3 ofertas máximas registradas.");
         }
 
+<<<<<<< HEAD
         $stmtInsertCot = $pdo->prepare("INSERT INTO cotizacion (ID_MATRIZ_ITEM, ID_PROVEEDOR, ID_IVA, VALOR_UNITARIO, CANTIDAD_OFRECIDA, VALOR_TOTAL) VALUES (?, ?, ?, ?, ?, 0)");
         $stmtInsertCot->execute([$id_matriz_item, $idProveedor, $itemActual['ID_IVA'], $valorUnitario, $cantidadOfrecida]);
+=======
+        $stmtInsertCot = $pdo->prepare("INSERT INTO cotizacion (ID_MATRIZ_ITEM, ID_PROVEEDOR, ID_IVA, VALOR_UNITARIO, VALOR_TOTAL) VALUES (?, ?, ?, ?, 0)");
+        $stmtInsertCot->execute([$id_matriz_item, $idProveedor, $idIvaOferta, $valorUnitario]);
+>>>>>>> 73328b637814b87b9de215d8a3a5179df1cb51e1
         $idCotizacion = $pdo->lastInsertId();
 
         $pdo->prepare("UPDATE matriz_item SET $slotLibre = ? WHERE ID_MATRIZ_ITEM = ?")->execute([$idCotizacion, $id_matriz_item]);
@@ -444,6 +463,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         break;
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -625,7 +645,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -689,7 +709,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
 
             <div class="ficha-container">
-                <div class="ficha-title">Configuración de Matriz (ID: <?= htmlspecialchars($id_matriz_item) ?>)</div>
+                <div class="ficha-title">Configuración de Matriz (Ítem #<?= numero_visible_item($pdo, $id_matriz_item, (int) ($matriz_item['ID_LOTE'] ?? 0)) ?>)</div>
                 
                 <div class="ficha-row">
                     <div class="ficha-label">Nombre del Ítem</div>
@@ -726,10 +746,14 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                     <div style="border: 1px solid #cfe8c0; background: #f4faf1; border-radius: 4px; padding: 8px 10px; font-size: 12px;">
                                         <div style="font-weight: bold;"><?= htmlspecialchars($of['RAZON_SOCIAL']) ?></div>
                                         <div>$<?= number_format($of['VALOR_UNITARIO']) ?> unitario</div>
+<<<<<<< HEAD
                                         <?php if (!empty($of['CANTIDAD_OFRECIDA'])): ?>
                                         <div>Cant. Ofrecida: <?= number_format($of['CANTIDAD_OFRECIDA']) ?></div>
                                         <div>Total Calc: $<?= number_format($of['VALOR_TOTAL'] ?? 0) ?></div>
                                         <?php endif; ?>
+=======
+                                        <div>IVA: <?= number_format((float) $of['IVA_PORCENTAJE'], 2) ?>%</div>
+>>>>>>> 73328b637814b87b9de215d8a3a5179df1cb51e1
                                     </div>
                                     <form method="POST" action="configurar_matriz.php?id=<?= $idFicha ?>" style="margin-top: 4px;">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
@@ -754,7 +778,11 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                         </div>
                                         <input type="text" inputmode="numeric" class="input-valor-formateado" placeholder="$ Valor unitario" required style="margin-bottom: 4px;">
                                         <input type="hidden" name="valor_unitario" class="input-valor-real">
+<<<<<<< HEAD
                                         <input type="number" name="cantidad_ofrecida" class="input-cantidad-ofrecida" placeholder="Cantidad ofrecida" min="1" step="1" required style="margin-bottom: 4px; width: 100%; border: 1px solid #bbb; padding: 6px 8px; border-radius: 3px; font-size: 13px; box-sizing: border-box;">
+=======
+                                        <input type="number" name="iva_porcentaje" min="0" max="100" step="0.01" placeholder="% IVA de esta oferta" required style="margin-bottom: 4px; font-size: 12px;">
+>>>>>>> 73328b637814b87b9de215d8a3a5179df1cb51e1
                                         <button type="submit" style="width: 100%; padding: 5px; font-size: 11px; background: #39a900; color: white; border: none; border-radius: 3px; cursor: pointer;">+ Agregar Oferta</button>
                                     </form>
                                 <?php endif; ?>

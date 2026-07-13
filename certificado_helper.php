@@ -131,7 +131,12 @@ function asegurar_tablas_certificado_inventario(PDO $pdo): void {
 function emitir_certificado_inventario(PDO $pdo, int $idAlmacenista): int {
     asegurar_tablas_certificado_inventario($pdo);
 
-    $numero = "CERT-INV-" . date('Ymd') . "-" . time();
+    // Número legible y consecutivo (por año), en vez de una marca de tiempo
+    // Unix cruda — el AUTO_INCREMENT sigue avanzando aunque se borren
+    // certificados viejos por el límite FIFO, así que nunca se repite.
+    $stmtNextIdCertInv = $pdo->query("SELECT `AUTO_INCREMENT` FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'certificado_inventario'");
+    $siguienteIdCertInv = (int) $stmtNextIdCertInv->fetchColumn();
+    $numero = "CERT-INV-" . date('Y') . "-" . str_pad($siguienteIdCertInv, 4, "0", STR_PAD_LEFT);
     $pdo->prepare("INSERT INTO certificado_inventario (NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?)")
         ->execute([$numero, $idAlmacenista]);
     $idCertificado = (int) $pdo->lastInsertId();

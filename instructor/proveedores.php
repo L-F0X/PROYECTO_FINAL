@@ -157,7 +157,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Instructor)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -256,7 +256,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>N°</th>
                             <th>NIT</th>
                             <th>Razón Social</th>
                             <th>Correo</th>
@@ -281,10 +281,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($proveedores as $p): ?>
+                            <?php $numProv = 1; foreach ($proveedores as $p): ?>
                                 <?php $formId = 'form-prov-' . $p['ID_PROVEEDOR']; ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
+                                    <td><?= $numProv++ ?></td>
                                     <td>
                                         <input type="text" name="nit" form="<?= $formId ?>" value="<?= htmlspecialchars($p['NIT']) ?>" class="form-control" required maxlength="20"
                                                pattern="[0-9]+" title="Solo se permiten números">

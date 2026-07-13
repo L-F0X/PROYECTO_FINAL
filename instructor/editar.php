@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 // Control de acceso: si no hay sesión activa, redirigir al login
 if (!isset($_SESSION['usuario_id'])) {
@@ -96,7 +97,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Instructor</span></h1>
-            <div class="user-greeting">Instructor Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -139,7 +140,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
     <main class="dashboard-main">
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
-            <h2>Editar Lote #<?= htmlspecialchars($lote['ID_LOTE']) ?></h2>
+            <h2>Editar Lote #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?></h2>
 
             <?php if ($errorMensaje !== ''): ?>
                 <div style="padding: 12px 16px; border-radius: 6px; margin: 15px 0; font-weight: 500; font-size: 14px; background: #fdf2f2; color: #de3a3a; border: 1px solid #fde2e2;">

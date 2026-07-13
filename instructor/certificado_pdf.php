@@ -6,6 +6,7 @@
 // un instructor solo puede ver los certificados de sus propios lotes.
 require_once '../conexion.php';
 require_once '../certificado_helper.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -230,7 +231,7 @@ $firmaInstructor = firma_nombre_corto($cert['NOMBRE'] ?? null, $cert['APELLIDO']
 
         <div class="cert-meta">
             <div><strong>Número de Certificado:</strong> <?= htmlspecialchars($cert['NUMERO_CERTIFICADO']) ?></div>
-            <div><strong>Lote:</strong> <?= htmlspecialchars($cert['LOTE_NOMBRE']) ?> (#<?= htmlspecialchars($cert['ID_LOTE']) ?>)</div>
+            <div><strong>Lote:</strong> <?= htmlspecialchars($cert['LOTE_NOMBRE']) ?> (#<?= numero_visible_lote($pdo, (int) $cert['ID_LOTE'], (int) $cert['ID_SOLICITANTE']) ?>)</div>
             <div><strong>Instructor Solicitante:</strong> <?= htmlspecialchars($cert['NOMBRE'] . ' ' . $cert['APELLIDO']) ?></div>
             <div><strong>Correo:</strong> <?= htmlspecialchars($cert['EMAIL']) ?></div>
             <div><strong>Fecha de Creación del Lote:</strong> <?= htmlspecialchars($cert['FECHA_CREACION']) ?></div>

@@ -2,6 +2,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -119,7 +120,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
-            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -164,7 +165,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <div class="role-banner role-coordinador">
                 <h2>Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
+                <p>Lote #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
             </div>
 
             <?php if ($mensajeOferta): ?>

@@ -1,6 +1,7 @@
 <?php
 require_once '../conexion.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -28,7 +29,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
 
 // Obtener historial de decisiones
 try {
-    $sql = "SELECT arl.*, lr.LOTE_NOMBRE, u.NOMBRE, u.APELLIDO
+    $sql = "SELECT arl.*, lr.LOTE_NOMBRE, lr.ID_SOLICITANTE, u.NOMBRE, u.APELLIDO
             FROM aprobacion_rechazo_lote arl
             INNER JOIN lote_requerimiento lr ON arl.ID_LOTE = lr.ID_LOTE
             INNER JOIN usuario u ON arl.ID_COORDINADOR = u.ID_USUARIO
@@ -80,7 +81,7 @@ $total = count($decisiones);
         <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
-            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
+            <div class="user-greeting">Bienvenido: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
@@ -154,7 +155,7 @@ $total = count($decisiones);
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>ID Lote</th>
+                            <th>N° Lote</th>
                             <th>Nombre Lote</th>
                             <th>Coordinador</th>
                             <th>Decisión</th>
@@ -182,7 +183,7 @@ $total = count($decisiones);
                                 <tr style="border-bottom: 1px solid #eee;">
                                     <td style="padding: 12px;">
                                         <a href="revisar_lote.php?id=<?= htmlspecialchars($decision['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
-                                            <?= htmlspecialchars($decision['ID_LOTE']) ?>
+                                            #<?= numero_visible_lote($pdo, (int) $decision['ID_LOTE'], (int) $decision['ID_SOLICITANTE']) ?>
                                         </a>
                                     </td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($decision['LOTE_NOMBRE']) ?></td>
