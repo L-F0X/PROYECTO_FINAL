@@ -410,7 +410,7 @@ if ($msg === 'eliminado') {
         <?php if ($rolNombre === 'administrador'): ?>
         <span class="user-greeting">Administrador del Sistema: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong> <span class="role-badge">(<?= htmlspecialchars($_SESSION['rol_nombre']) ?>)</span></span>
         <?php else: ?>
-        <span class="user-greeting">Solicitante: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></span>
+        <span class="user-greeting">Bienvenido: <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></span>
         <?php endif; ?>
     </div>
     <div class="header-right">
