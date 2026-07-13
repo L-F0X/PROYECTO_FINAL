@@ -1,5 +1,49 @@
 // javascript.js
 
+// Verificación de sesión en la pestaña actual (cierra sesión al cerrar la ventana/pestaña)
+if (!sessionStorage.getItem('session_active')) {
+    const publicPages = ['login.php', 'recuperar_password.php', 'restablecer_password.php', 'password_reset.php', 'logout.php'];
+    const currentPage = window.location.pathname.split('/').pop() || 'index.php';
+    if (!publicPages.includes(currentPage)) {
+        // Redirigir a logout para forzar limpieza en PHP
+        const prefix = (window.location.pathname.includes('/instructor/') || 
+                        window.location.pathname.includes('/coordinador/') || 
+                        window.location.pathname.includes('/almacenista/') || 
+                        window.location.pathname.includes('/Administrador/')) ? '../' : '';
+        window.location.href = prefix + 'logout.php';
+    }
+} else {
+    // Control de inactividad de 5 minutos (300,000 ms) en el frontend
+    (function() {
+        const publicPages = ['login.php', 'recuperar_password.php', 'restablecer_password.php', 'password_reset.php', 'logout.php'];
+        const currentPage = window.location.pathname.split('/').pop() || 'index.php';
+        if (publicPages.includes(currentPage)) return;
+
+        let timeout;
+        const prefix = (window.location.pathname.includes('/instructor/') || 
+                        window.location.pathname.includes('/coordinador/') || 
+                        window.location.pathname.includes('/almacenista/') || 
+                        window.location.pathname.includes('/Administrador/')) ? '../' : '';
+
+        function resetTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(logoutUser, 300000); // 5 minutos = 300,000 ms
+        }
+
+        function logoutUser() {
+            sessionStorage.removeItem('session_active');
+            window.location.href = prefix + 'logout.php?msg=inactivo';
+        }
+
+        // Eventos que indican actividad del usuario
+        const activityEvents = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+        activityEvents.forEach(eventName => {
+            document.addEventListener(eventName, resetTimer, true);
+        });
+
+        resetTimer();
+    })();
+}
 // --- Sistema de notificaciones (toast) ---------------------------------
 function showToast(message, type = "success", duration = 4500) {
     if (!message) return;

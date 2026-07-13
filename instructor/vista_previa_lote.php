@@ -195,7 +195,7 @@ if ($isExport) {
             <td style="text-align: left;"><?= htmlspecialchars($item['NOMBRE_ITEM']) ?></td>
             <td><?= htmlspecialchars($item['UNIDAD_MEDIDA']) ?></td>
             
-            <td><?= intval($item['CANTIDAD_REGULAR']) ?: '' ?></td>
+            <td><?= intval($cantTotal) ?: '' ?></td>
             <td style="background-color: #e2efda;"><?= intval($item['CANTIDAD_CAMPESINA_COMPLEMENTARIA']) ?: '' ?></td>
             <td style="background-color: #e2efda;"><?= intval($item['CANTIDAD_CAMPESINA_TITULADA']) ?: '' ?></td>
             <td style="background-color: #ddebf7;"><?= intval($item['CANTIDAD_VULNERABLE']) ?: '' ?></td>

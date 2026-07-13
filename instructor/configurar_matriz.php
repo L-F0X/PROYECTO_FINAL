@@ -87,7 +87,7 @@ function cargar_ofertas_detalle(PDO $pdo, ?array $matrizItem): array {
             $slots[] = null;
             continue;
         }
-        $stmt = $pdo->prepare("SELECT c.ID_COTIZACION, c.VALOR_UNITARIO, p.RAZON_SOCIAL FROM cotizacion c INNER JOIN proveedor p ON c.ID_PROVEEDOR = p.ID_PROVEEDOR WHERE c.ID_COTIZACION = ?");
+        $stmt = $pdo->prepare("SELECT c.ID_COTIZACION, c.VALOR_UNITARIO, c.CANTIDAD_OFRECIDA, c.VALOR_TOTAL, p.RAZON_SOCIAL FROM cotizacion c INNER JOIN proveedor p ON c.ID_PROVEEDOR = p.ID_PROVEEDOR WHERE c.ID_COTIZACION = ?");
         $stmt->execute([$idCotizacion]);
         $slots[] = $stmt->fetch() ?: null;
     }
@@ -122,6 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
 
         $idProveedor   = isset($_POST['id_proveedor']) ? intval($_POST['id_proveedor']) : 0;
         $valorUnitario = isset($_POST['valor_unitario']) ? intval($_POST['valor_unitario']) : 0;
+        $cantidadOfrecida = isset($_POST['cantidad_ofrecida']) ? intval($_POST['cantidad_ofrecida']) : 0;
+
+        if ($cantidadOfrecida <= 0) {
+            throw new Exception("La cantidad ofrecida debe ser un número entero mayor a 0.");
+        }
 
         if ($valorUnitario <= 0 || $valorUnitario > 999999999) {
             throw new Exception("El valor unitario debe ser un número entero entre 1 y 999,999,999.");
@@ -192,8 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
             throw new Exception("Este ítem ya tiene las 3 ofertas máximas registradas.");
         }
 
-        $stmtInsertCot = $pdo->prepare("INSERT INTO cotizacion (ID_MATRIZ_ITEM, ID_PROVEEDOR, ID_IVA, VALOR_UNITARIO, VALOR_TOTAL) VALUES (?, ?, ?, ?, 0)");
-        $stmtInsertCot->execute([$id_matriz_item, $idProveedor, $itemActual['ID_IVA'], $valorUnitario]);
+        $stmtInsertCot = $pdo->prepare("INSERT INTO cotizacion (ID_MATRIZ_ITEM, ID_PROVEEDOR, ID_IVA, VALOR_UNITARIO, CANTIDAD_OFRECIDA, VALOR_TOTAL) VALUES (?, ?, ?, ?, ?, 0)");
+        $stmtInsertCot->execute([$id_matriz_item, $idProveedor, $itemActual['ID_IVA'], $valorUnitario, $cantidadOfrecida]);
         $idCotizacion = $pdo->lastInsertId();
 
         $pdo->prepare("UPDATE matriz_item SET $slotLibre = ? WHERE ID_MATRIZ_ITEM = ?")->execute([$idCotizacion, $id_matriz_item]);
@@ -301,7 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
             // registradas, hay que recalcular sus VALOR_TOTAL a mano con la
             // misma fórmula del trigger (cantidad × valor unitario × (1+IVA%))
             // para que no queden desactualizados.
-            $stmtCotItem = $pdo->prepare("SELECT ID_COTIZACION, VALOR_UNITARIO, ID_IVA FROM cotizacion WHERE ID_MATRIZ_ITEM = ?");
+            $stmtCotItem = $pdo->prepare("SELECT ID_COTIZACION, VALOR_UNITARIO, ID_IVA, CANTIDAD_OFRECIDA FROM cotizacion WHERE ID_MATRIZ_ITEM = ?");
             $stmtCotItem->execute([$id_matriz_item]);
             $cotizacionesExistentes = $stmtCotItem->fetchAll();
             if (!empty($cotizacionesExistentes)) {
@@ -310,7 +315,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
                 foreach ($cotizacionesExistentes as $cot) {
                     $stmtIva->execute([$cot['ID_IVA']]);
                     $porcentajeIva = (float) $stmtIva->fetchColumn();
-                    $nuevoTotal = (int) round($cantidad * $cot['VALOR_UNITARIO'] * (1 + $porcentajeIva / 100));
+                    $cantCalc = !empty($cot['CANTIDAD_OFRECIDA']) ? (int)$cot['CANTIDAD_OFRECIDA'] : $cantidad;
+                    $nuevoTotal = (int) round($cantCalc * $cot['VALOR_UNITARIO'] * (1 + $porcentajeIva / 100));
                     $stmtUpdateCot->execute([$nuevoTotal, $cot['ID_COTIZACION']]);
                 }
                 recalcular_promedios_item($pdo, $id_matriz_item);
@@ -335,6 +341,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? 'guardar') ===
                 foreach ($estrategiasMap as $key => $info) {
                     $strategyValues[$info['col']] = isset($cantidades[$key]) ? max(0, intval($cantidades[$key])) : 0;
                 }
+                // La cantidad regular ES la cantidad total
+                $strategyValues['CANTIDAD_REGULAR'] = $cantidad;
 
                 if ($id_necesidad > 0) {
                     $sqlUpdateNeed = "UPDATE necesidad SET 
@@ -678,7 +686,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
             <input type="hidden" name="accion" value="guardar">
         </form>
-        <input type="hidden" name="cantidad_total_calculada" id="cantidad_total_calculada" form="form-guardar-matriz" value="<?= htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) ?>">
+
 
             <div class="ficha-container">
                 <div class="ficha-title">Configuración de Matriz (ID: <?= htmlspecialchars($id_matriz_item) ?>)</div>
@@ -718,6 +726,10 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                     <div style="border: 1px solid #cfe8c0; background: #f4faf1; border-radius: 4px; padding: 8px 10px; font-size: 12px;">
                                         <div style="font-weight: bold;"><?= htmlspecialchars($of['RAZON_SOCIAL']) ?></div>
                                         <div>$<?= number_format($of['VALOR_UNITARIO']) ?> unitario</div>
+                                        <?php if (!empty($of['CANTIDAD_OFRECIDA'])): ?>
+                                        <div>Cant. Ofrecida: <?= number_format($of['CANTIDAD_OFRECIDA']) ?></div>
+                                        <div>Total Calc: $<?= number_format($of['VALOR_TOTAL'] ?? 0) ?></div>
+                                        <?php endif; ?>
                                     </div>
                                     <form method="POST" action="configurar_matriz.php?id=<?= $idFicha ?>" style="margin-top: 4px;">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
@@ -742,6 +754,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                         </div>
                                         <input type="text" inputmode="numeric" class="input-valor-formateado" placeholder="$ Valor unitario" required style="margin-bottom: 4px;">
                                         <input type="hidden" name="valor_unitario" class="input-valor-real">
+                                        <input type="number" name="cantidad_ofrecida" class="input-cantidad-ofrecida" placeholder="Cantidad ofrecida" min="1" step="1" required style="margin-bottom: 4px; width: 100%; border: 1px solid #bbb; padding: 6px 8px; border-radius: 3px; font-size: 13px; box-sizing: border-box;">
                                         <button type="submit" style="width: 100%; padding: 5px; font-size: 11px; background: #39a900; color: white; border: none; border-radius: 3px; cursor: pointer;">+ Agregar Oferta</button>
                                     </form>
                                 <?php endif; ?>
@@ -753,29 +766,31 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <div class="ficha-section-header">Estrategias Académicas y Cantidad</div>
 
                 <div class="ficha-row">
-                    <div class="ficha-label">Cantidad Total</div>
-                    <div class="ficha-value" style="font-weight: bold; font-size: 16px; color: #39a900;" id="display-cantidad-total">
-                        <?= htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) ?>
+                    <div class="ficha-label">Cantidad Regular (Total)</div>
+                    <div class="ficha-value" style="display: flex; align-items: center; gap: 15px;">
+                        <span id="display-cantidad-total" style="font-weight: bold; font-size: 18px; color: #39a900; padding: 5px;"><?= $necesidad ? htmlspecialchars($necesidad['CANTIDAD_REGULAR']) : htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) ?></span>
+                        <input type="hidden" name="cantidad_total_calculada" id="cantidad_total_calculada" form="form-guardar-matriz" value="<?= $necesidad ? htmlspecialchars($necesidad['CANTIDAD_REGULAR']) : htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) ?>">
                     </div>
                 </div>
 
                 <div class="ficha-row" style="padding: 15px; background: #fafafa; border-top: 1px solid #aaa;">
                     <div class="estrategias-accordion">
                         <div class="estrategias-header" id="estrategias-toggle">
-                            <span>► Seleccionar Estrategias Académicas (Distribución)</span>
+                            <span>► Seleccionar Estrategias Académicas (Distribución de la cantidad regular)</span>
                             <span class="toggle-icon">▼</span>
                         </div>
                         <div class="estrategias-content" id="estrategias-content">
                             <div class="estrategia-grid">
                                 <?php foreach ($estrategiasMap as $key => $info): ?>
+                                    <?php if ($key === 'cantidad_regular') continue; ?>
                                     <div class="estrategia-item">
                                         <label><?= htmlspecialchars($info['label']) ?></label>
-                                        <input type="number" name="cantidades_estrategias[<?= htmlspecialchars($key) ?>]" class="input-estrategia" form="form-guardar-matriz" min="0" value="<?= $necesidad ? htmlspecialchars($necesidad[$info['col']]) : ($key === 'cantidad_regular' ? htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) : '0') ?>" placeholder="0">
+                                        <input type="number" name="cantidades_estrategias[<?= htmlspecialchars($key) ?>]" class="input-estrategia" form="form-guardar-matriz" min="0" value="<?= $necesidad ? htmlspecialchars($necesidad[$info['col']]) : '0' ?>" placeholder="0">
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                             <div style="margin-top: 15px; text-align: right;">
-                                <button type="button" id="btn-limpiar-estrategias" style="padding: 6px 12px; background: #e0e0e0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 12px;">Limpiar Todas</button>
+                                <button type="button" id="btn-limpiar-estrategias" style="padding: 6px 12px; background: #e0e0e0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 12px;">Limpiar Distribución</button>
                             </div>
                         </div>
                     </div>
@@ -804,7 +819,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Calculation Logic
     const inputs = document.querySelectorAll('.input-estrategia');
     const displayTotal = document.getElementById('display-cantidad-total');
     const inputTotalHidden = document.getElementById('cantidad_total_calculada');
@@ -819,17 +833,30 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         if (total === 0) {
-            // Fallback si borran todo
             total = 1;
-            const regularInp = document.querySelector('input[name="cantidades_estrategias[cantidad_regular]"]');
-            if (regularInp) regularInp.value = 1;
         }
         displayTotal.textContent = total;
         inputTotalHidden.value = total;
     }
 
     inputs.forEach(inp => {
-        inp.addEventListener('input', recomputeTotal);
+        inp.addEventListener('focus', function() {
+            if (this.value === '0') {
+                this.value = '';
+            }
+        });
+        inp.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.value = '0';
+            }
+        });
+        inp.addEventListener('input', function() {
+            let val = this.value;
+            if (val.length > 1 && val.startsWith('0')) {
+                this.value = parseInt(val, 10).toString();
+            }
+            recomputeTotal();
+        });
         inp.addEventListener('change', recomputeTotal);
     });
 
@@ -866,6 +893,18 @@ document.addEventListener('DOMContentLoaded', function () {
             const digitos = visible.value.replace(/\D/g, '');
             real.value = digitos;
             visible.value = digitos ? '$ ' + Number(digitos).toLocaleString('es-CO') : '';
+        });
+    });
+
+    // Bloquear negativos, decimales y caracteres especiales en la cantidad ofrecida
+    document.querySelectorAll('.input-cantidad-ofrecida').forEach(function (inp) {
+        inp.addEventListener('keypress', function (e) {
+            if (e.key === '-' || e.key === '+' || e.key === '.' || e.key === ',' || e.key === 'e') {
+                e.preventDefault();
+            }
+        });
+        inp.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
         });
     });
 });

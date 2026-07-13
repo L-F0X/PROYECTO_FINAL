@@ -21,6 +21,46 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Verificación global de sesión para no permitir acceso por URL a archivos protegidos
+if (php_sapi_name() !== 'cli') {
+    $current_file = basename($_SERVER['PHP_SELF']);
+    $public_files = ['login.php', 'recuperar_password.php', 'restablecer_password.php', 'password_reset.php', 'logout.php'];
+    
+    if (!in_array($current_file, $public_files) && !isset($_SESSION['usuario_id'])) {
+        $prefix = '';
+        if (strpos($_SERVER['PHP_SELF'], '/instructor/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/coordinador/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/almacenista/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/Administrador/') !== false ||
+            strpos($_SERVER['PHP_SELF'], '/ajax/') !== false) {
+            $prefix = '../';
+        }
+        header("Location: " . $prefix . "login.php");
+        exit;
+    }
+
+    // Inactividad de 5 minutos en el backend
+    if (isset($_SESSION['usuario_id'])) {
+        $prefix = '';
+        if (strpos($_SERVER['PHP_SELF'], '/instructor/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/coordinador/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/almacenista/') !== false || 
+            strpos($_SERVER['PHP_SELF'], '/Administrador/') !== false ||
+            strpos($_SERVER['PHP_SELF'], '/ajax/') !== false) {
+            $prefix = '../';
+        }
+        
+        $inactivity_limit = 300; // 5 minutos
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $inactivity_limit)) {
+            session_unset();
+            session_destroy();
+            header("Location: " . $prefix . "login.php?msg=inactivo");
+            exit;
+        }
+        $_SESSION['last_activity'] = time();
+    }
+}
+
 // Conexión PDO
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [

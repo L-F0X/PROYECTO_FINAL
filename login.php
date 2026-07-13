@@ -14,6 +14,8 @@ $msg = $_GET['msg'] ?? '';
 $messageText = '';
 if ($msg === 'logout') {
     $messageText = '✓ Sesión cerrada correctamente.';
+} elseif ($msg === 'inactivo') {
+    $messageText = '⚠ Sesión cerrada por inactividad (5 minutos sin actividad).';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -129,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script src="js/apartados.js"></script>
 <script>
+    // Limpiar sesión del lado del cliente al estar en la página de login
+    sessionStorage.removeItem('session_active');
+
     function togglePasswordVisibility(inputId, btn) {
         const input = document.getElementById(inputId);
         const eyeOpen = btn.querySelector('.eye-open');
@@ -152,6 +157,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if(email === "" || password === "") {
             e.preventDefault();
             alert("Debe rellenar todos los campos del formulario.");
+        } else {
+            sessionStorage.setItem('session_active', '1');
         }
     });
 </script>
