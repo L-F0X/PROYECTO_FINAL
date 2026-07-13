@@ -419,6 +419,7 @@ $usuarioNombre = htmlspecialchars($user['NOMBRE'] . ' ' . $user['APELLIDO']);
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+        <a href="index.php" class="btn-inicio-nav">Inicio</a>
         <a href="notificaciones.php" class="header-bell-link" title="Notificaciones">
             <img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon">
             <?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, $usuarioId); $wsToken = generar_ws_token($pdo, $usuarioId, $_SESSION['rol_nombre'] ?? ''); ?>

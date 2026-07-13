@@ -20,6 +20,13 @@ if (!defined('ACCESO_VALIDO')) {
         
         <div>
             <label style="font-weight: 600; display: block; margin-bottom: 8px;">Seleccionar Artículo del Stock</label>
+            <?php if (empty($itemsInventario)): ?>
+                <p style="margin: 0 0 10px; padding: 10px 14px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 6px; font-size: 13px; color: #664d03;">
+                    Todavía no hay artículos en el catálogo de stock. Primero crea uno en
+                    <a href="stock.php" style="font-weight: 600;">Vista de Stock → "+ Nuevo Artículo de Stock"</a>,
+                    y luego podrás registrar entradas para él aquí.
+                </p>
+            <?php endif; ?>
             <select name="id_ficha_tecnica" class="form-control-modern" required>
                 <option value="">— Seleccione un elemento —</option>
                 <?php foreach ($itemsInventario as $i): ?>

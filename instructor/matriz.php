@@ -4,6 +4,7 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../iva_helper.php';
+require_once '../certificado_helper.php';
 
 // Lista cerrada de unidades de medida: no todos los materiales/bienes se
 // cuentan como "Unidad" (ej. combustibles por Galón, telas por Metro).
@@ -634,6 +635,10 @@ $stmtItems = $pdo->prepare("SELECT m.*, c.CODIGO_UNSPSC, i.PORCENTAJE, ua.NOMBRE
 $stmtItems->execute([$id_lote]);
 $items = $stmtItems->fetchAll();
 
+// Existencia real por ítem, solo disponible una vez el lote fue aprobado y
+// el almacenista emitió el certificado (mientras tanto, el mapa viene vacío).
+$existenciaMap = obtener_existencia_lote($pdo, $id_lote);
+
 $photoPath = null;
 foreach (['jpg','jpeg','png','webp'] as $ext) {
     $candidate = __DIR__ . '/../uploads/profiles/' . $usuarioId . '.' . $ext;
@@ -828,6 +833,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <th>IVA</th>
                 <th>Instructor Apoyo</th>
                 <th>Estado</th>
+                <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Aprobado'): ?><th>Existencia</th><?php endif; ?>
                 <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?><th>Acciones</th><?php endif; ?>
             </tr>
         </thead>
@@ -842,7 +848,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <td><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                         <td><?= $item['PORCENTAJE'] !== null ? htmlspecialchars(rtrim(rtrim(number_format($item['PORCENTAJE'], 2), '0'), '.')) . '%' : 'N/A' ?></td>
                         <td>
-                            <?php 
+                            <?php
                             if ($item['INSTRUCTOR_APOYO']) {
                                 $stmtUser = $pdo->prepare("SELECT NOMBRE, APELLIDO FROM usuario WHERE ID_USUARIO = ?");
                                 $stmtUser->execute([$item['INSTRUCTOR_APOYO']]);
@@ -854,6 +860,18 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                             ?>
                         </td>
                         <td><span class="badge-estado badge-<?= strtolower(htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador')) ?>"><?= htmlspecialchars($item['ESTADO_ITEM'] ?? 'Borrador') ?></span></td>
+                        <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Aprobado'): ?>
+                        <td>
+                            <?php $filaExist = $existenciaMap[(int) $item['ID_MATRIZ_ITEM']] ?? null; ?>
+                            <?php if ($filaExist === null): ?>
+                                <span style="color:#999; font-style:italic; font-size:12px;">Sin certificar</span>
+                            <?php elseif ((int) $filaExist['EN_EXISTENCIA'] === 1): ?>
+                                <span style="color:#15803d; font-weight:600; font-size:12px;">Disponible (<?= (int) $filaExist['CANTIDAD_DISPONIBLE'] ?>)</span>
+                            <?php else: ?>
+                                <span style="color:#b91c1c; font-weight:600; font-size:12px;">No disponible</span>
+                            <?php endif; ?>
+                        </td>
+                        <?php endif; ?>
                         <?php if ($loteInfo['ESTADO_TRAMITE'] === 'Borrador'): ?>
                         <td>
                             <div style="display: flex; gap: 5px; align-items: center;">
@@ -1073,6 +1091,28 @@ async function traducirAIngles(texto) {
     try {
         const resp = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=es|en`);
         const data = await resp.json();
+
+        // MyMemory a veces devuelve como traducción "principal" una versión
+        // recortada (p.ej. "Casco de seguridad" -> "Helmet", perdiendo
+        // "seguridad") aunque tenga otra opción más completa con la misma
+        // confianza ("Safety helmet") en su lista de coincidencias. Entre
+        // las candidatas EMPATADAS en la máxima confianza, se prefiere la más
+        // larga (conserva más calificadores, menos ambigua al buscar la
+        // imagen) en vez de tomar ciegamente la primera. Solo empates
+        // exactos: una candidata con menos confianza que la mejor no se usa
+        // aunque sea más larga, para no cambiar una traducción ya buena
+        // (p.ej. "Office chair" 1.0) por una variante distinta con menos
+        // certeza (p.ej. "Desk Office chairs" 0.99).
+        const candidatas = Array.isArray(data.matches) ? data.matches : [];
+        if (candidatas.length > 0) {
+            const mejorConfianza = Math.max(...candidatas.map(m => parseFloat(m.match) || 0));
+            const cercanas = candidatas.filter(m => (parseFloat(m.match) || 0) === mejorConfianza && m.translation && m.translation.trim());
+            if (cercanas.length > 0) {
+                const elegida = cercanas.reduce((a, b) => (b.translation.trim().length > a.translation.trim().length ? b : a));
+                return elegida.translation.trim();
+            }
+        }
+
         const traducido = data && data.responseData ? data.responseData.translatedText : null;
         return (traducido && traducido.trim()) ? traducido.trim() : null;
     } catch (e) {
@@ -1087,12 +1127,21 @@ async function traducirAIngles(texto) {
 async function buscarImagenCommons(query) {
     try {
         const extensionesImagen = /\.(jpe?g|png|gif|webp|svg)$/i;
-        const searchResp = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=6&format=json&origin=*`);
+        // Commons está lleno de fotografías de piezas de museo muy bien
+        // catalogadas (MET, Rijksmuseum, V&A...), que para un término
+        // genérico como "dough knife" rankean más alto que una foto de
+        // producto actual, aunque sea una pieza antigua/oxidada de 1800. Se
+        // excluyen esas palabras de la búsqueda y además se filtran títulos
+        // sospechosos como segunda capa, para priorizar fotos actuales.
+        const srsearchQuery = `${query} -museum -antique -MET -historic -vintage -century -collection -artifact`;
+        const patronMuseo = /\b(museum|museo|antique|antigu|vintage|historic|hist[oó]ric|collection|colecci[oó]n|artifact|artefacto|rijksmuseum|met\b|\b1[5-9]\d{2}\b|\bsiglo\b)\b/i;
+        const searchResp = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(srsearchQuery)}&srnamespace=6&srlimit=8&format=json&origin=*`);
         const searchData = await searchResp.json();
         const resultados = (searchData.query && searchData.query.search) ? searchData.query.search : [];
 
         for (const resultado of resultados) {
             if (!extensionesImagen.test(resultado.title)) continue;
+            if (patronMuseo.test(resultado.title) || patronMuseo.test(resultado.snippet || '')) continue;
 
             const infoResp = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(resultado.title)}&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json&origin=*`);
             const infoData = await infoResp.json();

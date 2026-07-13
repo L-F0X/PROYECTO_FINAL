@@ -4,6 +4,7 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../auditoria_helper.php';
+require_once '../certificado_helper.php';
 
 // Definir constante de acceso seguro para archivos incluidos
 define('ACCESO_VALIDO', true);
@@ -278,6 +279,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $numCertificado = "CERT-" . str_pad($id_lote, 6, "0", STR_PAD_LEFT) . "-" . time();
                     $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?, ?)");
                     $stmtInsert->execute([$id_lote, $numCertificado, $usuarioId]);
+                    $idCertificadoNuevo = (int) $pdo->lastInsertId();
+
+                    // Registra, ítem por ítem, si ya hay esa cantidad en
+                    // existencia real en el almacén (emparejado por código
+                    // UNSPSC contra el stock físico) — una foto fija al
+                    // momento de emitir, no un valor que cambie después.
+                    registrar_existencia_certificado($pdo, $idCertificadoNuevo, $id_lote);
 
                     crear_notificacion(
                         $pdo,
@@ -296,6 +304,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
     }
+
+    // 7. Emitir Certificado de Inventario General (todo el stock físico
+    // actual, sin depender de ningún lote/solicitud de instructor)
+    elseif ($action === 'emitir_certificado_inventario') {
+        try {
+            emitir_certificado_inventario($pdo, $usuarioId);
+            $successMsg = "Certificado de inventario emitido exitosamente.";
+            $tabActiva = 'stock';
+        } catch (Exception $e) {
+            error_log('Error al emitir el certificado de inventario: ' . $e->getMessage());
+            $errorMsg = "Error al emitir el certificado de inventario. Intente de nuevo más tarde.";
+            $tabActiva = 'stock';
+        }
+    }
+
+    // Patrón Post-Redirect-Get: sin esto, el navegador guarda el POST en el
+    // historial y al volver atrás/recargar ofrece "reenviar formulario" —
+    // si el usuario acepta, la acción se repite (ej. duplica un certificado
+    // o una entrada de inventario). El mensaje viaja por la URL en vez de
+    // quedar en una variable, porque tras el redirect esto vuelve a
+    // ejecutarse como un GET nuevo.
+    $paramsRedirect = ['tab' => $tabActiva];
+    if ($successMsg !== '') {
+        $paramsRedirect['msg'] = 'exito';
+        $paramsRedirect['texto'] = $successMsg;
+    } elseif ($errorMsg !== '') {
+        $paramsRedirect['msg'] = 'error';
+        $paramsRedirect['texto'] = $errorMsg;
+    }
+    header('Location: index.php?' . http_build_query($paramsRedirect));
+    exit;
+}
+
+// Reconstruir el mensaje de feedback tras el redirect (ver PRG arriba).
+if (isset($_GET['msg'], $_GET['texto'])) {
+    if ($_GET['msg'] === 'exito') {
+        $successMsg = (string) $_GET['texto'];
+    } elseif ($_GET['msg'] === 'error') {
+        $errorMsg = (string) $_GET['texto'];
+    }
 }
 
 // --- CONSULTA DE DATOS ---
@@ -303,8 +351,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Listado de códigos UNSPSC para los formularios
 $codigosUnspsc = [];
 try {
-    $stmtC = $pdo->query("SELECT ID_CODIGO, CODIGO_UNSPSC, CLASE FROM codigo_unspsc ORDER BY CODIGO_UNSPSC ASC");
+    // "CLASE" no es una columna real de codigo_unspsc (es CLASE_TITULO) —
+    // esto hacía fallar la consulta en silencio y dejaba el desplegable de
+    // códigos del modal "Nuevo Artículo" siempre vacío. El catálogo tiene
+    // ~150k filas, así que además se limita a 300 para no intentar renderizar
+    // un <select> gigante e inutilizable.
+    $stmtC = $pdo->query("SELECT ID_CODIGO, CODIGO_UNSPSC, CLASE_TITULO FROM codigo_unspsc ORDER BY CODIGO_UNSPSC ASC LIMIT 300");
     $codigosUnspsc = $stmtC->fetchAll();
+
+    // Los códigos ya usados por artículos de stock existentes deben estar
+    // siempre presentes, aunque queden fuera de ese límite de 300 — si no,
+    // "Editar" no puede dejar seleccionado ese código (el <select> no puede
+    // marcar un value que no tiene como <option>) y lo borra en silencio al
+    // guardar.
+    $codigosYaUsados = $pdo->query("SELECT DISTINCT CODIGO_UNSPSC_FK FROM ficha_tecnica WHERE ID_MATRIZ_ITEM IS NULL AND CODIGO_UNSPSC_FK IS NOT NULL AND CODIGO_UNSPSC_FK <> ''")->fetchAll(PDO::FETCH_COLUMN);
+    $yaIncluidos = array_column($codigosUnspsc, 'CODIGO_UNSPSC');
+    $faltantes = array_values(array_diff($codigosYaUsados, $yaIncluidos));
+    if (!empty($faltantes)) {
+        $placeholders = implode(',', array_fill(0, count($faltantes), '?'));
+        $stmtFaltantes = $pdo->prepare("SELECT ID_CODIGO, CODIGO_UNSPSC, CLASE_TITULO FROM codigo_unspsc WHERE CODIGO_UNSPSC IN ($placeholders)");
+        $stmtFaltantes->execute($faltantes);
+        $codigosUnspsc = array_merge($codigosUnspsc, $stmtFaltantes->fetchAll());
+    }
 } catch (Exception $e) {
     error_log("Error al cargar códigos UNSPSC: " . $e->getMessage());
 }
@@ -341,6 +409,10 @@ try {
     $itemsInventario = [];
 }
 $totalItems = count($itemsInventario);
+
+// Certificados de inventario general ya emitidos (para el enlace en Vista de Stock)
+asegurar_tablas_certificado_inventario($pdo);
+$certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFICADO, FECHA_EMISION FROM certificado_inventario ORDER BY FECHA_EMISION DESC LIMIT 10")->fetchAll();
 
 // Búsqueda para el Panel Instructor (lote o instructor solicitante)
 $busquedaInstructor = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -498,7 +570,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge" id="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
+        <a href="notificaciones.php" class="header-bell-link" title="Notificaciones"><img src="../iconos/notificacion.png" alt="Notificaciones" class="header-bell-icon"><?php $notifNoLeidas = contar_notificaciones_no_leidas($pdo, intval($_SESSION['usuario_id'])); $wsToken = generar_ws_token($pdo, intval($_SESSION['usuario_id']), $_SESSION['rol_nombre'] ?? ''); ?><?php if ($notifNoLeidas > 0): ?><span class="header-bell-badge" id="header-bell-badge"><?= $notifNoLeidas > 9 ? '9+' : $notifNoLeidas ?></span><?php endif; ?>
         </a>
         <a href="almacenista_profile.php" class="header-avatar-link" title="Editar perfil">
             <?php if ($photoPath): ?>
@@ -599,7 +671,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <option value="">— Ninguno / Seleccionar —</option>
                     <?php foreach ($codigosUnspsc as $cod): ?>
                         <option value="<?= htmlspecialchars($cod['CODIGO_UNSPSC']) ?>">
-                            <?= htmlspecialchars($cod['CODIGO_UNSPSC']) ?> (<?= htmlspecialchars($cod['CLASE']) ?>)
+                            <?= htmlspecialchars($cod['CODIGO_UNSPSC']) ?> (<?= htmlspecialchars($cod['CLASE_TITULO']) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>

@@ -1,5 +1,6 @@
 <?php
 require_once '../conexion.php';
+require_once '../certificado_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -13,17 +14,20 @@ if ($idLote <= 0) {
 }
 
 // Obtener info del lote
-$stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE FROM lote_requerimiento WHERE ID_LOTE = ?");
+$stmtLote = $pdo->prepare("SELECT LOTE_NOMBRE, ESTADO_TRAMITE FROM lote_requerimiento WHERE ID_LOTE = ?");
 $stmtLote->execute([$idLote]);
-$loteNombre = $stmtLote->fetchColumn();
+$loteInfo = $stmtLote->fetch();
+$loteNombre = $loteInfo['LOTE_NOMBRE'] ?? null;
 
 if (!$loteNombre) {
     header('Location: mis_lotes.php');
     exit;
 }
 
-// Obtener los datos de la matriz
-$sql = "SELECT 
+// Obtener los datos de la matriz. OFERTA_1/2/3 son referencias a
+// cotizacion.ID_COTIZACION (proveedor real + valor), no números sueltos —
+// se hace LEFT JOIN para traer el valor unitario real de cada una.
+$sql = "SELECT
             mi.ID_MATRIZ_ITEM,
             ft.CODIGO_UNSPSC_FK,
             ft.NOMBRE_ITEM,
@@ -38,18 +42,26 @@ $sql = "SELECT
             n.CANTIDAD_ENI,
             n.CANTIDAD_FC_CAMPESINA,
             n.CANTIDAD_NESECIDAD as CANTIDAD_TOTAL,
-            mi.OFERTA_1,
-            mi.OFERTA_2,
-            mi.OFERTA_3
+            c1.VALOR_UNITARIO AS OF1_VALOR, c1.VALOR_TOTAL AS OF1_TOTAL,
+            c2.VALOR_UNITARIO AS OF2_VALOR, c2.VALOR_TOTAL AS OF2_TOTAL,
+            c3.VALOR_UNITARIO AS OF3_VALOR, c3.VALOR_TOTAL AS OF3_TOTAL,
+            mi.VALOR_UNITARIO_PROMEDIO, mi.VALOR_TOTAL_PROMEDIO
         FROM matriz_item mi
         JOIN ficha_tecnica ft ON ft.ID_MATRIZ_ITEM = mi.ID_MATRIZ_ITEM
         LEFT JOIN necesidad n ON n.ID_MATRIZ = mi.ID_MATRIZ_ITEM
+        LEFT JOIN cotizacion c1 ON mi.OFERTA_1 = c1.ID_COTIZACION
+        LEFT JOIN cotizacion c2 ON mi.OFERTA_2 = c2.ID_COTIZACION
+        LEFT JOIN cotizacion c3 ON mi.OFERTA_3 = c3.ID_COTIZACION
         WHERE mi.ID_LOTE = ?
         ORDER BY mi.ID_MATRIZ_ITEM ASC";
 
 $stmtItems = $pdo->prepare($sql);
 $stmtItems->execute([$idLote]);
 $items = $stmtItems->fetchAll();
+
+// Existencia real por ítem (solo hay datos si el lote ya fue aprobado y
+// certificado por el almacenista).
+$existenciaMap = obtener_existencia_lote($pdo, $idLote);
 
 $isExport = isset($_GET['export']) && $_GET['export'] === 'excel';
 
@@ -99,10 +111,10 @@ if ($isExport) {
     <thead>
         <!-- Title Rows -->
         <tr>
-            <th colspan="21" class="header-sena" style="background-color: #92d050; text-align: center; font-size: 12px; height: 30px;">SERVICIO NACIONAL DE APRENDIZAJE SENA - COMPLEJO TECNOLÓGICO AGROINDUSTRIAL, PECUARIO Y TURÍSTICO - APARTADÓ ANTIOQUIA</th>
+            <th colspan="22" class="header-sena" style="background-color: #92d050; text-align: center; font-size: 12px; height: 30px;">SERVICIO NACIONAL DE APRENDIZAJE SENA - COMPLEJO TECNOLÓGICO AGROINDUSTRIAL, PECUARIO Y TURÍSTICO - APARTADÓ ANTIOQUIA</th>
         </tr>
         <tr>
-            <th colspan="21" class="header-title" style="text-align: center; font-size: 16px; height: 50px;">LISTADO DE MATERIALES LOTE <?= strtoupper(htmlspecialchars($loteNombre)) ?></th>
+            <th colspan="22" class="header-title" style="text-align: center; font-size: 16px; height: 50px;">LISTADO DE MATERIALES LOTE <?= strtoupper(htmlspecialchars($loteNombre)) ?></th>
         </tr>
         
         <!-- Headers 1 -->
@@ -128,6 +140,7 @@ if ($isExport) {
             
             <th rowspan="2" class="col-header-green" style="background-color: #e2efda; width: 100px;">VALOR UNITARIO PROMEDIO</th>
             <th rowspan="2" class="col-header-green" style="background-color: #e2efda; width: 100px;">VALOR TOTAL PROMEDIO</th>
+            <th rowspan="2" class="col-header" style="background-color: #e2efda; width: 110px;">EXISTENCIA</th>
         </tr>
         <!-- Headers 2 -->
         <tr>
@@ -146,27 +159,35 @@ if ($isExport) {
             $cantTotal = intval($item['CANTIDAD_TOTAL'] ?? 0);
             if ($cantTotal === 0) $cantTotal = intval($item['CANTIDAD_REGULAR'] ?? 0);
 
-            $o1 = floatval($item['OFERTA_1']);
-            $o2 = floatval($item['OFERTA_2']);
-            $o3 = floatval($item['OFERTA_3']);
+            // OFERTA_1/2/3 son referencias a cotizaciones reales (proveedor +
+            // valor unitario ya cargado vía LEFT JOIN); VALOR_TOTAL ya viene
+            // calculado por el trigger de BD, no se recalcula aquí a mano.
+            $o1 = floatval($item['OF1_VALOR']);
+            $o2 = floatval($item['OF2_VALOR']);
+            $o3 = floatval($item['OF3_VALOR']);
 
-            $t1 = $o1 > 0 ? $o1 * $cantTotal : 0;
-            $t2 = $o2 > 0 ? $o2 * $cantTotal : 0;
-            $t3 = $o3 > 0 ? $o3 * $cantTotal : 0;
+            $t1 = floatval($item['OF1_TOTAL']);
+            $t2 = floatval($item['OF2_TOTAL']);
+            $t3 = floatval($item['OF3_TOTAL']);
 
-            // Calcular promedio unitario
-            $ofertasValidas = 0;
-            $sumaOfertas = 0;
-            if ($o1 > 0) { $sumaOfertas += $o1; $ofertasValidas++; }
-            if ($o2 > 0) { $sumaOfertas += $o2; $ofertasValidas++; }
-            if ($o3 > 0) { $sumaOfertas += $o3; $ofertasValidas++; }
-
-            $promedioUnitario = $ofertasValidas > 0 ? ($sumaOfertas / $ofertasValidas) : 0;
-            $promedioTotal = $promedioUnitario * $cantTotal;
+            $promedioUnitario = floatval($item['VALOR_UNITARIO_PROMEDIO']);
+            $promedioTotal = floatval($item['VALOR_TOTAL_PROMEDIO']);
 
             $formatMoney = function($val) {
                 return $val > 0 ? "$ " . number_format($val, 2, ',', '.') : "$ -";
             };
+
+            $filaExist = $existenciaMap[(int) $item['ID_MATRIZ_ITEM']] ?? null;
+            if ($filaExist === null) {
+                $existenciaTexto = 'Sin certificar';
+                $existenciaColor = '#666';
+            } elseif ((int) $filaExist['EN_EXISTENCIA'] === 1) {
+                $existenciaTexto = 'Disponible (' . (int) $filaExist['CANTIDAD_DISPONIBLE'] . ')';
+                $existenciaColor = '#15803d';
+            } else {
+                $existenciaTexto = 'No disponible';
+                $existenciaColor = '#b91c1c';
+            }
         ?>
         <tr>
             <td><?= $counter++ ?></td>
@@ -195,6 +216,7 @@ if ($isExport) {
             
             <td style="font-weight: bold;"><?= $formatMoney($promedioUnitario) ?></td>
             <td style="font-weight: bold; background-color: #e2efda;"><?= $formatMoney($promedioTotal) ?></td>
+            <td style="font-weight: bold; color: <?= $existenciaColor ?>;"><?= htmlspecialchars($existenciaTexto) ?></td>
         </tr>
         <?php endforeach; ?>
     </tbody>

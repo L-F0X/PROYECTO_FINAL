@@ -20,9 +20,37 @@ if (!defined('ACCESO_VALIDO')) {
 
 <!-- Panel de acciones rápidas y buscador -->
 <div class="panel-card" style="margin-bottom: 25px;">
-    <div class="actions-bar no-print" style="border: none; padding: 0; margin: 0 0 20px; justify-content: flex-end;">
+    <div class="actions-bar no-print" style="border: none; padding: 0; margin: 0 0 20px; justify-content: flex-end; gap: 10px;">
+        <?php if (!empty($itemsInventario) || $totalItems > 0): ?>
+        <form method="POST" action="index.php?tab=stock" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+            <input type="hidden" name="action" value="emitir_certificado_inventario">
+            <button type="submit" class="btn btn-info js-confirm-submit" data-confirm-title="Emitir Certificado de Inventario" data-confirm-message="¿Emitir un certificado con el inventario físico completo tal como está en este momento?" data-confirm-label="Emitir" data-confirm-danger="false">📋 Emitir Certificado de Inventario</button>
+        </form>
+        <?php endif; ?>
         <button class="btn btn-sena" onclick="mostrarModalNuevoArticulo()">+ Nuevo Artículo de Stock</button>
     </div>
+
+    <?php if (!empty($certificadosInventario)): ?>
+    <div style="border-top: 1px solid #eee; margin-top: 20px; padding-top: 18px;">
+        <h3 style="margin: 0 0 4px; font-size: 15px;">Certificados de Inventario Emitidos</h3>
+        <p class="dashboard-subtitle" style="margin: 0 0 10px;">Últimas fotos oficiales del inventario físico completo.</p>
+        <ul style="list-style:none; margin:0; padding:0;">
+            <?php foreach ($certificadosInventario as $ci): ?>
+                <li style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid #eee;">
+                    <span style="display:flex; align-items:center; gap:10px;">
+                        <span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:#e0f2fe; color:#0284c7; font-size:16px; flex-shrink:0;">📋</span>
+                        <span>
+                            <strong style="display:block; font-size:14px; color:#0f172a;"><?= htmlspecialchars($ci['NUMERO_CERTIFICADO']) ?></strong>
+                            <span style="font-size:12px; color:#888;"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($ci['FECHA_EMISION']))) ?></span>
+                        </span>
+                    </span>
+                    <a href="certificado_inventario_pdf.php?id=<?= (int) $ci['ID_CERTIFICADO_INV'] ?>" class="btn btn-info" style="padding: 6px 14px; font-size: 12px; text-decoration: none; white-space: nowrap;">Ver / Exportar</a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
 
     <form method="GET" action="index.php" id="form-busqueda" style="margin-bottom: 10px;">
         <input type="hidden" name="tab" value="stock">

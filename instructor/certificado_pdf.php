@@ -5,6 +5,7 @@
 // Accesible por almacenista/coordinador/administrador para cualquier lote;
 // un instructor solo puede ver los certificados de sus propios lotes.
 require_once '../conexion.php';
+require_once '../certificado_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -68,6 +69,31 @@ $stmtItems = $pdo->prepare("
 ");
 $stmtItems->execute([$cert['ID_LOTE']]);
 $materiales = $stmtItems->fetchAll();
+
+// Existencia real por ítem (foto tomada al momento de emitir el certificado,
+// emparejada por código UNSPSC contra el stock físico del almacén).
+$existenciaMap = obtener_existencia_lote($pdo, intval($cert['ID_LOTE']));
+$totalMateriales = count($materiales);
+$enExistenciaCount = 0;
+foreach ($materiales as $mat) {
+    $fila = $existenciaMap[(int) $mat['ID_MATRIZ_ITEM']] ?? null;
+    if ($fila && (int) $fila['EN_EXISTENCIA'] === 1) {
+        $enExistenciaCount++;
+    }
+}
+if ($totalMateriales === 0) {
+    $textoIntro = 'El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado la revisión y consolidación del requerimiento correspondiente al lote institucional indicado.';
+    $textoCierre = '';
+} elseif ($enExistenciaCount === 0) {
+    $textoIntro = 'El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado la revisión y consolidación del requerimiento correspondiente al lote institucional indicado, y que los siguientes materiales no se encuentran actualmente en existencia dentro del almacén, por lo cual se remite el presente certificado para dar trámite a su proceso de adquisición y compra:';
+    $textoCierre = 'Se autoriza dar inicio al proceso de adquisición de la totalidad de los materiales aquí listados para la consolidación de la oferta académica actual.';
+} elseif ($enExistenciaCount === $totalMateriales) {
+    $textoIntro = 'El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado la revisión del requerimiento correspondiente al lote institucional indicado, y que la totalidad de los siguientes materiales SÍ se encuentran actualmente en existencia dentro del almacén:';
+    $textoCierre = 'Al encontrarse la totalidad de los materiales en existencia, no se requiere dar trámite a un proceso de adquisición para este lote.';
+} else {
+    $textoIntro = 'El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado la revisión del requerimiento correspondiente al lote institucional indicado. De los siguientes materiales, se indica cuáles SÍ se encuentran actualmente en existencia dentro del almacén y cuáles requieren trámite de adquisición:';
+    $textoCierre = 'Se autoriza dar inicio al proceso de adquisición únicamente de los materiales aquí marcados como "No disponible".';
+}
 
 $rolNombre = htmlspecialchars($_SESSION['rol_nombre'] ?? 'Usuario');
 $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Usuario');
@@ -211,44 +237,53 @@ $firmaInstructor = firma_nombre_corto($cert['NOMBRE'] ?? null, $cert['APELLIDO']
             <div><strong>Fecha de Certificación:</strong> <?= htmlspecialchars(!empty($cert['FECHA_EMISION']) ? date('d/m/Y', strtotime($cert['FECHA_EMISION'])) : date('d/m/Y')) ?></div>
         </div>
 
-        <p class="cert-footer-text">
-            El Almacén Central del Servicio Nacional de Aprendizaje (SENA) certifica que se ha realizado
-            la revisión y consolidación del requerimiento correspondiente al lote institucional indicado,
-            y que los siguientes materiales no se encuentran actualmente en existencia dentro del almacén,
-            por lo cual se remite el presente certificado para dar trámite a su proceso de adquisición y compra:
-        </p>
+        <p class="cert-footer-text"><?= htmlspecialchars($textoIntro) ?></p>
 
         <table class="cert-table">
             <thead>
                 <tr>
                     <th>Descripción del Material</th>
                     <th>Código UNSPSC</th>
-                    <th>Cantidad</th>
+                    <th>Cantidad Solicitada</th>
                     <th>Unidad de Medida</th>
+                    <th>Existencia</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($materiales)): ?>
                     <tr>
-                        <td colspan="4" style="text-align: center; color: #64748b;">Este lote no tiene materiales registrados.</td>
+                        <td colspan="5" style="text-align: center; color: #64748b;">Este lote no tiene materiales registrados.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($materiales as $mat): ?>
+                        <?php
+                        $filaExistencia = $existenciaMap[(int) $mat['ID_MATRIZ_ITEM']] ?? null;
+                        if ($filaExistencia === null) {
+                            $etiquetaExistencia = 'No determinado';
+                            $colorExistencia = '#64748b';
+                        } elseif ((int) $filaExistencia['EN_EXISTENCIA'] === 1) {
+                            $etiquetaExistencia = 'Disponible (' . (int) $filaExistencia['CANTIDAD_DISPONIBLE'] . ' en stock)';
+                            $colorExistencia = '#15803d';
+                        } else {
+                            $etiquetaExistencia = 'No disponible';
+                            $colorExistencia = '#b91c1c';
+                        }
+                        ?>
                         <tr>
                             <td><?= htmlspecialchars($mat['DESCRIPCION_BIEN']) ?></td>
                             <td><?= htmlspecialchars($mat['CODIGO_UNSPSC'] ?: 'Sin asignar') ?></td>
                             <td><?= htmlspecialchars($mat['CANTIDAD_REGULAR']) ?></td>
                             <td><?= htmlspecialchars($mat['UNIDAD_MEDIDA'] ?: 'Unidad') ?></td>
+                            <td style="color: <?= $colorExistencia ?>; font-weight: 600;"><?= htmlspecialchars($etiquetaExistencia) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
         </table>
 
-        <p class="cert-footer-text">
-            Se autoriza dar inicio al proceso de adquisición de los materiales aquí listados
-            para la consolidación de la oferta académica actual.
-        </p>
+        <?php if ($textoCierre !== ''): ?>
+        <p class="cert-footer-text"><?= htmlspecialchars($textoCierre) ?></p>
+        <?php endif; ?>
 
         <div class="cert-signatures">
             <div class="cert-sign-block">
