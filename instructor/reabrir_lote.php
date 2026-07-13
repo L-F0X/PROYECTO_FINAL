@@ -34,13 +34,14 @@ if ($idLote > 0) {
         $stmt = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Borrador' WHERE ID_LOTE = ? AND ID_SOLICITANTE = ? AND ESTADO_TRAMITE = 'Rechazado'");
         $stmt->execute([$idLote, $usuarioId]);
 
-        // Los ítems que ya se habían enviado (ESTADO_ITEM='Pendiente') deben
-        // volver a 'Borrador' junto con el lote; si no, quedan en un limbo:
-        // no seleccionables para reenviar (fichas_tecnicas_creadas.php solo
-        // deja marcar ítems en Borrador) y a la vez invisibles para el
+        // Los ítems que ya se habían enviado (ESTADO_ITEM='Rechazado', o el
+        // 'Pendiente' que rechazar_lote.php ya no deja desde este parche)
+        // deben volver a 'Borrador' junto con el lote; si no, quedan en un
+        // limbo: no seleccionables para reenviar (fichas_tecnicas_creadas.php
+        // solo deja marcar ítems en Borrador) y a la vez invisibles para el
         // coordinador (revisar_lote.php no muestra lotes en Borrador).
         if ($stmt->rowCount() > 0) {
-            $stmtItems = $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = 'Borrador' WHERE ID_LOTE = ? AND ESTADO_ITEM = 'Pendiente'");
+            $stmtItems = $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = 'Borrador' WHERE ID_LOTE = ? AND ESTADO_ITEM IN ('Pendiente', 'Rechazado')");
             $stmtItems->execute([$idLote]);
         }
 

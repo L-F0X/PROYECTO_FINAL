@@ -72,6 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateStmt = $pdo->prepare("UPDATE lote_requerimiento SET ESTADO_TRAMITE = 'Aprobado' WHERE ID_LOTE = ?");
             $updateStmt->execute([$idLote]);
 
+            // Sincronizar el estado de los ítems enviados con la decisión —
+            // si no, quedan mostrando "Pendiente" para siempre aunque el
+            // lote ya esté decidido (matriz.php y fichas_tecnicas_creadas.php
+            // muestran mi.ESTADO_ITEM directamente).
+            $pdo->prepare("UPDATE matriz_item SET ESTADO_ITEM = 'Aprobado' WHERE ID_LOTE = ? AND ESTADO_ITEM = 'Pendiente'")->execute([$idLote]);
+
             // Registrar la decisión en la tabla de auditoría
             $auditStmt = $pdo->prepare("INSERT INTO aprobacion_rechazo_lote (ID_LOTE, ID_COORDINADOR, ESTADO_DECISION, JUSTIFICACION) VALUES (?, ?, 'Aprobado', ?)");
             $auditStmt->execute([$idLote, intval($_SESSION['usuario_id']), 'Lote aprobado por coordinador']);
@@ -130,7 +136,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <img src="../imagenes/sena-logo.png" alt="SENA" style="height:36px; width:auto;" class="sena-logo-img">
         <div>
             <h1 class="header-title">BICERGAM | <span class="accent-color">Coordinador</span></h1>
-            <div class="user-greeting">Coordinador de Compras: <strong><?= $usuarioNombre ?></strong> <span class="role-badge">(Coordinador)</span></div>
+            <div class="user-greeting">Solicitante: <strong><?= $usuarioNombre ?></strong></div>
         </div>
     </div>
     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">

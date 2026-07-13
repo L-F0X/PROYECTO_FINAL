@@ -23,3 +23,18 @@ function obtener_iva_vigente(PDO $pdo): ?array {
     $row = $stmt->fetch();
     return $row ?: null;
 }
+
+// Cada oferta de un proveedor puede traer su propio porcentaje de IVA (no
+// todos los proveedores facturan el mismo bien con la misma tarifa), así que
+// esto no reutiliza la tasa "vigente" del ítem: busca una fila existente en
+// el catálogo iva con ese porcentaje exacto, o crea una nueva si no existe.
+function obtener_o_crear_iva_por_porcentaje(PDO $pdo, float $porcentaje): int {
+    $stmt = $pdo->prepare("SELECT ID_IVA FROM iva WHERE PORCENTAJE = ? LIMIT 1");
+    $stmt->execute([$porcentaje]);
+    $idIva = $stmt->fetchColumn();
+    if ($idIva) {
+        return (int) $idIva;
+    }
+    $pdo->prepare("INSERT INTO iva (PORCENTAJE, DESCRIPCION, FECHA_VIGENCIA) VALUES (?, '', CURDATE())")->execute([$porcentaje]);
+    return (int) $pdo->lastInsertId();
+}
