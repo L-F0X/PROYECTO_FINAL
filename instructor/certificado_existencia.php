@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../certificado_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -90,6 +91,12 @@ $stmt->execute($params);
 $certificados = $stmt->fetchAll();
 $total = count($certificados);
 $isIframe = isset($_GET['iframe']) ? true : false;
+
+// Certificados de inventario general (todo el stock físico del almacén,
+// no ligados a ningún lote propio) — visibles para cualquier rol, no solo
+// almacenista, ya que certifican existencias institucionales.
+asegurar_tablas_certificado_inventario($pdo);
+$certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFICADO, FECHA_EMISION FROM certificado_inventario ORDER BY FECHA_EMISION DESC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -280,6 +287,27 @@ $isIframe = isset($_GET['iframe']) ? true : false;
                 <p class="dashboard-subtitle">Búsqueda y visualización de certificados asociados a tus lotes.</p>
             </div>
         </div>
+
+        <?php if (!empty($certificadosInventario)): ?>
+        <div class="panel-card" style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 4px; font-size: 15px;">Certificados de Inventario General</h3>
+            <p class="dashboard-subtitle" style="margin: 0 0 10px;">Fotos oficiales del inventario físico completo del almacén, emitidas por el almacenista.</p>
+            <ul style="list-style:none; margin:0; padding:0;">
+                <?php foreach ($certificadosInventario as $ci): ?>
+                    <li style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid #eee;">
+                        <span style="display:flex; align-items:center; gap:10px;">
+                            <span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:#e0f2fe; color:#0284c7; font-size:16px; flex-shrink:0;">📋</span>
+                            <span>
+                                <strong style="display:block; font-size:14px; color:#0f172a;"><?= htmlspecialchars($ci['NUMERO_CERTIFICADO']) ?></strong>
+                                <span style="font-size:12px; color:#888;"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($ci['FECHA_EMISION']))) ?></span>
+                            </span>
+                        </span>
+                        <a href="../almacenista/certificado_inventario_pdf.php?id=<?= (int) $ci['ID_CERTIFICADO_INV'] ?>" class="btn btn-info" style="padding: 6px 14px; font-size: 12px; text-decoration: none; white-space: nowrap;">Ver / Exportar</a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
 
         <div class="panel-card">
 
