@@ -2,6 +2,7 @@
 require_once '../conexion.php';
 require_once '../notificaciones.php';
 require_once '../certificado_helper.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -204,7 +205,7 @@ $certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFI
                     <thead>
                         <tr>
                             <th>N°</th>
-                            <th>ID Lote</th>
+                            <th>N° Lote</th>
                             <th>Nombre Lote</th>
                             <th>Instructor</th>
                             <th>Número Certificado</th>
@@ -234,7 +235,7 @@ $certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFI
                                     <td style="padding: 12px;"><?= $contador++ ?></td>
                                     <td style="padding: 12px;">
                                         <a href="revisar_lote.php?id=<?= htmlspecialchars($cert['ID_LOTE']) ?>" style="color: #39A900; text-decoration: none;">
-                                            <?= htmlspecialchars($cert['ID_LOTE']) ?>
+                                            #<?= numero_visible_lote($pdo, (int) $cert['ID_LOTE'], (int) $cert['ID_SOLICITANTE']) ?>
                                         </a>
                                     </td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($cert['LOTE_NOMBRE']) ?></td>

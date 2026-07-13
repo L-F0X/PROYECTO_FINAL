@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -203,7 +204,7 @@ $total = count($lotes);
                 <table style="width: 100%; margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>N°</th>
                             <th>Nombre del Lote</th>
                             <th>Estado Trámite</th>
                             <th>Fecha Creación</th>
@@ -228,7 +229,7 @@ $total = count($lotes);
                         <?php else: ?>
                             <?php foreach($lotes as $lote): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                                    <td>#<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], $usuarioId) ?></td>
                                     <td><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
                                     <td><strong><?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></strong></td>
                                     <td><?= htmlspecialchars($lote['FECHA_CREACION']) ?></td>

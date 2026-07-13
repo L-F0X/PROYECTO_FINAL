@@ -123,7 +123,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>N°</th>
                             <th>NIT</th>
                             <th>Razón Social</th>
                             <th>Correo</th>
@@ -147,9 +147,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($proveedores as $p): ?>
+                            <?php $numProvAlm = 1; foreach ($proveedores as $p): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($p['ID_PROVEEDOR']) ?></td>
+                                    <td><?= $numProvAlm++ ?></td>
                                     <td><?= htmlspecialchars($p['NIT']) ?></td>
                                     <td><?= htmlspecialchars($p['RAZON_SOCIAL']) ?></td>
                                     <td><?= htmlspecialchars($p['EMAIL']) ?></td>

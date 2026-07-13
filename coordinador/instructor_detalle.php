@@ -1,6 +1,7 @@
 <?php
 require_once '../conexion.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -139,15 +140,9 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <h3>Información Personal</h3>
                 <table style="width: 100%;">
                     <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">ID Usuario:</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['ID_USUARIO']) ?></td>
                         <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Documento:</td>
                         <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['DOCUMENTO']) ?></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Correo:</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee;"><?= htmlspecialchars($instructor['EMAIL']) ?></td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Estado:</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 25%;">Estado:</td>
                         <td style="padding: 10px; border-bottom: 1px solid #eee;">
                             <span style="padding: 4px 8px; border-radius: 4px; <?= $instructor['ESTADO'] === 'Activo' ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;' ?>">
                                 <?= htmlspecialchars($instructor['ESTADO']) ?>
@@ -163,7 +158,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                 <table style="width: 100%; margin-top: 10px;">
                     <thead>
                         <tr style="background-color: #f5f5f5;">
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">ID Lote</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">N° Lote</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Nombre</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Items</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ccc;">Estado</th>
@@ -189,7 +184,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                         <?php else: ?>
                             <?php foreach ($lotes as $lote): ?>
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 12px;"><?= htmlspecialchars($lote['ID_LOTE']) ?></td>
+                                    <td style="padding: 12px;">#<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $instructor['ID_USUARIO']) ?></td>
                                     <td style="padding: 12px;"><?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></td>
                                     <td style="padding: 12px; text-align: center;"><?= htmlspecialchars($lote['ITEMS_COUNT']) ?></td>
                                     <td style="padding: 12px;">

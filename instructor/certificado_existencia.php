@@ -4,6 +4,7 @@ require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
 require_once '../certificado_helper.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -359,9 +360,8 @@ $certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFI
                 <table class="lotes-table">
                     <thead>
                         <tr>
-                            <th>ID Certificado</th>
                             <th>Número de Certificado</th>
-                            <th>ID Lote</th>
+                            <th>Lote</th>
                             <th>Nombre del Lote</th>
                             <th>Estado del Lote</th>
                             <th>Fecha Emisión</th>
@@ -371,7 +371,7 @@ $certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFI
                     <tbody>
                         <?php if (empty($certificados)): ?>
                             <tr>
-                                <td colspan="7">
+                                <td colspan="6">
                                     <div class="empty-state">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"
                                              viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
@@ -387,9 +387,8 @@ $certificadosInventario = $pdo->query("SELECT ID_CERTIFICADO_INV, NUMERO_CERTIFI
                         <?php else: ?>
                             <?php foreach ($certificados as $c): ?>
                                 <tr>
-                                    <td class="td-id">#<?= htmlspecialchars($c['ID_CERTIFICADO']) ?></td>
                                     <td class="td-nombre"><strong><?= htmlspecialchars($c['NUMERO_CERTIFICADO']) ?></strong></td>
-                                    <td>#<?= htmlspecialchars($c['ID_LOTE']) ?></td>
+                                    <td>#<?= numero_visible_lote($pdo, (int) $c['ID_LOTE'], $usuarioId) ?></td>
                                     <td class="td-solicitante"><?= htmlspecialchars($c['LOTE_NOMBRE']) ?></td>
                                     <td>
                                         <span class="badge-estado badge-<?= htmlspecialchars(strtolower($c['ESTADO_TRAMITE'])) ?>">

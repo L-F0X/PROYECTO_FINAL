@@ -3,6 +3,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -203,7 +204,7 @@ $total = count($fichas);
     <main class="dashboard-main">
         <div class="dashboard-topbar">
             <div>
-                <h2>Fichas Técnicas del Lote #<?= $idLote ?></h2>
+                <h2>Fichas Técnicas del Lote #<?= numero_visible_lote($pdo, (int) $idLote, $usuarioId) ?></h2>
                 <p class="dashboard-subtitle">Fichas técnicas creadas para los ítems de este lote.</p>
             </div>
         </div>

@@ -2,6 +2,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -181,7 +182,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <div class="role-banner role-coordinador">
                 <h2>Aprobar Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?></p>
+                <p>Lote #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?></p>
             </div>
 
             <div class="panel-card" style="margin-top: 20px;">
@@ -195,7 +196,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
                     <h4 style="margin-top: 0; color: #2e7d32;">¿Estás seguro de que deseas aprobar este lote?</h4>
                     <p style="margin: 8px 0; color: #558b2f;">
                         <strong>Lote:</strong> <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?><br>
-                        <strong>ID:</strong> <?= htmlspecialchars($lote['ID_LOTE']) ?><br>
+                        <strong>Número:</strong> #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?><br>
                         <strong>Estado Actual:</strong> <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?>
                     </p>
                 </div>

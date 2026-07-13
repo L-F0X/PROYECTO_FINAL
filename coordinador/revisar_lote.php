@@ -2,6 +2,7 @@
 require_once '../conexion.php';
 require_once '../csrf.php';
 require_once '../notificaciones.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -164,7 +165,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <div class="container fade-in" style="margin: 0; max-width: 100%;">
             <div class="role-banner role-coordinador">
                 <h2>Lote: <?= htmlspecialchars($lote['LOTE_NOMBRE']) ?></h2>
-                <p>ID: <?= htmlspecialchars($lote['ID_LOTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
+                <p>Lote #<?= numero_visible_lote($pdo, (int) $lote['ID_LOTE'], (int) $lote['ID_SOLICITANTE']) ?> | Estado: <?= htmlspecialchars($lote['ESTADO_TRAMITE']) ?></p>
             </div>
 
             <?php if ($mensajeOferta): ?>

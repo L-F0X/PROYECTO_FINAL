@@ -6,6 +6,7 @@ require_once '../notificaciones.php';
 require_once '../texto_helper.php';
 require_once '../cotizacion_helper.php';
 require_once '../iva_helper.php';
+require_once '../display_helper.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ../login.php');
@@ -688,7 +689,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
         <input type="hidden" name="cantidad_total_calculada" id="cantidad_total_calculada" form="form-guardar-matriz" value="<?= htmlspecialchars($matriz_item['CANTIDAD_REGULAR'] ?? 1) ?>">
 
             <div class="ficha-container">
-                <div class="ficha-title">Configuración de Matriz (ID: <?= htmlspecialchars($id_matriz_item) ?>)</div>
+                <div class="ficha-title">Configuración de Matriz (Ítem #<?= numero_visible_item($pdo, $id_matriz_item, (int) ($matriz_item['ID_LOTE'] ?? 0)) ?>)</div>
                 
                 <div class="ficha-row">
                     <div class="ficha-label">Nombre del Ítem</div>

@@ -80,7 +80,7 @@ if (!defined('ACCESO_VALIDO')) {
         <table style="width: 100%; min-width: 700px;">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>N°</th>
                     <th>Descripción / Artículo</th>
                     <th>Código UNSPSC</th>
                     <th>Unidad Medida</th>
@@ -105,7 +105,7 @@ if (!defined('ACCESO_VALIDO')) {
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($itemsInventario as $item): ?>
+                    <?php $numStock = 1; foreach ($itemsInventario as $item): ?>
                         <?php
                             $cant = intval($item['CANTIDAD']);
                             if ($cant === 0) {
@@ -120,7 +120,7 @@ if (!defined('ACCESO_VALIDO')) {
                             }
                         ?>
                         <tr>
-                            <td><strong>#<?= htmlspecialchars($item['ID_FICHA_TECNICA']) ?></strong></td>
+                            <td><strong>#<?= $numStock++ ?></strong></td>
                             <td>
                                 <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($item['NOMBRE_ITEM']) ?></div>
                                 <div style="font-size: 0.8rem; color: #64748b;"><?= htmlspecialchars($item['DESCRIPCION_GENERAL']) ?></div>

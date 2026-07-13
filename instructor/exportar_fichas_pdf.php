@@ -1,6 +1,7 @@
 <?php
 // instructor/exportar_fichas_pdf.php
 require_once '../conexion.php';
+require_once '../display_helper.php';
 require_once '../vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -13,6 +14,14 @@ if (!isset($_SESSION['usuario_id']) || strtolower(trim($_SESSION['rol_nombre'] ?
 $idLote = isset($_GET['lote']) ? intval($_GET['lote']) : 0;
 if ($idLote === 0) {
     die('Lote no válido');
+}
+
+$usuarioId = intval($_SESSION['usuario_id']);
+$stmtLoteCheck = $pdo->prepare("SELECT ID_SOLICITANTE FROM lote_requerimiento WHERE ID_LOTE = ?");
+$stmtLoteCheck->execute([$idLote]);
+$idSolicitanteLote = $stmtLoteCheck->fetchColumn();
+if ($idSolicitanteLote === false || (int) $idSolicitanteLote !== $usuarioId) {
+    die('Acceso denegado');
 }
 
 $stmt = $pdo->prepare("SELECT * FROM ficha_tecnica ft
@@ -30,7 +39,7 @@ $html = '
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Fichas Técnicas del Lote #' . $idLote . '</title>
+    <title>Fichas Técnicas del Lote #' . numero_visible_lote($pdo, $idLote, $usuarioId) . '</title>
     <style>
         body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; margin: 0; padding: 0; }
         .ficha-container { width: 100%; margin: 0; padding: 0; page-break-after: always; }

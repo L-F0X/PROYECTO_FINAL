@@ -824,7 +824,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
     <table>
         <thead>
             <tr>
-                <th>ID Ítem</th>
+                <th>N°</th>
                 <th>Código UNSPSC</th>
                 <th>Descripción del Bien</th>
                 <th>Necesidad</th>
@@ -838,12 +838,12 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
             </tr>
         </thead>
         <tbody>
-                <?php foreach($items as $item): ?>
+                <?php $numItem = 1; foreach($items as $item): ?>
                     <tr>
-                        <td>#<?= htmlspecialchars($item['ID_MATRIZ_ITEM']) ?></td>
+                        <td>#<?= $numItem++ ?></td>
                         <td><?= htmlspecialchars($item['CODIGO_UNSPSC'] ?? 'SIN_ASIGNAR') ?></td>
                         <td><strong><?= htmlspecialchars($item['DESCRIPCION_BIEN']) ?></strong></td>
-                        <td><?= htmlspecialchars($item['ID_NECESIDAD'] ? 'Necesidad #' . $item['ID_NECESIDAD'] : 'N/A') ?></td>
+                        <td><?= $item['ID_NECESIDAD'] ? 'Registrada' : 'N/A' ?></td>
                         <td><?= htmlspecialchars($item['UNIDAD_MEDIDA'] ?? 'N/A') ?></td>
                         <td><?= htmlspecialchars($item['CANTIDAD_REGULAR']) ?></td>
                         <td><?= $item['PORCENTAJE'] !== null ? htmlspecialchars(rtrim(rtrim(number_format($item['PORCENTAJE'], 2), '0'), '.')) . '%' : 'N/A' ?></td>

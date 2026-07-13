@@ -276,7 +276,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 } elseif ($stmtCertCheck->fetch()) {
                     $errorMsg = "Este lote ya cuenta con un certificado de existencia emitido.";
                 } else {
-                    $numCertificado = "CERT-" . str_pad($id_lote, 6, "0", STR_PAD_LEFT) . "-" . time();
+                    // Número de certificado legible y consecutivo (por año), en vez de
+                    // exponer el ID del lote más una marca de tiempo Unix cruda. Esta
+                    // tabla nunca se purga (a diferencia de certificado_inventario, que
+                    // sí tiene límite FIFO), así que un conteo simple da una secuencia
+                    // limpia 0001, 0002... sin arrastrar huecos de IDs viejos.
+                    $siguienteNumCert = 1 + (int) $pdo->query("SELECT COUNT(*) FROM certificado_existencia")->fetchColumn();
+                    $numCertificado = "CERT-" . date('Y') . "-" . str_pad($siguienteNumCert, 4, "0", STR_PAD_LEFT);
                     $stmtInsert = $pdo->prepare("INSERT INTO certificado_existencia (ID_LOTE, NUMERO_CERTIFICADO, ID_ALMACENISTA) VALUES (?, ?, ?)");
                     $stmtInsert->execute([$id_lote, $numCertificado, $usuarioId]);
                     $idCertificadoNuevo = (int) $pdo->lastInsertId();
