@@ -75,7 +75,6 @@ $pdo->prepare("UPDATE notificacion SET LEIDA = 1 WHERE ID_USUARIO = ? AND LEIDA 
         <div class="sidebar-group">
             <h4>Administración</h4>
             <a href="index.php" class="sidebar-link">Gestión Usuarios</a>
-            <a href="importar_unspsc.php" class="sidebar-link">Importar UNSPSC</a>
             <a href="notificaciones.php" class="sidebar-link sidebar-link--primary active">Notificaciones</a>
         </div>
         <div class="sidebar-group sidebar-group--session">
